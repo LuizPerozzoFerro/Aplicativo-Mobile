@@ -73,12 +73,15 @@ que o inviabiliza como gatilho de alerta em tempo real (A2). O método por event
 reflete o uso imediatamente e, depois de corrigido, bateu exatamente com o número
 do Bem-estar digital da Samsung para o mesmo app.
 
-A leitura passa a ser por `queryEvents`, somando os intervalos entre
-`ACTIVITY_RESUMED` e `ACTIVITY_PAUSED`, **indexados por activity e não por
-pacote** (ver achado A1 — indexar por pacote causou um erro de 63 minutos).
+**Motivo 2:** o agregado devolve uso do dia anterior como se fosse de hoje,
+porque agrega baldes cujas bordas não coincidem com a meia-noite.
 
-O método agregado continua no código como termo de comparação. Ele não está
-"quebrado": para um total do dia sem urgência, funciona.
+A leitura passa a ser por `queryEvents`, com chave `pacote|classe` e contagem de
+`STOPPED` pendentes (ver achado A1 — o tratamento ingênuo do `STOPPED` custou dois
+erros, de 63 e de 15 minutos).
+
+O método agregado continua no código apenas como termo de comparação e evidência
+para o relatório.
 
 ---
 
@@ -110,88 +113,116 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 |---|---|---|
 | S1 | ✅ Funciona | App instalado e aberto no Galaxy S22 (SM-S901E, Android 16 / API 36 / One UI 8.0) em 17/09/2026. Tela de laboratório renderizada, capturas em `docs/relatorios/evidencias/` |
 | S4 | ✅ Funciona | Evento gravado pelo Kotlin apareceu na tela com `source: UsageReader`. Arquivo lido direto do aparelho com `adb shell run-as com.norte.lab.dev cat files/lab-events.jsonl`. O log **sobreviveu à reinstalação do app** |
-| A1 | ⚠️ Funciona com limitações | Lista de minutos por app funciona, mas só pelo caminho de eventos. Ver achado abaixo |
+| A1 | ✅ Funciona | Leitura por `queryEvents` coincidiu com a contabilidade do sistema no mesmo minuto (`1:41:10`), 17/09/2026. O caminho agregado foi descartado por dois defeitos medidos. Ver achado abaixo |
 
-### Achado A1 — precisão da leitura de uso
+### Achado A1 — como medir tempo de uso por app, e o que não funciona
 
-O critério da spec ("lista com minutos de hoje por app") é atendido. Mas chegar
-a números confiáveis exigiu duas correções, e uma delas foi um erro nosso.
-
-#### O que funciona
-
-`queryEvents`, somando os intervalos entre `ACTIVITY_RESUMED` e
-`ACTIVITY_PAUSED`. Validação independente em 17/09/2026: para o app Config., o
-nosso número (7 min) bateu **exatamente** com o do Bem-estar digital da Samsung
-(7 m).
-
-#### Erro cometido e corrigido
-
-A primeira versão tratava `ACTIVITY_STOPPED` como fim de intervalo. Está errado:
-esse evento fala do ciclo de vida de **uma instância** de activity, e numa
-recriação o `STOPPED` da instância antiga chega depois do `RESUMED` da nova.
-Trecho real do log do sistema:
+**Resultado: funciona.** Em 17/09/2026, às 16:12, a leitura do protótipo e a
+contabilidade interna do Android coincidiram no mesmo minuto:
 
 ```
-12:13:18  ACTIVITY_RESUMED
-12:13:51  ACTIVITY_PAUSED
-12:13:51  ACTIVITY_RESUMED    <- instância nova assume
-12:13:51  ACTIVITY_STOPPED    <- instância antiga sendo destruída
-13:17:04  ACTIVITY_PAUSED
+sistema (dumpsys usagestats):  totalTimeUsed = 1:41:10
+protótipo (queryEvents):       1 h 41 min
 ```
 
-Como o índice era por pacote, aquele `STOPPED` das 12:13:51 fechou um intervalo
-que estava vivo, e o app ficou 63 minutos em primeiro plano sem ser contado: a
-leitura dava 6 min onde o correto era 1 h 10.
+Também coincidiram `com.samsung.android.forest` (8 min), `com.android.settings`
+(7 min) e `com.sec.android.app.launcher` (2 min), conferidos contra um cálculo
+independente feito em `awk` sobre o log do sistema.
 
-**Correção:** indexar por activity (`pacote|classe`) e fechar intervalo apenas em
-`ACTIVITY_PAUSED`. Depois disso o número passou a bater com o do sistema.
+#### A regra que funciona
 
-#### Erro de método (importante)
+Reconstruir o uso a partir de `queryEvents`, com chave `pacote|classe`:
 
-A conclusão anterior registrada aqui — "o `totalTimeInForeground` conta tela
-apagada" — **foi retirada**. Ela vinha de um teste mal controlado: houve 67
-minutos entre duas leituras, e presumiu-se que o aparelho estivera bloqueado
-esse tempo todo. O responsável apontou que não foi isso. O log do sistema
-confirmou:
+| Evento | Ação |
+|---|---|
+| `ACTIVITY_RESUMED` | abre intervalo |
+| `ACTIVITY_PAUSED` | fecha intervalo **e** marca um `STOPPED` pendente |
+| `ACTIVITY_STOPPED` | se houver pendência, apenas consome a pendência; senão, fecha |
+| `SCREEN_NON_INTERACTIVE` | fecha tudo o que estiver aberto |
 
+O tratamento do `STOPPED` é o ponto delicado, e custou dois erros até acertar.
+
+#### Por que o `STOPPED` é ambíguo
+
+Ele aparece em três situações que exigem respostas diferentes:
+
+**1. Recriação da activity.** Os eventos se cruzam no mesmo segundo:
 ```
-13:17:10  SCREEN_NON_INTERACTIVE
-13:21:18  SCREEN_INTERACTIVE
+12:13:51 PAUSED   instanceId=112733363   (instância velha)
+12:13:51 RESUMED  instanceId=264872490   (instância nova)
+12:13:51 STOPPED  instanceId=112733363   (velha, chega por último)
 ```
+Deixar esse `STOPPED` fechar o intervalo perdeu **63 minutos** de uso real.
 
-A tela ficou apagada **4 minutos**, não 67. Nos outros 63 ela esteve acesa com o
-app à frente (a opção "Permanecer ativo" estava ligada e o aparelho carregando).
-Ou seja, o agregado estava certo e a nossa leitura é que estava quebrada — o
-oposto do que se concluiu.
+**2. App morto sem `PAUSED`** (reinstalação, por exemplo):
+```
+13:21:19 RESUMED
+13:36:42 STOPPED    <- único sinal de que o uso terminou
+```
+Ignorar o `STOPPED` aqui perdeu outros **15 minutos**.
 
-**Lição para os próximos experimentos:** não inferir o estado do aparelho a
-partir do relógio. O `dumpsys usagestats` dá o histórico com carimbo de tempo,
-incluindo tela ligando e desligando, e deve ser coletado junto de cada medição.
+**3. Uso de duração zero.** O Android Auto abriu e fechou no mesmo segundo
+(`RESUMED, PAUSED, STOPPED` às 15:04:39) e o sistema contabiliza `00:00`.
 
-#### Limitação confirmada: atraso do método agregado
+A contagem de pendências resolve os três: no caso 1 o `PAUSED` já fechou e deixou
+a pendência, então o `STOPPED` é ignorado; no caso 2 não há pendência, então ele
+fecha; no caso 3 o `PAUSED` fecha com zero e o `STOPPED` é consumido.
 
-Leituras às 12:03 e 12:06 devolveram valores idênticos, com o app em uso no
-intervalo; às 12:14 já haviam mudado. O caminho agregado atualiza em lotes, com
-atraso de vários minutos. Isso basta para descartá-lo como gatilho de alerta em
-tempo real, que é o que o A2 precisa.
+> O `instanceId` desambiguaria diretamente, e aparece no `dumpsys`, mas
+> `getInstanceId()` **não é API pública** — não compila. Daí a contagem de
+> pendências.
 
-#### Em aberto
+#### O que NÃO funciona: `queryAndAggregateUsageStats`
 
-- **Divergência residual.** Às 13:38, Norte Lab: agregado 1 h 25, eventos 1 h 10.
-  Do intervalo de 15 min, 4 min correspondem à janela de tela apagada; o restante
-  não está explicado.
-- **O agregado conta tela apagada?** Não sabemos. A pergunta segue aberta e
-  precisa de um teste controlado: registrar hora de início, bloquear por um tempo
-  conhecido, e conferir contra o `dumpsys` antes de concluir.
-- **Galeria** aparece no agregado (3 min) e some nos eventos, mesmo após a
-  correção. Investigar no A2.
+Dois defeitos independentes, ambos medidos:
+
+**Vaza uso do dia anterior.** A Galeria apareceu com 3 min "de hoje" sem ter
+nenhum evento de primeiro plano hoje. A linha do sistema explica:
+```
+package=com.sec.android.gallery3d totalTimeUsed="02:50"
+   lastTimeUsed="2026-09-16 17:16:29"
+```
+São 3 minutos de **ontem**. O método agrega os baldes do sistema, cujas bordas não
+coincidem com a meia-noite, e devolve o balde inteiro para qualquer consulta que o
+intercepte. O mesmo efeito explica o `Config.` marcando 10 min no agregado contra
+7 min reais de hoje.
+
+**Atrasa vários minutos.** Leituras às 12:03 e 12:06 devolveram valores idênticos
+com o app em uso no intervalo; às 12:14 já haviam mudado. Sozinho isso o
+inviabiliza como gatilho de alerta no momento do risco, que é o que o A2 precisa.
+
+#### Resposta à dúvida sobre tela apagada
+
+**Não se aplica.** Quando a tela apaga, o app recebe `ACTIVITY_PAUSED` no mesmo
+segundo:
+```
+13:17:10 SCREEN_NON_INTERACTIVE
+13:17:10 ACTIVITY_PAUSED
+```
+Não existe "primeiro plano com tela apagada" neste aparelho, então nenhum dos dois
+métodos conta esse tempo. A hipótese anterior de que o agregado contava tela
+apagada estava errada e foi retirada; o fechamento em `SCREEN_NON_INTERACTIVE`
+ficou no código apenas como rede de segurança para fabricantes que se comportem
+de outra forma.
+
+#### Erro de método, registrado para não repetir
+
+A conclusão errada nasceu de inferir o estado do aparelho a partir do relógio:
+houve 67 minutos entre duas leituras e presumiu-se bloqueio nesse período. O
+responsável apontou que não foi assim, e o `dumpsys usagestats` mostrou 4 minutos
+de tela apagada, não 67.
+
+**Regra daqui em diante:** toda medição de uso vem acompanhada do recorte do
+`dumpsys usagestats` do mesmo período. O relógio não é evidência.
 
 #### Impacto no produto
 
-- Usar `queryEvents` para medir uso e para detectar limite.
-- A tela inicial do sistema aparece na lista e precisa ser filtrada.
-- Antes de prometer precisão de minuto em estatísticas, validar em mais de um
-  aparelho: a diferença entre métodos no mesmo app chegou a 15 minutos.
+- Usar `queryEvents` com a regra acima. Nunca `totalTimeInForeground`.
+- Filtrar a tela inicial do sistema, que aparece na lista como se fosse um app.
+- A borda do dia precisa de atenção no app definitivo: "hoje" para o usuário
+  começa à meia-noite, e o sistema não organiza os dados assim.
+- Validado em um aparelho. Repetir no emulador e, antes do beta, num segundo
+  aparelho físico.
 ### Outros achados do dia
 
 - **Intent direcionado funciona no One UI 8.** `ACTION_USAGE_ACCESS_SETTINGS` com

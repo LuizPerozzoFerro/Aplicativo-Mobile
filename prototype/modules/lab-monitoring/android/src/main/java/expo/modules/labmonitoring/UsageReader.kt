@@ -153,16 +153,17 @@ object UsageReader {
 
     val totals = HashMap<String, Long>()
 
-    // Indexado por activity, nao por pacote. Um app tem varias activities, e numa
-    // recriacao os eventos se cruzam: em 17/09/2026 vimos PAUSED, RESUMED e
-    // STOPPED no mesmo segundo, nessa ordem. Indexar por pacote fazia o evento da
-    // instancia antiga fechar o intervalo da instancia nova.
+    // Intervalos abertos, indexados por pacote|classe.
     val openedAt = HashMap<String, Long>()
+    val ownerOf = HashMap<String, String>()
 
-    fun keyOf(packageName: String, className: String?) = "$packageName|${className.orEmpty()}"
+    // Quantos ACTIVITY_STOPPED ainda sao esperados para uma chave por conta de um
+    // ACTIVITY_PAUSED ja processado. E o que resolve a ambiguidade descrita abaixo.
+    val pendingStops = HashMap<String, Int>()
 
-    fun close(key: String, packageName: String, at: Long) {
+    fun close(key: String, at: Long) {
       val from = openedAt.remove(key) ?: return
+      val packageName = ownerOf.remove(key) ?: return
       if (at > from) {
         totals[packageName] = (totals[packageName] ?: 0L) + (at - from)
       }
@@ -174,37 +175,47 @@ object UsageReader {
     while (events.hasNextEvent()) {
       events.getNextEvent(event)
       val packageName = event.packageName ?: continue
-      val key = keyOf(packageName, event.className)
+      val key = "$packageName|${event.className.orEmpty()}"
 
       when (event.eventType) {
         UsageEvents.Event.ACTIVITY_RESUMED -> {
           openedAt[key] = event.timeStamp
+          ownerOf[key] = packageName
         }
 
-        // Apenas ACTIVITY_PAUSED fecha o intervalo. ACTIVITY_STOPPED nao serve:
-        // ele fala do ciclo de vida de uma instancia, e uma instancia que ja saiu
-        // de cena pode ser destruida bem depois de outra assumir o primeiro plano.
         UsageEvents.Event.ACTIVITY_PAUSED -> {
-          close(key, packageName, event.timeStamp)
+          close(key, event.timeStamp)
+          // O STOPPED correspondente vira depois, as vezes ja com outra instancia
+          // em primeiro plano. Anotamos para nao deixa-lo fechar o intervalo errado.
+          pendingStops[key] = (pendingStops[key] ?: 0) + 1
         }
 
-        // Tela apagando fecha tudo que estiver aberto. No S22 o ACTIVITY_PAUSED ja
-        // chega junto com o desligamento da tela, entao esta rede de seguranca nao
-        // foi necessaria -- mas nem todo fabricante se comporta assim, e contar
-        // tela apagada como uso seria o pior erro possivel neste produto.
-        UsageEvents.Event.SCREEN_NON_INTERACTIVE -> {
-          val at = event.timeStamp
-          openedAt.keys.toList().forEach { openKey ->
-            close(openKey, openKey.substringBefore('|'), at)
+        UsageEvents.Event.ACTIVITY_STOPPED -> {
+          val pending = pendingStops[key] ?: 0
+          if (pending > 0) {
+            // Este STOPPED e o par de um PAUSED ja contabilizado. Ignorar.
+            pendingStops[key] = pending - 1
+          } else {
+            // STOPPED sem PAUSED antes: o app foi morto (numa reinstalacao, por
+            // exemplo). Aqui ele e o unico sinal de que o uso terminou.
+            close(key, event.timeStamp)
           }
+        }
+
+        // Rede de seguranca: tela apagando fecha tudo. No S22 o ACTIVITY_PAUSED ja
+        // chega no mesmo segundo do desligamento da tela, entao na pratica isto
+        // nao muda o resultado -- mas nem todo fabricante se comporta assim, e
+        // contar tela apagada como uso seria o pior erro possivel neste produto.
+        UsageEvents.Event.SCREEN_NON_INTERACTIVE -> {
+          openedAt.keys.toList().forEach { openKey -> close(openKey, event.timeStamp) }
         }
       }
     }
 
     // Quem ainda esta em primeiro plano nao tem evento de saida: conta ate agora.
     openedAt.forEach { (key, from) ->
-      if (end > from) {
-        val packageName = key.substringBefore('|')
+      val packageName = ownerOf[key]
+      if (packageName != null && end > from) {
         totals[packageName] = (totals[packageName] ?: 0L) + (end - from)
       }
     }

@@ -1,0 +1,25 @@
+# Verificação final do A1 — Galaxy S22, 17/09/2026 16:12
+
+Leitura do protótipo (queryEvents):  1 h 41 min
+Contabilidade do sistema:
+  package=com.norte.lab.dev totalTimeUsed="1:41:10" lastTimeUsed="2026-09-17 16:12:08" totalTimeVisible="1:41:16" lastTimeVisible="2026-09-17 16:12:08" lastTimeComponentUsed="2026-09-17 16:12:08" totalTimeFS="00:00" lastTimeFS="1969-12-31 21:00:00" appLaunchCount=11 
+
+## Os três casos ambíguos de ACTIVITY_STOPPED
+
+### 1. Recriação: STOPPED da instância velha chega depois do RESUMED da nova
+  time="2026-09-17 12:13:51" type=ACTIVITY_PAUSED package=com.norte.lab.dev class=com.norte.lab.dev.MainActivity instanceId=112733363 taskRootPackage=com.norte.lab.dev taskRootClass=com.norte.lab.dev.MainActivity flags=0x0 
+  time="2026-09-17 12:13:51" type=ACTIVITY_RESUMED package=com.norte.lab.dev class=com.norte.lab.dev.MainActivity instanceId=264872490 taskRootPackage=com.norte.lab.dev taskRootClass=com.norte.lab.dev.MainActivity flags=0x0 
+  time="2026-09-17 12:13:51" type=ACTIVITY_STOPPED package=com.norte.lab.dev class=com.norte.lab.dev.MainActivity instanceId=112733363 taskRootPackage=com.norte.lab.dev taskRootClass=com.norte.lab.dev.MainActivity flags=0x0 
+
+### 2. App morto: STOPPED sem PAUSED antes
+  time="2026-09-17 13:21:19" type=ACTIVITY_RESUMED package=com.norte.lab.dev class=com.norte.lab.dev.MainActivity instanceId=264872490 taskRootPackage=com.norte.lab.dev taskRootClass=com.norte.lab.dev.MainActivity flags=0x0 
+  time="2026-09-17 13:36:42" type=ACTIVITY_STOPPED package=com.norte.lab.dev class=com.norte.lab.dev.MainActivity instanceId=264872490 taskRootPackage=com.norte.lab.dev taskRootClass=com.norte.lab.dev.MainActivity flags=0x0 
+
+### 3. Uso de duração zero (sistema contabiliza 00:00)
+  time="2026-09-17 15:04:39" type=ACTIVITY_RESUMED package=com.google.android.projection.gearhead class=com.google.android.apps.auto.components.frx.phonescreen.TapHeadUnitActivity instanceId=109474989 taskRootPackage=com.google.android.projection.gearhead taskRootClass=com.google.android.apps.auto.components.frx.phonescreen.TapHeadUnitActivity flags=0x0 
+  time="2026-09-17 15:04:39" type=ACTIVITY_PAUSED package=com.google.android.projection.gearhead class=com.google.android.apps.auto.components.frx.phonescreen.TapHeadUnitActivity instanceId=109474989 taskRootPackage=com.google.android.projection.gearhead taskRootClass=com.google.android.apps.auto.components.frx.phonescreen.TapHeadUnitActivity flags=0x0 
+  time="2026-09-17 15:04:39" type=ACTIVITY_STOPPED package=com.google.android.projection.gearhead class=com.google.android.apps.auto.components.frx.phonescreen.TapHeadUnitActivity instanceId=109474989 taskRootPackage=com.google.android.projection.gearhead taskRootClass=com.google.android.apps.auto.components.frx.phonescreen.TapHeadUnitActivity flags=0x0 
+
+## Vazamento do dia anterior no método agregado
+  package=com.sec.android.gallery3d totalTimeUsed="02:50" lastTimeUsed="2026-09-16 17:16:29" totalTimeVisible="02:51" lastTimeVisible="2026-09-16 17:16:30" lastTimeComponentUsed="2026-09-17 10:47:49" totalTimeFS="00:00" lastTimeFS="1969-12-31 21:00:00" appLaunchCount=2 
+  (3 min atribuídos a hoje; lastTimeUsed é de 16/09)
