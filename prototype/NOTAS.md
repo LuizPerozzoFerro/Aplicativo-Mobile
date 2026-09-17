@@ -64,15 +64,16 @@ sensível, restrita a lançadores, antivírus e gerenciadores de arquivos, e seu
 sem justificativa é motivo de remoção. A declaração `<queries>` mostra só apps com
 ícone na gaveta, que é exatamente o que a tela precisa. **Registrar no A10.**
 
-### D4 — `queryAndAggregateUsageStats` em vez de `queryUsageStats`
-Para os minutos de hoje.
+### D4 — ~~`queryAndAggregateUsageStats`~~ → **`queryEvents`** (revisada em 17/09/2026)
+A decisão original era usar `queryAndAggregateUsageStats` para os minutos de hoje,
+com `queryEvents` como plano B. **O teste no aparelho inverteu isso.**
 
-**Motivo:** `queryUsageStats(INTERVAL_DAILY, ...)` devolve os baldes de intervalo
-que o próprio sistema montou, e as bordas desses baldes não coincidem com "hoje".
-`queryAndAggregateUsageStats(início, agora)` agrega exatamente o intervalo pedido.
-Se os números divergirem do Bem-estar digital, o plano B é `queryEvents`, que dá os
-eventos brutos de entrada e saída de primeiro plano — e que provavelmente será
-necessário de qualquer forma no A2.
+`queryAndAggregateUsageStats` foi descartado para medir uso (ver achado A1 abaixo).
+A leitura passa a ser feita por `queryEvents`, somando os intervalos entre
+`ACTIVITY_RESUMED` e `ACTIVITY_PAUSED`/`ACTIVITY_STOPPED`.
+
+O método agregado continua no código, desativado por padrão, apenas como termo de
+comparação e evidência para o relatório.
 
 ---
 
@@ -102,9 +103,72 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 
 | ID | Resultado | Evidência |
 |---|---|---|
-| S1 | ⏳ compila | `BUILD SUCCESSFUL in 8m 12s`, `app-debug.apk` (131,5 MB) gerado em 16/09/2026. Falta instalar e abrir num aparelho |
-| S4 | ⏳ em andamento | código escrito e compilando; falta ver o evento nativo aparecer na tela |
-| A1 | ⏳ em andamento | código escrito e compilando; falta rodar com o acesso concedido |
+| S1 | ✅ Funciona | App instalado e aberto no Galaxy S22 (SM-S901E, Android 16 / API 36 / One UI 8.0) em 17/09/2026. Tela de laboratório renderizada, capturas em `docs/relatorios/evidencias/` |
+| S4 | ✅ Funciona | Evento gravado pelo Kotlin apareceu na tela com `source: UsageReader`. Arquivo lido direto do aparelho com `adb shell run-as com.norte.lab.dev cat files/lab-events.jsonl`. O log **sobreviveu à reinstalação do app** |
+| A1 | ⚠️ Funciona com limitações | Lista de minutos por app funciona, mas só pelo caminho de eventos. Ver achado abaixo |
+
+### Achado A1 — `totalTimeInForeground` conta tela apagada
+
+O critério da spec ("lista com minutos de hoje por app") é atendido, mas **só com
+`queryEvents`**. O caminho agregado produz números inutilizáveis.
+
+**Teste, 17/09/2026, Galaxy S22.** Aparelho bloqueado por ~67 minutos com o
+protótipo em primeiro plano. Leitura dos dois métodos com 11 segundos de
+diferença, antes e depois:
+
+| Método | 12:14 | 13:21 | Variação |
+|---|---|---|---|
+| `queryAndAggregateUsageStats` | 5 min | **1 h 09 min** | **+64 min** |
+| `queryEvents` | 5 min | **6 min** | +1 min |
+
+Nenhum outro app se moveu em nenhum dos dois métodos. O +1 min do método de
+eventos corresponde ao tempo real de tela ligada (desbloquear e tocar nos botões).
+
+**Conclusão:** `totalTimeInForeground` soma o tempo em que o app está em primeiro
+plano **mesmo com a tela apagada**. Um limite diário baseado nele alertaria quem
+apenas deixou o celular na mesa com o app aberto — o oposto do que o produto
+promete.
+
+**Segundo problema, menor:** o método agregado atualiza com atraso de vários
+minutos. Duas leituras às 12:03 e 12:06 deram valores idênticos; às 12:14 já
+haviam mudado. Sozinho isso já o inviabilizaria para disparar alerta no momento
+do risco.
+
+**Divergência com o Bem-estar digital.** Comparação às 12:06:
+
+| App | Nosso agregado | Nosso por eventos | Bem-estar digital |
+|---|---|---|---|
+| Config. | 10 min | 2 min | 7 m |
+| Norte Lab | 5 min | 5 min | 4 m |
+| Tela inicial de One UI | 3 min | 2 min | ausente |
+| Galeria | 3 min | ausente | ausente |
+
+O Bem-estar digital fica entre os dois e exclui a tela inicial da conta. A
+Samsung usa contabilidade própria, então ele serve como referência de ordem de
+grandeza, não como gabarito exato.
+
+**Impacto no produto (para o relatório):**
+- Não prometer precisão de minuto em estatísticas ("42 de 60 min") sem validar
+  mais; a margem entre métodos chegou a 5x no mesmo app.
+- A tela inicial do sistema aparece na lista de uso e precisa ser filtrada.
+- O A2 (detecção de limite) **depende** de `queryEvents`; o caminho agregado está
+  descartado.
+
+**Pendente:** entender por que a Galeria aparece no agregado e some nos eventos.
+Hipótese: o mapa de pacotes em aberto perde intervalos quando um app troca de
+activity sem emitir `ACTIVITY_PAUSED`. Investigar no A2, onde a precisão importa.
+
+### Outros achados do dia
+
+- **Intent direcionado funciona no One UI 8.** `ACTION_USAGE_ACCESS_SETTINGS` com
+  `Uri.fromParts("package", ...)` abre direto a tela do próprio app, com um único
+  interruptor, em vez da lista com dezenas de apps. Registrado no log como
+  `rota: targeted`. Bom para o onboarding do app definitivo.
+- **`<queries>` MAIN/LAUNCHER basta.** Os nomes dos apps foram resolvidos
+  corretamente sem `QUERY_ALL_PACKAGES`.
+- **`AppState` detecta o retorno dos Ajustes.** O status da permissão virou de
+  "negado" para "concedido" sozinho quando o app voltou ao primeiro plano.
+- **O log persiste entre reinstalações.** Relevante para o A9.
 
 **Evidência do merge de manifesto (A1).** No manifesto final gerado pelo build,
 `android/app/build/intermediates/merged_manifest/debug/.../AndroidManifest.xml`:

@@ -52,6 +52,13 @@ export interface MonitoringModule {
 
   getUsageToday(): Promise<UsageEntry[] | Unsupported>;
 
+  /**
+   * Segunda via de leitura do uso, reconstruida a partir do fluxo de eventos.
+   * Depois do teste no aparelho, esta e a via recomendada: o getUsageToday conta
+   * tempo de tela apagada (ver "Achado A1" em NOTAS.md).
+   */
+  getUsageTodayFromEvents(): Promise<UsageEntry[] | Unsupported>;
+
   getLog(): Promise<LogEvent[]>;
   clearLog(): Promise<void>;
   logEvent(experiment: string, event: string, details?: string): Promise<void>;

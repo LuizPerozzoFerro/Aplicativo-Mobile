@@ -31,6 +31,10 @@ public class LabMonitoringModule: Module {
       return "unsupported"
     }
 
+    AsyncFunction("getUsageTodayFromEvents") { () -> String in
+      return "unsupported"
+    }
+
     AsyncFunction("listInstalledApps") { () -> String in
       return "unsupported"
     }

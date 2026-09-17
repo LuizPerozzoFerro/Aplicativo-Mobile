@@ -28,6 +28,7 @@ import monitoring, {
 export default function LabScreen() {
   const [permission, setPermission] = useState<PermissionState | null>(null);
   const [usage, setUsage] = useState<UsageEntry[] | 'unsupported' | null>(null);
+  const [usageSource, setUsageSource] = useState<string | null>(null);
   const [appCount, setAppCount] = useState<number | 'unsupported' | null>(null);
   const [log, setLog] = useState<LogEvent[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
@@ -110,15 +111,32 @@ export default function LabScreen() {
             onPress={() => run('status', refreshPermission)}
           />
 
-          <Button
-            label="Ler uso de hoje"
-            busy={busy === 'usage'}
-            onPress={() =>
-              run('usage', async () => {
-                setUsage(await monitoring.getUsageToday());
-              })
-            }
-          />
+          <View style={styles.rowButtons}>
+            <Button
+              label="Ler (agregado)"
+              compact
+              busy={busy === 'usage'}
+              onPress={() =>
+                run('usage', async () => {
+                  setUsage(await monitoring.getUsageToday());
+                  setUsageSource('queryAndAggregateUsageStats');
+                })
+              }
+            />
+            <Button
+              label="Ler (eventos)"
+              compact
+              busy={busy === 'usageEvents'}
+              onPress={() =>
+                run('usageEvents', async () => {
+                  setUsage(await monitoring.getUsageTodayFromEvents());
+                  setUsageSource('queryEvents');
+                })
+              }
+            />
+          </View>
+
+          {usageSource ? <Text style={styles.note}>fonte: {usageSource}</Text> : null}
 
           {usage === 'unsupported' ? (
             <Text style={styles.note}>unsupported nesta plataforma</Text>
@@ -270,6 +288,9 @@ function permissionLabel(state: PermissionState | null): string {
 }
 
 function formatDuration(milliseconds: number): string {
+  // Abaixo de um minuto mostramos segundos: arredondar tudo para "0 min"
+  // esconderia justamente as diferencas que estamos tentando medir.
+  if (milliseconds < 60_000) return `${Math.round(milliseconds / 1000)} s`;
   const totalMinutes = Math.round(milliseconds / 60_000);
   if (totalMinutes < 60) return `${totalMinutes} min`;
   const hours = Math.floor(totalMinutes / 60);

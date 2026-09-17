@@ -31,6 +31,10 @@ class LabMonitoringModule extends NativeModule<{}> {
     return UNSUPPORTED;
   }
 
+  async getUsageTodayFromEvents(): Promise<UsageEntry[] | Unsupported> {
+    return UNSUPPORTED;
+  }
+
   async listInstalledApps(): Promise<InstalledApp[] | Unsupported> {
     return UNSUPPORTED;
   }

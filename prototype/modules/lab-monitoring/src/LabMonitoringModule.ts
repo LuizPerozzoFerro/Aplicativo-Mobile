@@ -13,6 +13,7 @@ declare class LabMonitoringModule extends NativeModule<{}> {
   getPermissionStatus(): PermissionStatus;
   requestUsageAccess(): Promise<UsageAccessRequestResult>;
   getUsageToday(): Promise<UsageEntry[] | Unsupported>;
+  getUsageTodayFromEvents(): Promise<UsageEntry[] | Unsupported>;
   listInstalledApps(): Promise<InstalledApp[] | Unsupported>;
   logEvent(
     source: string,

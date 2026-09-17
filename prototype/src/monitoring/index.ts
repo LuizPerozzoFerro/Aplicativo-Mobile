@@ -53,6 +53,10 @@ const monitoring: MonitoringModule = {
     return LabMonitoring.getUsageToday();
   },
 
+  async getUsageTodayFromEvents(): Promise<UsageEntry[] | Unsupported> {
+    return LabMonitoring.getUsageTodayFromEvents();
+  },
+
   async getLog(): Promise<LogEvent[]> {
     return LabMonitoring.getLog();
   },

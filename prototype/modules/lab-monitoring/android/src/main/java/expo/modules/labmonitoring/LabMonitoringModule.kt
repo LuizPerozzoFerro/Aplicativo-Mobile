@@ -67,6 +67,24 @@ class LabMonitoringModule : Module() {
       entries
     }
 
+    AsyncFunction("getUsageTodayFromEvents") {
+      if (!UsageReader.hasUsageAccess(context)) {
+        throw PermissionDeniedException()
+      }
+
+      val entries = UsageReader.getUsageTodayFromEvents(context)
+
+      EventLog.append(
+        context = context,
+        source = "UsageReader",
+        experiment = "A1",
+        event = "usage_read_events",
+        details = "${entries.size} apps pelo fluxo de eventos"
+      )
+
+      entries
+    }
+
     AsyncFunction("listInstalledApps") {
       val apps = UsageReader.listLaunchableApps(context)
 
