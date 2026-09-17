@@ -8,6 +8,7 @@ import {
   type SelectionSummary,
   type UsageEntry,
   type UsageLimitConfig,
+  type UsageLimitStatus,
   type Unsupported,
 } from './types';
 
@@ -33,12 +34,20 @@ const monitoring: MonitoringModule = {
     return { apps };
   },
 
-  async startUsageLimit(_config: UsageLimitConfig): Promise<void> {
-    throw new NotImplementedYetError('A2', 'startUsageLimit');
+  async startUsageLimit(config: UsageLimitConfig): Promise<void> {
+    return LabMonitoring.startUsageLimit(config.minutes, config.packages);
   },
 
   async stopUsageLimit(): Promise<void> {
-    throw new NotImplementedYetError('A2', 'stopUsageLimit');
+    return LabMonitoring.stopUsageLimit();
+  },
+
+  async getUsageLimitStatus(): Promise<UsageLimitStatus> {
+    return LabMonitoring.getUsageLimitStatus();
+  },
+
+  async openNotificationSettings(): Promise<boolean> {
+    return LabMonitoring.openNotificationSettings();
   },
 
   async startAdultContentWatch(_config: AdultContentWatchConfig): Promise<void> {

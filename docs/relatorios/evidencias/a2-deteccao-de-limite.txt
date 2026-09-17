@@ -1,0 +1,67 @@
+# A2 — Detecção de limite com o protótipo fechado
+# Galaxy S22, Android 16 / One UI 8, 17/09/2026
+
+## Configuração
+  alvo: com.instagram.android (zero uso no dia até então)
+  limite: 2 minutos | intervalo de verificação: 20 s
+  protótipo arrastado para fora dos apps recentes antes do teste
+
+## Log compartilhado
+  {"timestamp":"2026-09-17T16:32:43.403-03:00","platform":"android","source":"app","experiment":"A2","event":"limit_configured","details":"2 min para 1 app(s)"}
+  {"timestamp":"2026-09-17T16:32:43.420-03:00","platform":"android","source":"UsageLimitService","experiment":"A2","event":"service_started","details":"limite 2 min, intervalo 20s"}
+  {"timestamp":"2026-09-17T16:36:44.217-03:00","platform":"android","source":"UsageLimitService","experiment":"A2","event":"threshold_reached","details":"2 min de uso para limite de 2 min"}
+
+## Precisão
+  uso do Instagram cruzou 120 s em   16:36:35  (reconstruído do dumpsys)
+  threshold_reached registrado em    16:36:44
+  atraso: 9 s
+
+## Sobrevivência do serviço
+  isForeground=true foregroundId=1001 types=0x40000000 foregroundNoti=Notification(channel=lab-monitoring shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0)
+  createTime=-9m29s920ms startingBgTimeout=--
+  types=0x40000000 = FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+
+## Linha do tempo do Instagram (dumpsys usagestats)
+  2026-09-17 16:34:31  ACTIVITY_RESUMED
+  2026-09-17 16:34:47  ACTIVITY_PAUSED
+  2026-09-17 16:34:47  ACTIVITY_RESUMED
+  2026-09-17 16:34:48  ACTIVITY_STOPPED
+  2026-09-17 16:34:52  ACTIVITY_PAUSED
+  2026-09-17 16:34:52  ACTIVITY_RESUMED
+  2026-09-17 16:35:04  ACTIVITY_PAUSED
+  2026-09-17 16:35:04  ACTIVITY_RESUMED
+  2026-09-17 16:35:05  ACTIVITY_STOPPED
+  2026-09-17 16:35:26  ACTIVITY_PAUSED
+  2026-09-17 16:35:26  ACTIVITY_RESUMED
+  2026-09-17 16:35:27  ACTIVITY_STOPPED
+  2026-09-17 16:35:29  ACTIVITY_PAUSED
+  2026-09-17 16:35:29  ACTIVITY_STOPPED
+  2026-09-17 16:35:33  ACTIVITY_RESUMED
+  2026-09-17 16:35:34  ACTIVITY_PAUSED
+  2026-09-17 16:35:34  ACTIVITY_RESUMED
+  2026-09-17 16:35:34  ACTIVITY_STOPPED
+  2026-09-17 16:35:35  ACTIVITY_PAUSED
+  2026-09-17 16:35:35  ACTIVITY_RESUMED
+  2026-09-17 16:35:35  ACTIVITY_STOPPED
+  2026-09-17 16:35:36  ACTIVITY_PAUSED
+  2026-09-17 16:35:36  ACTIVITY_RESUMED
+  2026-09-17 16:35:37  ACTIVITY_STOPPED
+  2026-09-17 16:35:38  ACTIVITY_PAUSED
+  2026-09-17 16:35:38  ACTIVITY_RESUMED
+  2026-09-17 16:35:44  ACTIVITY_PAUSED
+  2026-09-17 16:35:44  ACTIVITY_RESUMED
+  2026-09-17 16:35:44  ACTIVITY_STOPPED
+  2026-09-17 16:35:45  ACTIVITY_PAUSED
+  2026-09-17 16:35:45  ACTIVITY_RESUMED
+  2026-09-17 16:36:01  ACTIVITY_PAUSED
+  2026-09-17 16:36:01  ACTIVITY_RESUMED
+  2026-09-17 16:36:02  ACTIVITY_STOPPED
+  2026-09-17 16:36:02  ACTIVITY_PAUSED
+  2026-09-17 16:36:02  ACTIVITY_RESUMED
+  2026-09-17 16:36:03  ACTIVITY_STOPPED
+  2026-09-17 16:37:01  ACTIVITY_PAUSED
+  2026-09-17 16:37:01  ACTIVITY_STOPPED
+  2026-09-17 16:37:11  ACTIVITY_RESUMED
+  2026-09-17 16:37:30  ACTIVITY_PAUSED
+  2026-09-17 16:37:30  ACTIVITY_STOPPED
+  2026-09-17 16:37:32  ACTIVITY_RESUMED

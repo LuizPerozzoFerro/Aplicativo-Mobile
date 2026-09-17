@@ -97,6 +97,8 @@ prototype/
     android/src/main/AndroidManifest.xml   # PACKAGE_USAGE_STATS + <queries>
     android/.../EventLog.kt                # log compartilhado (S4)
     android/.../UsageReader.kt             # UsageStatsManager (A1)
+    android/.../UsageLimitService.kt       # serviço em primeiro plano (A2)
+    android/.../LimitConfig.kt             # configuração do limite em disco (A2)
     android/.../LabMonitoringModule.kt     # fachada Expo Modules
     ios/LabMonitoringModule.swift          # esqueleto: tudo 'unsupported'
 ```
@@ -114,6 +116,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | S1 | ✅ Funciona | App instalado e aberto no Galaxy S22 (SM-S901E, Android 16 / API 36 / One UI 8.0) em 17/09/2026. Tela de laboratório renderizada, capturas em `docs/relatorios/evidencias/` |
 | S4 | ✅ Funciona | Evento gravado pelo Kotlin apareceu na tela com `source: UsageReader`. Arquivo lido direto do aparelho com `adb shell run-as com.norte.lab.dev cat files/lab-events.jsonl`. O log **sobreviveu à reinstalação do app** |
 | A1 | ✅ Funciona | Leitura por `queryEvents` coincidiu com a contabilidade do sistema no mesmo minuto (`1:41:10`), 17/09/2026. O caminho agregado foi descartado por dois defeitos medidos. Ver achado abaixo |
+| A2 | ✅ Funciona | `threshold_reached` registrado às 16:36:44 com o protótipo fechado, 9 s após o Instagram cruzar o limite de 2 min. Serviço em primeiro plano `specialUse` sobreviveu ao app ser arrastado para fora dos recentes. Bateria ainda não medida (A9/T6) |
 
 ### Achado A1 — como medir tempo de uso por app, e o que não funciona
 
@@ -223,6 +226,72 @@ de tela apagada, não 67.
   começa à meia-noite, e o sistema não organiza os dados assim.
 - Validado em um aparelho. Repetir no emulador e, antes do beta, num segundo
   aparelho físico.
+
+### Achado A2 — detecção de limite com o app fechado
+
+**Resultado: funciona.** Teste em 17/09/2026 no Galaxy S22, com o protótipo
+arrastado para fora dos apps recentes e o Instagram (zero uso no dia até então)
+como alvo, limite de 2 minutos:
+
+```
+16:32:43  service_started      limite 2 min, intervalo 20s
+16:36:44  threshold_reached    2 min de uso para limite de 2 min
+```
+
+| Medida | Valor |
+|---|---|
+| Uso cruzou 120 s em | 16:36:35 (reconstruído do `dumpsys`) |
+| Detectado em | 16:36:44 |
+| **Atraso** | **9 s** (intervalo de verificação: 20 s) |
+
+O serviço sobreviveu ao app ser fechado: `isForeground=true`, `createTime=-8m`,
+sem recriação. Arrastar para fora dos recentes **não** derrubou o serviço em
+primeiro plano neste aparelho.
+
+#### Não existe API de notificação de limite
+
+O Android tem `UsageStatsManager.registerAppUsageObserver`, que avisa o app
+quando um grupo de pacotes ultrapassa um tempo — é o que o Bem-estar digital usa
+nos temporizadores. Verificado na referência oficial em 17/09/2026: **não faz
+parte da API pública**. O sistema reserva essa eficiência para si.
+
+Consequências para nós:
+- Só resta *perguntar* periodicamente, o que custa bateria.
+- `WorkManager` não serve: o mínimo para trabalho periódico é 15 minutos, grosso
+  demais para limites de poucos minutos.
+- Sobra o serviço em primeiro plano, com notificação permanente visível ao
+  usuário. Não é escolha nossa: é a única porta aberta.
+
+#### Tipo de serviço: `specialUse`, e o risco que vem junto
+
+Nenhum dos tipos catalogados pelo Android descreve "observar o uso de outros
+apps". `dataSync` seria o mais próximo, mas desde o Android 15 tem teto de **6
+horas por dia**, o que inviabiliza monitoramento contínuo.
+
+Resta `specialUse`, que exige uma `<property>` no manifesto com a justificativa
+em texto livre, **lida por um revisor humano do Google Play**. Confirmado no
+manifesto final: `types=0x40000000` = `FOREGROUND_SERVICE_TYPE_SPECIAL_USE`.
+
+**Risco a registrar no A10:** a aprovação depende de revisão manual, e o texto da
+justificativa passa a ser parte do produto.
+
+#### Custo da abordagem
+
+Cada verificação percorre todos os eventos do dia. A 20 s de intervalo são 4.320
+varreduras por dia, e cada uma fica mais cara conforme o dia avança. Para o
+protótipo está bom, porque reaproveita a função já validada no A1. No app
+definitivo, o caminho é acumular incrementalmente, consultando só os eventos
+desde a última verificação.
+
+**Bateria ainda não medida.** Fica para o A9 e o roteiro T6.
+
+#### Em aberto para o A9
+
+- Sobrevivência após horas, após reinício do aparelho e com a economia de bateria
+  da Samsung ligada. O app **não** está na lista de isenção de otimização —
+  deixado assim de propósito, por ser a condição de um usuário comum.
+- O intervalo de 20 s foi escolhido sem medição. Calibrar contra bateria.
+
 ### Outros achados do dia
 
 - **Intent direcionado funciona no One UI 8.** `ACTION_USAGE_ACCESS_SETTINGS` com

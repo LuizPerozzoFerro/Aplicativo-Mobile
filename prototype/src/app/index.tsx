@@ -8,31 +8,34 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import monitoring, {
+  type InstalledApp,
   type LogEvent,
   type PermissionState,
   type UsageEntry,
+  type UsageLimitStatus,
 } from '@/monitoring';
 
-/**
- * Tela de laboratorio (spec secao 5.1).
- *
- * Uma secao por experimento. Os campos de motivacao e de limite em minutos
- * previstos na spec entram no A2, quando passarem a ter efeito -- por ora
- * seriam campos mortos.
- */
+/** Tela de laboratório (spec seção 5.1). Uma seção por experimento. */
 export default function LabScreen() {
   const [permission, setPermission] = useState<PermissionState | null>(null);
   const [usage, setUsage] = useState<UsageEntry[] | 'unsupported' | null>(null);
   const [usageSource, setUsageSource] = useState<string | null>(null);
-  const [appCount, setAppCount] = useState<number | 'unsupported' | null>(null);
   const [log, setLog] = useState<LogEvent[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // A2
+  const [minutes, setMinutes] = useState('2');
+  const [apps, setApps] = useState<InstalledApp[]>([]);
+  const [filter, setFilter] = useState('');
+  const [targets, setTargets] = useState<string[]>([]);
+  const [limit, setLimit] = useState<UsageLimitStatus | null>(null);
 
   const refreshLog = useCallback(async () => {
     setLog(await monitoring.getLog());
@@ -43,7 +46,11 @@ export default function LabScreen() {
     setPermission(status.usageAccess);
   }, []);
 
-  /** Envolve cada acao para nenhuma falha nativa sumir em silencio. */
+  const refreshLimit = useCallback(async () => {
+    setLimit(await monitoring.getUsageLimitStatus());
+  }, []);
+
+  /** Envolve cada ação para nenhuma falha nativa sumir em silêncio. */
   const run = useCallback(
     async (label: string, action: () => Promise<void>) => {
       setBusy(label);
@@ -55,35 +62,46 @@ export default function LabScreen() {
       } finally {
         setBusy(null);
         await refreshLog();
+        await refreshLimit();
       }
     },
-    [refreshLog]
+    [refreshLog, refreshLimit]
   );
 
-  // O acesso a dados de uso e concedido fora do app, na tela de Ajustes do
-  // sistema. Por isso relemos o status na abertura e toda vez que o app volta ao
-  // primeiro plano -- e a unica forma de a tela perceber que o usuario concedeu.
+  // O acesso a dados de uso é concedido fora do app, nos Ajustes do sistema, e o
+  // serviço do A2 escreve no log enquanto estamos fora. Por isso relemos tudo a
+  // cada volta ao primeiro plano.
   useEffect(() => {
     const sync = () => {
       void refreshPermission();
       void refreshLog();
+      void refreshLimit();
     };
-
     sync();
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') {
-        sync();
-      }
+      if (state === 'active') sync();
     });
     return () => subscription.remove();
-  }, [refreshPermission, refreshLog]);
+  }, [refreshPermission, refreshLog, refreshLimit]);
+
+  const toggleTarget = (packageName: string) => {
+    setTargets((current) =>
+      current.includes(packageName)
+        ? current.filter((p) => p !== packageName)
+        : [...current, packageName]
+    );
+  };
+
+  const visibleApps = filter
+    ? apps.filter((a) => a.appLabel.toLowerCase().includes(filter.toLowerCase()))
+    : apps.slice(0, 8);
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Laboratório de monitoramento</Text>
         <Text style={styles.subtitle}>
-          Fase 1 · plataforma: {Platform.OS} {Platform.Version}
+          Fase 1 · {Platform.OS} {Platform.Version}
         </Text>
 
         {error ? (
@@ -95,21 +113,20 @@ export default function LabScreen() {
         <Section title="A1 — Tempo de uso por app">
           <Row label="Acesso a dados de uso" value={permissionLabel(permission)} />
 
-          <Button
-            label="Pedir acesso (abre os Ajustes)"
-            busy={busy === 'request'}
-            onPress={() =>
-              run('request', async () => {
-                await monitoring.requestPermissions();
-              })
-            }
-          />
-
-          <Button
-            label="Atualizar status"
-            busy={busy === 'status'}
-            onPress={() => run('status', refreshPermission)}
-          />
+          <View style={styles.rowButtons}>
+            <Button
+              label="Pedir acesso"
+              compact
+              busy={busy === 'request'}
+              onPress={() => run('request', async () => void monitoring.requestPermissions())}
+            />
+            <Button
+              label="Atualizar"
+              compact
+              busy={busy === 'status'}
+              onPress={() => run('status', refreshPermission)}
+            />
+          </View>
 
           <View style={styles.rowButtons}>
             <Button
@@ -140,54 +157,121 @@ export default function LabScreen() {
 
           {usage === 'unsupported' ? (
             <Text style={styles.note}>unsupported nesta plataforma</Text>
-          ) : usage ? (
-            usage.length === 0 ? (
-              <Text style={styles.note}>
-                Nenhum app com uso registrado hoje. Use algum app por alguns minutos e leia de novo.
-              </Text>
-            ) : (
-              usage.map((entry) => (
-                <Row
-                  key={entry.packageName}
-                  label={entry.appLabel}
-                  value={formatDuration(entry.milliseconds)}
-                  hint={entry.packageName}
-                />
-              ))
-            )
-          ) : null}
+          ) : usage && usage.length === 0 ? (
+            <Text style={styles.note}>Nenhum app com uso registrado hoje.</Text>
+          ) : (
+            usage?.map((entry) => (
+              <Row
+                key={entry.packageName}
+                label={entry.appLabel}
+                value={formatDuration(entry.milliseconds)}
+                hint={entry.packageName}
+              />
+            ))
+          )}
+        </Section>
+
+        <Section title="A2 — Limite de uso com o app fechado">
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Limite (minutos)</Text>
+            <TextInput
+              style={styles.input}
+              value={minutes}
+              onChangeText={setMinutes}
+              keyboardType="number-pad"
+              placeholder="2"
+              placeholderTextColor="#475569"
+            />
+          </View>
 
           <Button
-            label="Listar apps instalados"
+            label={apps.length ? `Recarregar apps (${apps.length})` : 'Carregar lista de apps'}
             busy={busy === 'apps'}
             onPress={() =>
               run('apps', async () => {
                 const selection = await monitoring.selectTargets();
-                setAppCount(selection === 'unsupported' ? 'unsupported' : selection.apps.length);
+                setApps(selection === 'unsupported' ? [] : selection.apps);
               })
             }
           />
 
-          {appCount !== null ? (
-            <Text style={styles.note}>
-              {appCount === 'unsupported'
-                ? 'unsupported nesta plataforma'
-                : `${appCount} apps visíveis via <queries> MAIN/LAUNCHER`}
-            </Text>
+          {apps.length > 0 ? (
+            <>
+              <TextInput
+                style={styles.input}
+                value={filter}
+                onChangeText={setFilter}
+                placeholder="filtrar por nome (ex.: Instagram)"
+                placeholderTextColor="#475569"
+              />
+              {visibleApps.map((app) => {
+                const selected = targets.includes(app.packageName);
+                return (
+                  <Pressable
+                    key={app.packageName}
+                    onPress={() => toggleTarget(app.packageName)}
+                    style={[styles.appRow, selected && styles.appRowSelected]}>
+                    <Text style={styles.appLabel}>
+                      {selected ? '✓ ' : ''}
+                      {app.appLabel}
+                    </Text>
+                    <Text style={styles.rowHint}>{app.packageName}</Text>
+                  </Pressable>
+                );
+              })}
+              {!filter && apps.length > 8 ? (
+                <Text style={styles.note}>
+                  Mostrando 8 de {apps.length}. Use o filtro para achar os demais.
+                </Text>
+              ) : null}
+            </>
+          ) : null}
+
+          <Row label="Apps selecionados" value={String(targets.length)} />
+
+          <View style={styles.rowButtons}>
+            <Button
+              label="Iniciar limite"
+              compact
+              busy={busy === 'startLimit'}
+              onPress={() =>
+                run('startLimit', async () => {
+                  await monitoring.startUsageLimit({
+                    minutes: Number(minutes) || 1,
+                    packages: targets,
+                  });
+                })
+              }
+            />
+            <Button
+              label="Parar"
+              compact
+              busy={busy === 'stopLimit'}
+              onPress={() => run('stopLimit', () => monitoring.stopUsageLimit())}
+            />
+          </View>
+
+          <Button
+            label="Ajustes de notificação"
+            busy={busy === 'notif'}
+            onPress={() => run('notif', async () => void monitoring.openNotificationSettings())}
+          />
+
+          {limit ? (
+            <>
+              <Row label="Serviço" value={limit.active ? 'ativo' : 'parado'} />
+              {limit.active ? (
+                <Row label="Limite configurado" value={`${limit.minutes} min`} />
+              ) : null}
+              <Row
+                label="Limite atingido"
+                value={limit.firedAt ? new Date(limit.firedAt).toLocaleTimeString('pt-BR') : 'não'}
+              />
+            </>
           ) : null}
         </Section>
 
         <Section title={`S4 — Log compartilhado (${log.length})`}>
-          <Button
-            label="Escrever evento de teste"
-            busy={busy === 'test'}
-            onPress={() =>
-              run('test', async () => {
-                await monitoring.logEvent('S4', 'test_event', 'escrito pela camada JavaScript');
-              })
-            }
-          />
-
           <View style={styles.rowButtons}>
             <Button
               label="Copiar"
@@ -203,11 +287,7 @@ export default function LabScreen() {
               label="Limpar"
               compact
               busy={busy === 'clear'}
-              onPress={() =>
-                run('clear', async () => {
-                  await monitoring.clearLog();
-                })
-              }
+              onPress={() => run('clear', () => monitoring.clearLog())}
             />
           </View>
 
@@ -217,9 +297,15 @@ export default function LabScreen() {
             log.map((entry, index) => (
               <View key={`${entry.timestamp}-${index}`} style={styles.logEntry}>
                 <Text style={styles.logHeader}>
-                  {entry.timestamp.slice(11, 23)} · {entry.source} · {entry.experiment}
+                  {entry.timestamp.slice(11, 19)} · {entry.source} · {entry.experiment}
                 </Text>
-                <Text style={styles.logEvent}>{entry.event}</Text>
+                <Text
+                  style={[
+                    styles.logEvent,
+                    entry.event === 'threshold_reached' && styles.logEventHighlight,
+                  ]}>
+                  {entry.event}
+                </Text>
                 {entry.details ? <Text style={styles.logDetails}>{entry.details}</Text> : null}
               </View>
             ))
@@ -289,26 +375,21 @@ function permissionLabel(state: PermissionState | null): string {
 
 function formatDuration(milliseconds: number): string {
   // Abaixo de um minuto mostramos segundos: arredondar tudo para "0 min"
-  // esconderia justamente as diferencas que estamos tentando medir.
+  // esconderia justamente as diferenças que estamos tentando medir.
   if (milliseconds < 60_000) return `${Math.round(milliseconds / 1000)} s`;
   const totalMinutes = Math.round(milliseconds / 60_000);
   if (totalMinutes < 60) return `${totalMinutes} min`;
   const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return `${hours} h ${String(minutes).padStart(2, '0')} min`;
+  const rest = totalMinutes % 60;
+  return `${hours} h ${String(rest).padStart(2, '0')} min`;
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0B1220' },
-  content: { padding: 16, paddingBottom: 48, gap: 16 },
-  title: { color: '#F8FAFC', fontSize: 22, fontWeight: '700' },
+  content: { padding: 16, paddingBottom: 64, gap: 16 },
+  title: { color: '#F8FAFC', fontSize: 21, fontWeight: '700' },
   subtitle: { color: '#64748B', fontSize: 13, marginTop: -12 },
-  section: {
-    backgroundColor: '#111B2E',
-    borderRadius: 12,
-    padding: 14,
-    gap: 10,
-  },
+  section: { backgroundColor: '#111B2E', borderRadius: 12, padding: 14, gap: 10 },
   sectionTitle: { color: '#93C5FD', fontSize: 15, fontWeight: '600' },
   row: {
     flexDirection: 'row',
@@ -322,6 +403,26 @@ const styles = StyleSheet.create({
   rowHint: { color: '#475569', fontSize: 11 },
   rowValue: { color: '#F8FAFC', fontSize: 14, fontWeight: '600' },
   rowButtons: { flexDirection: 'row', gap: 10 },
+  field: { gap: 6 },
+  fieldLabel: { color: '#94A3B8', fontSize: 12 },
+  input: {
+    backgroundColor: '#0B1220',
+    borderColor: '#1E3A5F',
+    borderWidth: 1,
+    borderRadius: 8,
+    color: '#F8FAFC',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 15,
+  },
+  appRow: {
+    borderLeftWidth: 2,
+    borderLeftColor: '#1E3A5F',
+    paddingLeft: 10,
+    paddingVertical: 6,
+  },
+  appRowSelected: { borderLeftColor: '#38BDF8' },
+  appLabel: { color: '#E2E8F0', fontSize: 14 },
   button: {
     backgroundColor: '#38BDF8',
     borderRadius: 8,
@@ -335,11 +436,7 @@ const styles = StyleSheet.create({
   buttonPressed: { opacity: 0.7 },
   buttonText: { color: '#0B1220', fontSize: 14, fontWeight: '600' },
   note: { color: '#94A3B8', fontSize: 12, lineHeight: 17 },
-  errorBox: {
-    backgroundColor: '#3F1D24',
-    borderRadius: 8,
-    padding: 12,
-  },
+  errorBox: { backgroundColor: '#3F1D24', borderRadius: 8, padding: 12 },
   errorText: { color: '#FCA5A5', fontSize: 13 },
   logEntry: {
     borderLeftWidth: 2,
@@ -349,5 +446,6 @@ const styles = StyleSheet.create({
   },
   logHeader: { color: '#64748B', fontSize: 11 },
   logEvent: { color: '#E2E8F0', fontSize: 13 },
+  logEventHighlight: { color: '#4ADE80', fontWeight: '700' },
   logDetails: { color: '#94A3B8', fontSize: 12 },
 });

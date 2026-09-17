@@ -39,6 +39,24 @@ public class LabMonitoringModule: Module {
       return "unsupported"
     }
 
+    // O equivalente no iOS e o DeviceActivityMonitor do Screen Time, agendado via
+    // Family Controls. Chega no experimento I3.
+    AsyncFunction("startUsageLimit") { (_: Int, _: [String]) in
+      throw UnsupportedOnIOSException()
+    }
+
+    AsyncFunction("stopUsageLimit") {
+      throw UnsupportedOnIOSException()
+    }
+
+    Function("getUsageLimitStatus") { () -> [String: Any] in
+      return ["active": false, "minutes": 0, "packages": [String](), "firedAt": 0]
+    }
+
+    AsyncFunction("openNotificationSettings") { () -> Bool in
+      return false
+    }
+
     AsyncFunction("logEvent") { (_: String, _: String, _: String, _: String?) in
     }
 

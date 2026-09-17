@@ -1,6 +1,9 @@
 package expo.modules.labmonitoring
 
 import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -97,6 +100,55 @@ class LabMonitoringModule : Module() {
       )
 
       apps
+    }
+
+    AsyncFunction("startUsageLimit") { minutes: Int, packages: List<String> ->
+      if (!UsageReader.hasUsageAccess(context)) {
+        throw PermissionDeniedException()
+      }
+      if (packages.isEmpty()) {
+        throw NoTargetsException()
+      }
+
+      LimitConfig.save(context, minutes, packages)
+
+      val intent = Intent(context, UsageLimitService::class.java)
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        context.startForegroundService(intent)
+      } else {
+        context.startService(intent)
+      }
+
+      EventLog.append(
+        context = context,
+        source = "app",
+        experiment = "A2",
+        event = "limit_configured",
+        details = "$minutes min para ${packages.size} app(s)"
+      )
+    }
+
+    AsyncFunction("stopUsageLimit") {
+      context.stopService(Intent(context, UsageLimitService::class.java))
+      LimitConfig.clear(context)
+    }
+
+    Function("getUsageLimitStatus") {
+      mapOf(
+        "active" to LimitConfig.isActive(context),
+        "minutes" to LimitConfig.minutes(context),
+        "packages" to LimitConfig.packages(context),
+        "firedAt" to LimitConfig.firedAt(context)
+      )
+    }
+
+    /** Abre os ajustes de notificacao do app, para a notificacao do servico aparecer. */
+    AsyncFunction("openNotificationSettings") {
+      val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+      }
+      runCatching { context.startActivity(intent) }.isSuccess
     }
 
     AsyncFunction("logEvent") { source: String, experiment: String, event: String, details: String? ->

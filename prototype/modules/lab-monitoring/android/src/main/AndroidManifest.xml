@@ -27,4 +27,31 @@
       <category android:name="android.intent.category.LAUNCHER" />
     </intent>
   </queries>
+
+  <!--
+    Experimento A2: servico em primeiro plano para detectar o limite de uso com o
+    app fechado.
+
+    O tipo e specialUse porque nenhum dos tipos catalogados pelo Android descreve
+    "observar o uso de outros apps". dataSync seria o mais proximo, mas desde o
+    Android 15 ele tem teto de 6 horas por dia, o que inviabiliza monitoramento
+    continuo.
+
+    specialUse exige a <property> abaixo, cujo texto e lido por um revisor humano
+    do Google Play na publicacao. Risco a registrar no A10.
+  -->
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+  <application>
+    <service
+      android:name=".UsageLimitService"
+      android:exported="false"
+      android:foregroundServiceType="specialUse">
+      <property
+        android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+        android:value="Acompanha o tempo de uso de aplicativos escolhidos pelo proprio usuario, para avisa-lo quando ultrapassar o limite diario que ele definiu. Nenhum dado sai do aparelho." />
+    </service>
+  </application>
 </manifest>

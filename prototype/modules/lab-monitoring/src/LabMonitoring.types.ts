@@ -50,3 +50,11 @@ export type InstalledApp = {
   packageName: string;
   appLabel: string;
 };
+
+export type UsageLimitStatus = {
+  active: boolean;
+  minutes: number;
+  packages: string[];
+  /** Epoch em ms de quando o limite foi atingido; 0 se ainda nao foi. */
+  firedAt: number;
+};

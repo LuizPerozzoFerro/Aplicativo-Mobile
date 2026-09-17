@@ -6,6 +6,7 @@ import type {
   PermissionStatus,
   UsageAccessRequestResult,
   UsageEntry,
+  UsageLimitStatus,
   Unsupported,
 } from './LabMonitoring.types';
 
@@ -15,6 +16,10 @@ declare class LabMonitoringModule extends NativeModule<{}> {
   getUsageToday(): Promise<UsageEntry[] | Unsupported>;
   getUsageTodayFromEvents(): Promise<UsageEntry[] | Unsupported>;
   listInstalledApps(): Promise<InstalledApp[] | Unsupported>;
+  startUsageLimit(minutes: number, packages: string[]): Promise<void>;
+  stopUsageLimit(): Promise<void>;
+  getUsageLimitStatus(): UsageLimitStatus;
+  openNotificationSettings(): Promise<boolean>;
   logEvent(
     source: string,
     experiment: string,
