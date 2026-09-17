@@ -20,3 +20,10 @@ inicio (aparelho): Thu Sep 17 17:22:27 -03 2026
 05:32
 
 ## contadores apos reset (devem estar proximos de zero)
+
+## Inicio da janela desconectada
+cabo removido por volta de: 2026-09-17 17:26 (informado pelo responsavel)
+aparelho deixado parado sobre a mesa, tela apagada, sem interacao
+
+O horario exato sera confirmado na volta pelo historico do batterystats, que
+registra o evento de desconexao com carimbo de tempo.
