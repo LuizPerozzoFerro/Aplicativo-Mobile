@@ -39,6 +39,10 @@ JavaScript. A cota acabaria em um dia de trabalho.
 
 O iOS continua obrigatoriamente no EAS Build (não há Mac).
 
+**Medido em 16/09/2026:** build limpo 8 min 12 s; build incremental após alterar
+o Kotlin, **32 s**. É a comprovação da decisão — no EAS cada uma dessas iterações
+custaria um dos 15 builds mensais mais a fila.
+
 ### D2 — Módulo nativo próprio em vez de biblioteca pronta
 Criado `modules/lab-monitoring` (Kotlin + esqueleto Swift) em vez de usar
 `@brighthustle/react-native-usage-stats-manager`.
@@ -115,13 +119,46 @@ Observação para o A4: o template do Expo já declara `SYSTEM_ALERT_WINDOW` por
 padrão. A permissão de sobreposição talvez não precise ser adicionada, só
 solicitada em tempo de execução.
 
-### Pendências de aparelho
-O responsável está sem cabo USB-A → USB-C, então o Galaxy S22 ainda não foi
-conectado. O emulador depende do **Android SDK Command-line Tools**, que o
-Android Studio não instalou por padrão (SDK Manager → aba SDK Tools).
+### Roteiro da próxima sessão — Galaxy S22
 
-Sem aparelho nem emulador, nada pode ser marcado como ✅: o critério é evidência no
-log ou confirmação no aparelho.
+Decidido em 16/09/2026: seguimos pelo **cabo USB**, não pelo emulador. O caminho
+do emulador continua disponível se a virtualização for ativada um dia (ver P2).
+
+**Preparação do aparelho (antes da sessão):**
+
+1. Ter um cabo **USB-A → USB-C de dados**. Cabos de carregamento baratos muitas
+   vezes não têm os fios de dados: o aparelho carrega e o `adb` nunca o enxerga.
+2. Ajustes → Sobre o telefone → Informações do software → tocar **7 vezes** em
+   "Número da versão". Aparece "Você agora é um desenvolvedor".
+3. Ajustes → Opções do desenvolvedor → ativar **Depuração USB** e
+   **Instalar via USB** (o segundo é específico da Samsung; sem ele a instalação
+   falha sem mensagem clara).
+4. Conectar ao PC e **autorizar a chave RSA** no aviso que aparece no aparelho,
+   marcando "Sempre permitir".
+5. Usar Instagram ou YouTube por alguns minutos no dia do teste, para existir
+   uso real a ser lido.
+
+**Na sessão:**
+
+| Passo | Como |
+|---|---|
+| Confirmar que o PC vê o aparelho | `adb devices` |
+| Compilar e instalar | `npm run android` |
+| Conceder o acesso | botão na tela, ou Configurações → Apps → ⋮ → **Acesso especial** → **Acesso a dados de uso** |
+| Ler o uso | botão "Ler uso de hoje" |
+| Conferir | comparar com Ajustes → **Bem-estar digital e controles parentais** |
+
+Se o Windows não reconhecer o S22, pode ser necessário o driver USB da Samsung.
+
+### Pendências de aparelho
+O Galaxy S22 ainda não foi conectado (falta o cabo) e o emulador não dá boot
+(P2). Enquanto nenhum dos dois rodar, nada pode ser marcado como ✅: o critério é
+evidência no log ou confirmação do responsável no aparelho.
+
+O que já está provado sem aparelho: o projeto compila, o módulo nativo compila e
+o manifesto é mesclado corretamente. O que não está provado: se o
+`UsageStatsManager` devolve números corretos, se o log escrito pelo Kotlin
+aparece na tela, e se o intent abre a tela de Ajustes certa no One UI.
 
 ### Campos adiados
 A spec §5.1 prevê campos de motivação de teste e de limite em minutos na tela de

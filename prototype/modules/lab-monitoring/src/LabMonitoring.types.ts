@@ -24,9 +24,16 @@ export type PermissionStatus = {
   usageAccess: PermissionState;
 };
 
+/**
+ * Qual variante do intent abriu os Ajustes. 'targeted' aponta direto para o app
+ * e nem todo fabricante respeita; 'generic' abre a lista completa.
+ */
+export type SettingsRoute = 'targeted' | 'generic' | 'unavailable';
+
 export type UsageAccessRequestResult = {
   /** Se a tela de Ajustes chegou a abrir. A concessao em si acontece fora do app. */
   settingsOpened: boolean;
+  settingsRoute: SettingsRoute;
   usageAccess: PermissionState;
 };
 

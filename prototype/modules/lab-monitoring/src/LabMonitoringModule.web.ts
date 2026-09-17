@@ -20,7 +20,11 @@ class LabMonitoringModule extends NativeModule<{}> {
   }
 
   async requestUsageAccess(): Promise<UsageAccessRequestResult> {
-    return { settingsOpened: false, usageAccess: UNSUPPORTED };
+    return {
+      settingsOpened: false,
+      settingsRoute: 'unavailable',
+      usageAccess: UNSUPPORTED,
+    };
   }
 
   async getUsageToday(): Promise<UsageEntry[] | Unsupported> {

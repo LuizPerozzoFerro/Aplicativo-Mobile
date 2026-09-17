@@ -20,7 +20,11 @@ public class LabMonitoringModule: Module {
     }
 
     AsyncFunction("requestUsageAccess") { () -> [String: Any] in
-      return ["settingsOpened": false, "usageAccess": "unsupported"]
+      return [
+        "settingsOpened": false,
+        "settingsRoute": "unavailable",
+        "usageAccess": "unsupported",
+      ]
     }
 
     AsyncFunction("getUsageToday") { () -> String in

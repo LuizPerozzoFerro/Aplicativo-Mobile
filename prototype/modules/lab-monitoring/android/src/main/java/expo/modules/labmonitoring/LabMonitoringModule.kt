@@ -24,18 +24,21 @@ class LabMonitoringModule : Module() {
     }
 
     AsyncFunction("requestUsageAccess") {
-      val opened = UsageReader.openUsageAccessSettings(context)
+      val route = UsageReader.openUsageAccessSettings(context)
+      val opened = route != UsageReader.SettingsRoute.UNAVAILABLE
       val granted = UsageReader.hasUsageAccess(context)
 
       EventLog.append(
         context = context,
         source = "UsageReader",
         experiment = "A1",
-        event = if (opened) "settings_opened" else "settings_unavailable"
+        event = if (opened) "settings_opened" else "settings_unavailable",
+        details = "rota: ${route.name.lowercase()}"
       )
 
       mapOf(
         "settingsOpened" to opened,
+        "settingsRoute" to route.name.lowercase(),
         "usageAccess" to if (granted) "granted" else "denied"
       )
     }

@@ -56,19 +56,27 @@ object UsageReader {
     }
   }
 
+  /** Qual variante do intent conseguiu abrir a tela de Ajustes. */
+  enum class SettingsRoute { TARGETED, GENERIC, UNAVAILABLE }
+
   /**
-   * Abre a tela de Ajustes onde o acesso e concedido. Tentamos primeiro apontar
-   * direto para o nosso app; varios fabricantes ignoram ou rejeitam esse extra,
-   * entao caimos para a lista geral.
+   * Abre a tela de Ajustes onde o acesso e concedido.
+   *
+   * Tentamos primeiro apontar direto para o nosso app. Esse extra nao e
+   * documentado pela Apple... digo, pelo Android: varios fabricantes o ignoram, e
+   * ha relatos de aparelhos Samsung em que a tela abre em branco em vez de lancar
+   * excecao -- ou seja, o fallback nao seria acionado. Por isso devolvemos qual
+   * rota foi usada e registramos no log: se o responsavel vir uma tela vazia,
+   * sabemos na hora que foi a variante direcionada e trocamos para a lista geral.
    */
-  fun openUsageAccessSettings(context: Context): Boolean {
+  fun openUsageAccessSettings(context: Context): SettingsRoute {
     val targeted = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
       addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
       data = Uri.fromParts("package", context.packageName, null)
     }
 
     if (runCatching { context.startActivity(targeted) }.isSuccess) {
-      return true
+      return SettingsRoute.TARGETED
     }
 
     val generic = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
@@ -77,9 +85,9 @@ object UsageReader {
 
     return try {
       context.startActivity(generic)
-      true
+      SettingsRoute.GENERIC
     } catch (error: ActivityNotFoundException) {
-      false
+      SettingsRoute.UNAVAILABLE
     }
   }
 
