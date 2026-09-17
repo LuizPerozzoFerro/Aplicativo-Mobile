@@ -142,6 +142,8 @@ campos sem função.
 | Regerar o projeto nativo | `npx expo prebuild --platform android --clean` |
 | Compilar só o APK | `cd android && .\gradlew.bat assembleDebug` |
 | Ver aparelhos conectados | `adb devices` |
+| Iniciar o emulador | `emulator -avd lab_android16` |
+| Listar emuladores | `emulator -list-avds` |
 
 Após `prebuild --clean`, recriar `android/local.properties` com a linha
 `sdk.dir=C\:\\Users\\User\\AppData\\Local\\Android\\Sdk`.
@@ -170,6 +172,30 @@ Android Studio continua lá, mas não é mais usado pela linha de comando.
 **Atenção:** se o Android Studio for aberto para compilar, ele usa o próprio JBR
 e vai falhar do mesmo jeito. Em Settings → Build → Build Tools → Gradle, apontar
 o Gradle JDK para o Temurin 17.
+
+### P2 — Emulador bloqueado: virtualização desativada na BIOS
+**Sintoma:** `emulator -accel-check` responde
+`Android Emulator hypervisor driver is not installed on this machine`.
+
+**Causa:** o `systeminfo` mostra **"Virtualização Habilitada no Firmware: Não"**.
+O processador (Intel i5-9400F) suporta VT-x, mas o recurso está desligado na
+BIOS. Sem ele nenhum hipervisor funciona — nem o WHPX do Windows, nem o driver
+próprio do emulador do Android.
+
+**Solução:** depende de ação do responsável, em duas etapas com reinício:
+1. Na BIOS/UEFI, ativar *Intel Virtualization Technology* (VT-x), normalmente em
+   Advanced → CPU Configuration.
+2. No Windows, ativar **Plataforma do Hipervisor do Windows** em "Ativar ou
+   desativar recursos do Windows".
+
+**Status:** bloqueado, mas com tudo pronto do lado do software. A imagem
+`system-images;android-36;google_apis;x86_64` está instalada e o emulador
+**`lab_android16`** (perfil Pixel 7, Android 16) já foi criado. Assim que a
+virtualização for ativada, basta `npm run android`.
+
+Detalhe do ferramental: o `sdkmanager` foi substituído pelo CLI `android`
+(`android.exe sdk install ...`). Ele termina com código de saída 9 mesmo quando
+dá certo — conferir o resultado pelo que foi realmente instalado, não pelo código.
 
 ---
 
