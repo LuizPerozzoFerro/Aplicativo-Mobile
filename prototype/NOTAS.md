@@ -66,14 +66,19 @@ sem justificativa é motivo de remoção. A declaração `<queries>` mostra só 
 
 ### D4 — ~~`queryAndAggregateUsageStats`~~ → **`queryEvents`** (revisada em 17/09/2026)
 A decisão original era usar `queryAndAggregateUsageStats` para os minutos de hoje,
-com `queryEvents` como plano B. **O teste no aparelho inverteu isso.**
+com `queryEvents` como plano B. O teste no aparelho promoveu o plano B.
 
-`queryAndAggregateUsageStats` foi descartado para medir uso (ver achado A1 abaixo).
-A leitura passa a ser feita por `queryEvents`, somando os intervalos entre
-`ACTIVITY_RESUMED` e `ACTIVITY_PAUSED`/`ACTIVITY_STOPPED`.
+**Motivo:** o método agregado atualiza em lotes, com atraso de vários minutos, o
+que o inviabiliza como gatilho de alerta em tempo real (A2). O método por eventos
+reflete o uso imediatamente e, depois de corrigido, bateu exatamente com o número
+do Bem-estar digital da Samsung para o mesmo app.
 
-O método agregado continua no código, desativado por padrão, apenas como termo de
-comparação e evidência para o relatório.
+A leitura passa a ser por `queryEvents`, somando os intervalos entre
+`ACTIVITY_RESUMED` e `ACTIVITY_PAUSED`, **indexados por activity e não por
+pacote** (ver achado A1 — indexar por pacote causou um erro de 63 minutos).
+
+O método agregado continua no código como termo de comparação. Ele não está
+"quebrado": para um total do dia sem urgência, funciona.
 
 ---
 
@@ -107,57 +112,86 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | S4 | ✅ Funciona | Evento gravado pelo Kotlin apareceu na tela com `source: UsageReader`. Arquivo lido direto do aparelho com `adb shell run-as com.norte.lab.dev cat files/lab-events.jsonl`. O log **sobreviveu à reinstalação do app** |
 | A1 | ⚠️ Funciona com limitações | Lista de minutos por app funciona, mas só pelo caminho de eventos. Ver achado abaixo |
 
-### Achado A1 — `totalTimeInForeground` conta tela apagada
+### Achado A1 — precisão da leitura de uso
 
-O critério da spec ("lista com minutos de hoje por app") é atendido, mas **só com
-`queryEvents`**. O caminho agregado produz números inutilizáveis.
+O critério da spec ("lista com minutos de hoje por app") é atendido. Mas chegar
+a números confiáveis exigiu duas correções, e uma delas foi um erro nosso.
 
-**Teste, 17/09/2026, Galaxy S22.** Aparelho bloqueado por ~67 minutos com o
-protótipo em primeiro plano. Leitura dos dois métodos com 11 segundos de
-diferença, antes e depois:
+#### O que funciona
 
-| Método | 12:14 | 13:21 | Variação |
-|---|---|---|---|
-| `queryAndAggregateUsageStats` | 5 min | **1 h 09 min** | **+64 min** |
-| `queryEvents` | 5 min | **6 min** | +1 min |
+`queryEvents`, somando os intervalos entre `ACTIVITY_RESUMED` e
+`ACTIVITY_PAUSED`. Validação independente em 17/09/2026: para o app Config., o
+nosso número (7 min) bateu **exatamente** com o do Bem-estar digital da Samsung
+(7 m).
 
-Nenhum outro app se moveu em nenhum dos dois métodos. O +1 min do método de
-eventos corresponde ao tempo real de tela ligada (desbloquear e tocar nos botões).
+#### Erro cometido e corrigido
 
-**Conclusão:** `totalTimeInForeground` soma o tempo em que o app está em primeiro
-plano **mesmo com a tela apagada**. Um limite diário baseado nele alertaria quem
-apenas deixou o celular na mesa com o app aberto — o oposto do que o produto
-promete.
+A primeira versão tratava `ACTIVITY_STOPPED` como fim de intervalo. Está errado:
+esse evento fala do ciclo de vida de **uma instância** de activity, e numa
+recriação o `STOPPED` da instância antiga chega depois do `RESUMED` da nova.
+Trecho real do log do sistema:
 
-**Segundo problema, menor:** o método agregado atualiza com atraso de vários
-minutos. Duas leituras às 12:03 e 12:06 deram valores idênticos; às 12:14 já
-haviam mudado. Sozinho isso já o inviabilizaria para disparar alerta no momento
-do risco.
+```
+12:13:18  ACTIVITY_RESUMED
+12:13:51  ACTIVITY_PAUSED
+12:13:51  ACTIVITY_RESUMED    <- instância nova assume
+12:13:51  ACTIVITY_STOPPED    <- instância antiga sendo destruída
+13:17:04  ACTIVITY_PAUSED
+```
 
-**Divergência com o Bem-estar digital.** Comparação às 12:06:
+Como o índice era por pacote, aquele `STOPPED` das 12:13:51 fechou um intervalo
+que estava vivo, e o app ficou 63 minutos em primeiro plano sem ser contado: a
+leitura dava 6 min onde o correto era 1 h 10.
 
-| App | Nosso agregado | Nosso por eventos | Bem-estar digital |
-|---|---|---|---|
-| Config. | 10 min | 2 min | 7 m |
-| Norte Lab | 5 min | 5 min | 4 m |
-| Tela inicial de One UI | 3 min | 2 min | ausente |
-| Galeria | 3 min | ausente | ausente |
+**Correção:** indexar por activity (`pacote|classe`) e fechar intervalo apenas em
+`ACTIVITY_PAUSED`. Depois disso o número passou a bater com o do sistema.
 
-O Bem-estar digital fica entre os dois e exclui a tela inicial da conta. A
-Samsung usa contabilidade própria, então ele serve como referência de ordem de
-grandeza, não como gabarito exato.
+#### Erro de método (importante)
 
-**Impacto no produto (para o relatório):**
-- Não prometer precisão de minuto em estatísticas ("42 de 60 min") sem validar
-  mais; a margem entre métodos chegou a 5x no mesmo app.
-- A tela inicial do sistema aparece na lista de uso e precisa ser filtrada.
-- O A2 (detecção de limite) **depende** de `queryEvents`; o caminho agregado está
-  descartado.
+A conclusão anterior registrada aqui — "o `totalTimeInForeground` conta tela
+apagada" — **foi retirada**. Ela vinha de um teste mal controlado: houve 67
+minutos entre duas leituras, e presumiu-se que o aparelho estivera bloqueado
+esse tempo todo. O responsável apontou que não foi isso. O log do sistema
+confirmou:
 
-**Pendente:** entender por que a Galeria aparece no agregado e some nos eventos.
-Hipótese: o mapa de pacotes em aberto perde intervalos quando um app troca de
-activity sem emitir `ACTIVITY_PAUSED`. Investigar no A2, onde a precisão importa.
+```
+13:17:10  SCREEN_NON_INTERACTIVE
+13:21:18  SCREEN_INTERACTIVE
+```
 
+A tela ficou apagada **4 minutos**, não 67. Nos outros 63 ela esteve acesa com o
+app à frente (a opção "Permanecer ativo" estava ligada e o aparelho carregando).
+Ou seja, o agregado estava certo e a nossa leitura é que estava quebrada — o
+oposto do que se concluiu.
+
+**Lição para os próximos experimentos:** não inferir o estado do aparelho a
+partir do relógio. O `dumpsys usagestats` dá o histórico com carimbo de tempo,
+incluindo tela ligando e desligando, e deve ser coletado junto de cada medição.
+
+#### Limitação confirmada: atraso do método agregado
+
+Leituras às 12:03 e 12:06 devolveram valores idênticos, com o app em uso no
+intervalo; às 12:14 já haviam mudado. O caminho agregado atualiza em lotes, com
+atraso de vários minutos. Isso basta para descartá-lo como gatilho de alerta em
+tempo real, que é o que o A2 precisa.
+
+#### Em aberto
+
+- **Divergência residual.** Às 13:38, Norte Lab: agregado 1 h 25, eventos 1 h 10.
+  Do intervalo de 15 min, 4 min correspondem à janela de tela apagada; o restante
+  não está explicado.
+- **O agregado conta tela apagada?** Não sabemos. A pergunta segue aberta e
+  precisa de um teste controlado: registrar hora de início, bloquear por um tempo
+  conhecido, e conferir contra o `dumpsys` antes de concluir.
+- **Galeria** aparece no agregado (3 min) e some nos eventos, mesmo após a
+  correção. Investigar no A2.
+
+#### Impacto no produto
+
+- Usar `queryEvents` para medir uso e para detectar limite.
+- A tela inicial do sistema aparece na lista e precisa ser filtrada.
+- Antes de prometer precisão de minuto em estatísticas, validar em mais de um
+  aparelho: a diferença entre métodos no mesmo app chegou a 15 minutos.
 ### Outros achados do dia
 
 - **Intent direcionado funciona no One UI 8.** `ACTION_USAGE_ACCESS_SETTINGS` com
@@ -304,6 +338,11 @@ dá certo — conferir o resultado pelo que foi realmente instalado, não pelo c
 
 - `--enable-native-access=ALL-UNNAMED` no `org.gradle.jvmargs` para contornar o P1
   (não alcança o processo certo).
+- Somar tempo de uso fechando intervalo em `ACTIVITY_STOPPED`, indexado por
+  pacote. Perdeu 63 minutos de uso real. Ver achado A1.
+- Concluir sobre o comportamento do `totalTimeInForeground` a partir do tempo
+  decorrido entre duas leituras, sem verificar o estado do aparelho. Levou a uma
+  conclusão invertida, corrigida depois pelo `dumpsys usagestats`.
 
 ---
 

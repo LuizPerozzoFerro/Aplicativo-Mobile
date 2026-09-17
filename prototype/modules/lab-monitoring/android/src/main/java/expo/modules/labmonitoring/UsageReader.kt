@@ -96,18 +96,16 @@ object UsageReader {
   /**
    * Minutos de uso de hoje, por app, pelo caminho agregado.
    *
-   * NAO USAR PARA MEDIR USO REAL. Mantido apenas como termo de comparacao do
-   * experimento A1 e como evidencia para o relatorio.
-   *
-   * Medido em 17/09/2026 no Galaxy S22: com o aparelho bloqueado por 67 minutos e
-   * este app em primeiro plano, o totalTimeInForeground foi de 5 min para 1 h 09,
-   * enquanto a reconstrucao por eventos foi de 5 para 6 minutos. Ou seja, ele
-   * conta o tempo de tela apagada. Um limite diario baseado nele dispararia
-   * alerta para quem so deixou o celular na mesa.
-   *
-   * Some-se a isso o atraso: os valores agregados demoram varios minutos para
-   * refletir o uso recente. Para medir uso e para detectar limite, usar
+   * Limitacao confirmada em 17/09/2026 no Galaxy S22: os valores chegam com
+   * atraso de varios minutos. Duas leituras as 12:03 e as 12:06 devolveram
+   * exatamente os mesmos numeros, com o app sendo usado no intervalo; as 12:14 ja
+   * haviam mudado. Serve para exibir um total do dia, mas nao para decidir "o
+   * usuario acabou de passar do limite" -- para isso, ver
    * getUsageTodayFromEvents.
+   *
+   * O que este metodo faz com o tempo de tela apagada ainda NAO foi medido.
+   * Chegamos a concluir que ele contava, mas a conclusao vinha de um teste mal
+   * controlado e foi retirada; ver "Achado A1" em NOTAS.md.
    */
   fun getUsageToday(context: Context): List<Map<String, Any?>> {
     val manager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
@@ -154,7 +152,21 @@ object UsageReader {
     val end = System.currentTimeMillis()
 
     val totals = HashMap<String, Long>()
+
+    // Indexado por activity, nao por pacote. Um app tem varias activities, e numa
+    // recriacao os eventos se cruzam: em 17/09/2026 vimos PAUSED, RESUMED e
+    // STOPPED no mesmo segundo, nessa ordem. Indexar por pacote fazia o evento da
+    // instancia antiga fechar o intervalo da instancia nova.
     val openedAt = HashMap<String, Long>()
+
+    fun keyOf(packageName: String, className: String?) = "$packageName|${className.orEmpty()}"
+
+    fun close(key: String, packageName: String, at: Long) {
+      val from = openedAt.remove(key) ?: return
+      if (at > from) {
+        totals[packageName] = (totals[packageName] ?: 0L) + (at - from)
+      }
+    }
 
     val events = manager.queryEvents(start, end)
     val event = UsageEvents.Event()
@@ -162,27 +174,37 @@ object UsageReader {
     while (events.hasNextEvent()) {
       events.getNextEvent(event)
       val packageName = event.packageName ?: continue
+      val key = keyOf(packageName, event.className)
 
       when (event.eventType) {
         UsageEvents.Event.ACTIVITY_RESUMED -> {
-          openedAt[packageName] = event.timeStamp
+          openedAt[key] = event.timeStamp
         }
 
-        // ACTIVITY_STOPPED entra junto porque nem toda saida de primeiro plano
-        // emite ACTIVITY_PAUSED -- bloquear a tela, por exemplo.
-        UsageEvents.Event.ACTIVITY_PAUSED,
-        UsageEvents.Event.ACTIVITY_STOPPED -> {
-          val from = openedAt.remove(packageName)
-          if (from != null && event.timeStamp > from) {
-            totals[packageName] = (totals[packageName] ?: 0L) + (event.timeStamp - from)
+        // Apenas ACTIVITY_PAUSED fecha o intervalo. ACTIVITY_STOPPED nao serve:
+        // ele fala do ciclo de vida de uma instancia, e uma instancia que ja saiu
+        // de cena pode ser destruida bem depois de outra assumir o primeiro plano.
+        UsageEvents.Event.ACTIVITY_PAUSED -> {
+          close(key, packageName, event.timeStamp)
+        }
+
+        // Tela apagando fecha tudo que estiver aberto. No S22 o ACTIVITY_PAUSED ja
+        // chega junto com o desligamento da tela, entao esta rede de seguranca nao
+        // foi necessaria -- mas nem todo fabricante se comporta assim, e contar
+        // tela apagada como uso seria o pior erro possivel neste produto.
+        UsageEvents.Event.SCREEN_NON_INTERACTIVE -> {
+          val at = event.timeStamp
+          openedAt.keys.toList().forEach { openKey ->
+            close(openKey, openKey.substringBefore('|'), at)
           }
         }
       }
     }
 
     // Quem ainda esta em primeiro plano nao tem evento de saida: conta ate agora.
-    openedAt.forEach { (packageName, from) ->
+    openedAt.forEach { (key, from) ->
       if (end > from) {
+        val packageName = key.substringBefore('|')
         totals[packageName] = (totals[packageName] ?: 0L) + (end - from)
       }
     }
