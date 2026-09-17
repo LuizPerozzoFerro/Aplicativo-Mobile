@@ -1,0 +1,22 @@
+# A9 — leitura de base
+inicio (PC):      2026-09-17 17:22:29
+inicio (aparelho): Thu Sep 17 17:22:27 -03 2026
+
+## bateria
+  AC powered: false
+  USB powered: true
+  status: 5
+  level: 100
+
+## bucket de standby
+10
+
+## configuracao do limite
+    <int name="minutes" value="8" />
+    <set name="packages">
+        <string>com.instagram.android</string>
+
+## uso do Instagram hoje
+05:32
+
+## contadores apos reset (devem estar proximos de zero)
