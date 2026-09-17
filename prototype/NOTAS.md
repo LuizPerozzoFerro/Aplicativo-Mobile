@@ -1,0 +1,193 @@
+# NOTAS — Diário técnico do protótipo
+
+> Fase 1. Registro de decisões, problemas e comandos. Uma entrada por experimento,
+> com resultado (✅ / ⚠️ / ❌) e evidência.
+
+---
+
+## Ambiente
+
+| Item | Versão / caminho |
+|---|---|
+| Node | v24.19.0 |
+| npm | 11.17.0 |
+| Git | 2.55.0.3 |
+| JDK | **Temurin 17.0.20.1** em `C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot` (ver P1) |
+| Android SDK | `%LOCALAPPDATA%\Android\Sdk` — build-tools 36.0.0, platform android-37.0 |
+| Expo SDK | 57.0.23 |
+| React Native | 0.86.3 |
+| Gradle | 9.3.1 |
+
+Variáveis de ambiente definidas no escopo do usuário em 16/09/2026:
+`ANDROID_HOME`, `JAVA_HOME`, e `platform-tools` + `emulator` no `Path`.
+
+O `android/local.properties` aponta para o SDK. Ele fica dentro de `android/`,
+que é ignorado pelo git (o projeto nativo é regerado por `expo prebuild`).
+
+---
+
+## Decisões
+
+### D1 — Build Android local em vez de EAS Build
+O `CLAUDE.md` previa EAS Build para as duas plataformas. Para o Android da Fase 1
+compilamos na máquina (`npx expo run:android`).
+
+**Motivo:** o plano gratuito do EAS dá 15 builds Android por mês, com fila que
+passa de uma hora em horário de pico. Os experimentos A1 a A9 são todos em Kotlin,
+e alteração em código nativo exige recompilar o app inteiro — não recarrega como
+JavaScript. A cota acabaria em um dia de trabalho.
+
+O iOS continua obrigatoriamente no EAS Build (não há Mac).
+
+### D2 — Módulo nativo próprio em vez de biblioteca pronta
+Criado `modules/lab-monitoring` (Kotlin + esqueleto Swift) em vez de usar
+`@brighthustle/react-native-usage-stats-manager`.
+
+**Motivo:** a biblioteca cobre só o A1. Os experimentos seguintes precisam de
+serviço em primeiro plano (A2), notificação disparada pelo nativo (A3),
+sobreposição (A4) e VPN local (A6/A7), todos no mesmo módulo e todos escrevendo
+no log compartilhado do S4. A comparação entre as duas abordagens é insumo direto
+para as perguntas Q8 e I13 do relatório.
+
+### D3 — `<queries>` MAIN/LAUNCHER em vez de `QUERY_ALL_PACKAGES`
+Para listar os apps que o usuário pode escolher monitorar, o módulo declara a
+intenção MAIN/LAUNCHER no seu próprio `AndroidManifest.xml` (o merge do Android
+junta esse manifesto ao do app — não foi preciso config plugin).
+
+**Motivo:** desde o Android 11 um app vê uma lista filtrada dos demais. A
+alternativa, `QUERY_ALL_PACKAGES`, é classificada pelo Google Play como permissão
+sensível, restrita a lançadores, antivírus e gerenciadores de arquivos, e seu uso
+sem justificativa é motivo de remoção. A declaração `<queries>` mostra só apps com
+ícone na gaveta, que é exatamente o que a tela precisa. **Registrar no A10.**
+
+### D4 — `queryAndAggregateUsageStats` em vez de `queryUsageStats`
+Para os minutos de hoje.
+
+**Motivo:** `queryUsageStats(INTERVAL_DAILY, ...)` devolve os baldes de intervalo
+que o próprio sistema montou, e as bordas desses baldes não coincidem com "hoje".
+`queryAndAggregateUsageStats(início, agora)` agrega exatamente o intervalo pedido.
+Se os números divergirem do Bem-estar digital, o plano B é `queryEvents`, que dá os
+eventos brutos de entrada e saída de primeiro plano — e que provavelmente será
+necessário de qualquer forma no A2.
+
+---
+
+## Estrutura
+
+```
+prototype/
+  src/app/index.tsx              # tela de laboratório
+  src/app/_layout.tsx
+  src/monitoring/types.ts        # interface comum da spec §5.2
+  src/monitoring/index.ts        # fachada sobre o módulo nativo
+  modules/lab-monitoring/
+    android/src/main/AndroidManifest.xml   # PACKAGE_USAGE_STATS + <queries>
+    android/.../EventLog.kt                # log compartilhado (S4)
+    android/.../UsageReader.kt             # UsageStatsManager (A1)
+    android/.../LabMonitoringModule.kt     # fachada Expo Modules
+    ios/LabMonitoringModule.swift          # esqueleto: tudo 'unsupported'
+```
+
+O log compartilhado é um arquivo JSONL em `filesDir`. Todo componente do app roda
+sob o mesmo UID, então o serviço em primeiro plano (A2) e a VPN local (A6) vão
+escrever no mesmo arquivo, cada um com seu próprio `source`.
+
+---
+
+## Experimentos
+
+| ID | Resultado | Evidência |
+|---|---|---|
+| S1 | ⏳ compila | `BUILD SUCCESSFUL in 8m 12s`, `app-debug.apk` (131,5 MB) gerado em 16/09/2026. Falta instalar e abrir num aparelho |
+| S4 | ⏳ em andamento | código escrito e compilando; falta ver o evento nativo aparecer na tela |
+| A1 | ⏳ em andamento | código escrito e compilando; falta rodar com o acesso concedido |
+
+**Evidência do merge de manifesto (A1).** No manifesto final gerado pelo build,
+`android/app/build/intermediates/merged_manifest/debug/.../AndroidManifest.xml`:
+
+- `<uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />` presente;
+- o `<intent>` MAIN/LAUNCHER presente dentro do bloco `<queries>`;
+- `QUERY_ALL_PACKAGES` ausente.
+
+Confirma a decisão D3: o manifesto do módulo é mesclado ao do app sem config plugin.
+
+Observação para o A4: o template do Expo já declara `SYSTEM_ALERT_WINDOW` por
+padrão. A permissão de sobreposição talvez não precise ser adicionada, só
+solicitada em tempo de execução.
+
+### Pendências de aparelho
+O responsável está sem cabo USB-A → USB-C, então o Galaxy S22 ainda não foi
+conectado. O emulador depende do **Android SDK Command-line Tools**, que o
+Android Studio não instalou por padrão (SDK Manager → aba SDK Tools).
+
+Sem aparelho nem emulador, nada pode ser marcado como ✅: o critério é evidência no
+log ou confirmação no aparelho.
+
+### Campos adiados
+A spec §5.1 prevê campos de motivação de teste e de limite em minutos na tela de
+laboratório. Ficaram para o A2, quando passam a ter efeito — antes disso seriam
+campos sem função.
+
+---
+
+## Comandos
+
+| Ação | Comando |
+|---|---|
+| Instalar dependências | `npm install` |
+| Verificar tipos | `npm run typecheck` |
+| Lint | `npm run lint` |
+| Compilar e instalar no aparelho/emulador | `npm run android` |
+| Servidor de desenvolvimento | `npx expo start --dev-client` |
+| Regerar o projeto nativo | `npx expo prebuild --platform android --clean` |
+| Compilar só o APK | `cd android && .\gradlew.bat assembleDebug` |
+| Ver aparelhos conectados | `adb devices` |
+
+Após `prebuild --clean`, recriar `android/local.properties` com a linha
+`sdk.dir=C\:\\Users\\User\\AppData\\Local\\Android\\Sdk`.
+
+---
+
+## Problemas encontrados
+
+### P1 — O JDK do Android Studio (25) quebra a compilação de C++
+**Sintoma:** `Execution failed for task ':react-native-worklets:configureCMakeDebug[arm64-v8a]'`
+→ `WARNING: A restricted method in java.lang.System has been called`. O mesmo em
+`react-native-screens`. Todo o resto do build passa; só as tasks de CMake caem.
+
+**Causa:** o Android Studio traz um JBR 25. A partir do JDK 24, chamadas a
+métodos nativos restritos (`System.load`) emitem aviso, e o passo de configuração
+do CMake trata essa saída como falha. O React Native 0.86 compila para bytecode
+Java 17 (`JdkConfiguratorUtils.kt` fixa `JavaVersion.VERSION_17`).
+
+**Tentativa que não funcionou:** acrescentar `--enable-native-access=ALL-UNNAMED`
+ao `org.gradle.jvmargs`. O aviso não vem do daemon do Gradle e sim do processo
+que a task de CMake dispara, então o flag não o alcança. Revertido.
+
+**Solução:** instalado o Temurin JDK 17 e `JAVA_HOME` apontado para ele. O JBR do
+Android Studio continua lá, mas não é mais usado pela linha de comando.
+
+**Atenção:** se o Android Studio for aberto para compilar, ele usa o próprio JBR
+e vai falhar do mesmo jeito. Em Settings → Build → Build Tools → Gradle, apontar
+o Gradle JDK para o Temurin 17.
+
+---
+
+## Tentativas malsucedidas
+
+- `--enable-native-access=ALL-UNNAMED` no `org.gradle.jvmargs` para contornar o P1
+  (não alcança o processo certo).
+
+---
+
+## Ajustes em `android/gradle.properties`
+
+Esse arquivo é regerado por `expo prebuild --clean`. Depois de cada regeração,
+reaplicar se quiser builds mais rápidos:
+
+```
+reactNativeArchitectures=arm64-v8a,x86_64
+```
+
+O padrão inclui também `armeabi-v7a` e `x86`, que não servem nem ao S22 (arm64)
+nem ao emulador (x86_64) e só fazem o build demorar mais.

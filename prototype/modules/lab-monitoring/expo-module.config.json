@@ -1,0 +1,9 @@
+{
+  "platforms": ["android", "apple"],
+  "apple": {
+    "modules": ["LabMonitoringModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.labmonitoring.LabMonitoringModule"]
+  }
+}

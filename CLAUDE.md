@@ -41,7 +41,7 @@ Os documentos em `docs/` são a fonte da verdade. **Não altere `docs/01` e `doc
 | Sistema | **Windows** (sem Mac, sem Xcode) |
 | iOS | iPhone físico; conta Apple Developer **pessoal**; entitlement **Family Controls (Development)** apenas |
 | Android | Samsung Galaxy S22 + emulador Android recente |
-| Builds | **EAS Build** na nuvem, perfil de development build. **Não usar Expo Go** (não suporta módulos nativos) |
+| Builds | **Android:** build local na máquina (Android Studio). **iOS:** **EAS Build** na nuvem, perfil de development build. **Não usar Expo Go** (não suporta módulos nativos). Justificativa em D1 de `prototype/NOTAS.md` |
 | Identificadores | Provisórios, ex.: `com.<provisorio>.lab.dev`. Nunca usar o identificador definitivo do app |
 
 Consequências de não ter Mac:
@@ -108,15 +108,19 @@ Mesmo no protótipo:
 
 Preencher e manter atualizado conforme o projeto for configurado.
 
+Todos os comandos rodam dentro de `prototype/`.
+
 | Ação | Comando |
 |---|---|
-| Instalar dependências | `npm install` (dentro de `prototype/`) |
-| Registrar iPhone para builds internos | `eas device:create` |
-| Build de desenvolvimento Android | `eas build --profile development --platform android` |
-| Build de desenvolvimento iOS | `eas build --profile development --platform ios` |
+| Instalar dependências | `npm install` |
+| Verificar tipos | `npm run typecheck` |
+| Lint | `npm run lint` |
+| Compilar e instalar no Android (aparelho ou emulador) | `npm run android` |
 | Iniciar servidor de desenvolvimento | `npx expo start --dev-client` |
-| Verificar tipos | *a definir* |
-| Lint | *a definir* |
+| Regerar o projeto nativo Android | `npx expo prebuild --platform android --clean` |
+| Ver aparelhos Android conectados | `adb devices` |
+| Registrar iPhone para builds internos | `eas device:create` |
+| Build de desenvolvimento iOS | `eas build --profile development --platform ios` |
 
 ## 11. Ao final da Fase 1
 

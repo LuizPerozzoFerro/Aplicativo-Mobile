@@ -1,0 +1,30 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:tools="http://schemas.android.com/tools">
+
+  <!--
+    Acesso a dados de uso (experimento A1).
+    Nao e uma permissao de runtime: o sistema a trata como "acesso especial" e ela
+    so pode ser concedida manualmente pelo usuario em Ajustes. Por isso o
+    tools:ignore, que silencia o aviso do lint sobre permissao protegida.
+  -->
+  <uses-permission
+    android:name="android.permission.PACKAGE_USAGE_STATS"
+    tools:ignore="ProtectedPermissions" />
+
+  <!--
+    Visibilidade de pacotes (Android 11+). Sem esta declaracao o app enxerga uma
+    lista filtrada dos outros apps instalados e nao consegue nem ler o nome deles.
+    Declarar a intencao MAIN/LAUNCHER mostra apenas apps com icone na gaveta, que
+    e o suficiente para o usuario escolher o que monitorar.
+
+    Deliberadamente NAO usamos QUERY_ALL_PACKAGES: o Google Play a classifica como
+    permissao sensivel, restrita a lancadores, antivirus e gerenciadores de
+    arquivos, e seu uso sem justificativa e motivo de remocao (ver experimento A10).
+  -->
+  <queries>
+    <intent>
+      <action android:name="android.intent.action.MAIN" />
+      <category android:name="android.intent.category.LAUNCHER" />
+    </intent>
+  </queries>
+</manifest>

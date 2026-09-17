@@ -1,0 +1,43 @@
+import { registerWebModule, NativeModule } from 'expo';
+
+import {
+  UNSUPPORTED,
+  type InstalledApp,
+  type LogEvent,
+  type PermissionStatus,
+  type UsageAccessRequestResult,
+  type UsageEntry,
+  type Unsupported,
+} from './LabMonitoring.types';
+
+/**
+ * A web nao e alvo do produto; existe so porque o template do Expo a inclui.
+ * Responde 'unsupported' para tudo, pelo mesmo motivo do esqueleto do iOS.
+ */
+class LabMonitoringModule extends NativeModule<{}> {
+  getPermissionStatus(): PermissionStatus {
+    return { usageAccess: UNSUPPORTED };
+  }
+
+  async requestUsageAccess(): Promise<UsageAccessRequestResult> {
+    return { settingsOpened: false, usageAccess: UNSUPPORTED };
+  }
+
+  async getUsageToday(): Promise<UsageEntry[] | Unsupported> {
+    return UNSUPPORTED;
+  }
+
+  async listInstalledApps(): Promise<InstalledApp[] | Unsupported> {
+    return UNSUPPORTED;
+  }
+
+  async logEvent(): Promise<void> {}
+
+  async getLog(): Promise<LogEvent[]> {
+    return [];
+  }
+
+  async clearLog(): Promise<void> {}
+}
+
+export default registerWebModule(LabMonitoringModule, 'LabMonitoringModule');
