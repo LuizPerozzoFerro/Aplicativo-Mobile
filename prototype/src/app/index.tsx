@@ -1,5 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   AppState,
@@ -57,8 +57,20 @@ export default function LabScreen() {
     setOverlay(status.overlay);
   }, []);
 
+  // A seleção de apps e o modo do A4 vivem só no estado do React, e se perdem
+  // sempre que o protótipo é fechado pelos recentes. Na primeira leitura,
+  // reaproveitamos o que o nativo guardou, para cada rodada de teste não exigir
+  // refazer a lista.
+  const hydrated = useRef(false);
+
   const refreshLimit = useCallback(async () => {
-    setLimit(await monitoring.getUsageLimitStatus());
+    const status = await monitoring.getUsageLimitStatus();
+    setLimit(status);
+    if (!hydrated.current) {
+      hydrated.current = true;
+      if (status.packages.length) setTargets(status.packages);
+      setInterruptionMode(status.interruptionMode);
+    }
   }, []);
 
   /** Envolve cada ação para nenhuma falha nativa sumir em silêncio. */
@@ -238,7 +250,11 @@ export default function LabScreen() {
             </>
           ) : null}
 
-          <Row label="Apps selecionados" value={String(targets.length)} />
+          <Row
+            label="Apps selecionados"
+            value={String(targets.length)}
+            hint={targets.length ? targets.join(', ') : undefined}
+          />
 
           <View style={styles.rowButtons}>
             <Button
