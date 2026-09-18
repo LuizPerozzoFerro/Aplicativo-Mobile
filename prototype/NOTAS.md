@@ -99,6 +99,7 @@ prototype/
     android/.../UsageReader.kt             # UsageStatsManager (A1)
     android/.../UsageLimitService.kt       # serviço em primeiro plano (A2)
     android/.../LimitConfig.kt             # configuração do limite em disco (A2)
+    android/.../BootReceiver.kt            # religa o serviço após reinício (A9)
     android/.../LabMonitoringModule.kt     # fachada Expo Modules
     ios/LabMonitoringModule.swift          # esqueleto: tudo 'unsupported'
 ```
@@ -117,7 +118,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | S4 | ✅ Funciona | Evento gravado pelo Kotlin apareceu na tela com `source: UsageReader`. Arquivo lido direto do aparelho com `adb shell run-as com.norte.lab.dev cat files/lab-events.jsonl`. O log **sobreviveu à reinstalação do app** |
 | A1 | ✅ Funciona | Leitura por `queryEvents` coincidiu com a contabilidade do sistema no mesmo minuto (`1:41:10`), 17/09/2026. O caminho agregado foi descartado por dois defeitos medidos. Ver achado abaixo |
 | A2 | ✅ Funciona | `threshold_reached` registrado às 16:36:44 com o protótipo fechado, 9 s após o Instagram cruzar o limite de 2 min. Serviço em primeiro plano `specialUse` sobreviveu ao app ser arrastado para fora dos recentes. Segunda rodada após 2 h de Doze: latência de 3 s |
-| A9 | ⏳ parcial | Sobreviveu a 2 h 05 min desconectado, com ~114 min em Doze profundo, e continuou detectando (latência 3 s). Custo: **0,138%** de CPU, 0,476 de 73,2 mAh do aparelho. Faltam reinício do aparelho, economia de bateria da Samsung e um dia inteiro (T6) |
+| A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. Faltam "Apps em suspensão" da Samsung (precisa de dias) e o roteiro T6 |
 
 ### Achado A1 — como medir tempo de uso por app, e o que não funciona
 
@@ -360,14 +361,57 @@ O bucket governa throttling de jobs e alarmes, não de serviços em primeiro pla
 então não deve nos afetar — mas é o indicador a acompanhar num teste de dias,
 quando o app pode cair para RARE ou RESTRICTED.
 
-#### O que falta no A9
 
-- **Reinício do aparelho.** O serviço não volta sozinho: falta um
-  `BroadcastReceiver` de `BOOT_COMPLETED`. Não implementado ainda.
-- **Economia de bateria da Samsung** e "Apps em suspensão", que precisam de dias
-  sem uso do app.
+#### Reinício do aparelho: volta sozinho, mas com uma janela cega
+
+Implementado o `BootReceiver`, que religa o serviço ao receber `BOOT_COMPLETED`
+ou `MY_PACKAGE_REPLACED`. Testado com reinício real em 17/09/2026:
+
+```
+23:17:11  boot do aparelho (aproximado)
+23:19:46  service_restarted — acao: BOOT_COMPLETED
+```
+
+O serviço voltou **sem o app ser aberto**. Mas há duas lacunas a registrar:
+
+1. **~2 min 35 s** entre o boot e o religamento. O `BOOT_COMPLETED` é enviado
+   tarde no processo de inicialização.
+2. Em aparelhos com bloqueio de tela, esse broadcast só chega **depois do
+   primeiro desbloqueio** — antes disso o armazenamento do app nem está
+   acessível. Se o usuário reiniciar e deixar o celular bloqueado, o
+   monitoramento fica parado por tempo indefinido.
+
+**Para o produto:** existe uma janela cega após cada reinício. Não dá para
+eliminá-la sem tornar o app *direct boot aware*, o que traz outras complicações.
+
+> A restrição do Android 15 que proíbe receptores de `BOOT_COMPLETED` de iniciar
+> serviços em primeiro plano vale para `dataSync`, `camera`, `mediaPlayback`,
+> `phoneCall`, `mediaProjection` e `microphone`. **`specialUse` não está na
+> lista** (verificado na documentação oficial), e o teste confirmou.
+
+> Não foi possível simular com `adb shell am broadcast -a BOOT_COMPLETED`, como a
+> documentação sugere: neste aparelho é broadcast protegido e o shell recebe
+> `SecurityException`. Só reinício real serve.
+
+#### Ressalva importante sobre o custo medido
+
+Durante as 2 h desconectadas, o **dev client do Expo ficou tentando reconectar ao
+Metro**, inalcançável sem o cabo. Medido depois: ~12 consultas DNS por 25 s sem
+`adb reverse`, contra 1 com ele religado.
+
+Os 0,138% de CPU e 0,476 mAh, portanto, **incluem ruído de desenvolvimento que
+não existirá em produção**. O custo do serviço em si é menor que o medido.
+
+#### Ainda não testado
+
+- **"Apps em suspensão" da Samsung** e rebaixamento para bucket RARE/RESTRICTED:
+  precisam de dias sem uso do app.
 - **Um dia inteiro de uso normal** (roteiro T6).
-
+- **Força-parada pelo usuário.** É comportamento conhecido do Android que um app
+  força-parado deixa de receber broadcasts até ser aberto de novo — o que
+  desligaria o religamento automático. Não testado aqui; exigiria outro reinício.
+  `BroadcastReceiver` de `BOOT_COMPLETED`. Não implementado ainda.
+  sem uso do app.
 ### Outros achados do dia
 
 - **Intent direcionado funciona no One UI 8.** `ACTION_USAGE_ACCESS_SETTINGS` com

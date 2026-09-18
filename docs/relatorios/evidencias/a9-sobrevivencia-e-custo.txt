@@ -63,3 +63,26 @@ Isso provavelmente não é um problema, e sim o comportamento desejável: se o
 aparelho está em Doze, ninguém está usando app nenhum, e não há o que detectar. A
 consequência prática é que o custo medido aqui é um PISO — num dia de uso real,
 com a tela ligada com frequência, mais verificações rodam de fato.
+
+## Reinício do aparelho (17/09/2026, 23:17)
+
+  boot do aparelho:            ~23:17:11
+  BOOT_COMPLETED -> serviço:    23:19:46  (~2 min 35 s após o boot)
+  janela sem monitoramento:    do boot até o religamento, mais o tempo
+                               até o usuário desbloquear a tela
+
+  {"timestamp":"2026-09-17T23:14:37.788-03:00","platform":"android","source":"BootReceiver","experiment":"A9","event":"service_restarted","details":"acao: MY_PACKAGE_REPLACED"}
+  {"timestamp":"2026-09-17T23:19:46.633-03:00","platform":"android","source":"BootReceiver","experiment":"A9","event":"service_restarted","details":"acao: BOOT_COMPLETED"}
+
+  isForeground=true foregroundId=1001 types=0x40000000 foregroundNoti=Notification(channel=lab-monitoring shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0)
+  createTime=-2m45s258ms startingBgTimeout=--
+
+## Ressalva sobre o custo medido
+
+  Durante as 2 h desconectadas, o dev client do Expo ficou tentando
+  reconectar ao Metro, que estava inalcançável sem o cabo. Medido depois:
+  ~12 consultas DNS por 25 s sem adb reverse, contra 1 com ele religado.
+
+  Ou seja, os 0,138% de CPU e 0,476 mAh INCLUEM esse ruído de
+  desenvolvimento. O custo do serviço em si é menor. O número medido é um
+  teto, não um piso, no que diz respeito a este componente.
