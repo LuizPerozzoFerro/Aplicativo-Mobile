@@ -1,8 +1,5 @@
 package expo.modules.labmonitoring
 
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -35,8 +32,6 @@ import android.os.IBinder
 class UsageLimitService : Service() {
 
   companion object {
-    const val CHANNEL_ID = "lab-monitoring"
-    const val NOTIFICATION_ID = 1001
 
     /**
      * Intervalo entre verificacoes. Vale medir o impacto na bateria (A9/T6): e o
@@ -122,38 +117,33 @@ class UsageLimitService : Service() {
         event = "threshold_reached",
         details = "${usedMs / 60000} min de uso para limite de ${LimitConfig.minutes(this)} min"
       )
+
+      // A3: alerta de nivel 1, disparado daqui mesmo -- o app pode estar fechado.
+      val message = LimitConfig.message(this)
+      val sent = runCatching { Notifier.sendLimitAlert(this, message) }
+
+      EventLog.append(
+        context = this,
+        source = "UsageLimitService",
+        experiment = "A3",
+        event = if (sent.isSuccess) "notification_sent" else "notification_failed",
+        details = sent.exceptionOrNull()?.let { "${it.javaClass.simpleName}: ${it.message}" }
+      )
     }
   }
 
   private fun startForegroundWithNotification() {
-    val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      val channel = NotificationChannel(
-        CHANNEL_ID,
-        // Nome neutro: aparece nos Ajustes do sistema e nao pode expor o tema
-        // do app (CLAUDE.md secao 9).
-        "Monitoramento",
-        NotificationManager.IMPORTANCE_LOW
-      )
-      manager.createNotificationChannel(channel)
-    }
-
-    val notification: Notification = Notification.Builder(this, CHANNEL_ID)
-      .setContentTitle("Acompanhamento ativo")
-      .setContentText("O app está acompanhando seu tempo de uso.")
-      .setSmallIcon(android.R.drawable.ic_menu_recent_history)
-      .setOngoing(true)
-      .build()
+    Notifier.ensureChannels(this)
+    val notification = Notifier.ongoingNotification(this)
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
       startForeground(
-        NOTIFICATION_ID,
+        Notifier.ONGOING_NOTIFICATION_ID,
         notification,
         ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
       )
     } else {
-      startForeground(NOTIFICATION_ID, notification)
+      startForeground(Notifier.ONGOING_NOTIFICATION_ID, notification)
     }
   }
 }

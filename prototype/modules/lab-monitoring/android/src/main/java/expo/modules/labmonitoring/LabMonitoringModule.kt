@@ -23,7 +23,43 @@ class LabMonitoringModule : Module() {
     Name("LabMonitoring")
 
     Function("getPermissionStatus") {
-      mapOf("usageAccess" to if (UsageReader.hasUsageAccess(context)) "granted" else "denied")
+      mapOf(
+        "usageAccess" to if (UsageReader.hasUsageAccess(context)) "granted" else "denied",
+        "notifications" to if (Notifications.isAllowed(context)) "granted" else "denied"
+      )
+    }
+
+    /**
+     * Pede a permissao de notificacao (Android 13+). Ao contrario do acesso a
+     * dados de uso, esta e uma permissao de runtime normal, com pop-up.
+     */
+    AsyncFunction("requestNotificationPermission") {
+      val activity = appContext.currentActivity
+      val asked = Notifications.request(context, activity)
+
+      EventLog.append(
+        context = context,
+        source = "app",
+        experiment = "A3",
+        event = if (asked) "notification_permission_requested" else "notification_permission_unavailable"
+      )
+
+      mapOf(
+        "requested" to asked,
+        "notifications" to if (Notifications.isAllowed(context)) "granted" else "denied"
+      )
+    }
+
+    /** Dispara o alerta do A3 na hora, sem esperar o limite. Para teste. */
+    AsyncFunction("sendTestAlert") {
+      Notifier.sendLimitAlert(context, LimitConfig.message(context))
+      EventLog.append(
+        context = context,
+        source = "app",
+        experiment = "A3",
+        event = "notification_sent",
+        details = "disparo manual de teste"
+      )
     }
 
     AsyncFunction("requestUsageAccess") {
@@ -102,7 +138,7 @@ class LabMonitoringModule : Module() {
       apps
     }
 
-    AsyncFunction("startUsageLimit") { minutes: Int, packages: List<String> ->
+    AsyncFunction("startUsageLimit") { minutes: Int, packages: List<String>, message: String ->
       if (!UsageReader.hasUsageAccess(context)) {
         throw PermissionDeniedException()
       }
@@ -110,7 +146,7 @@ class LabMonitoringModule : Module() {
         throw NoTargetsException()
       }
 
-      LimitConfig.save(context, minutes, packages)
+      LimitConfig.save(context, minutes, packages, message)
 
       val intent = Intent(context, UsageLimitService::class.java)
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -138,7 +174,8 @@ class LabMonitoringModule : Module() {
         "active" to LimitConfig.isActive(context),
         "minutes" to LimitConfig.minutes(context),
         "packages" to LimitConfig.packages(context),
-        "firedAt" to LimitConfig.firedAt(context)
+        "firedAt" to LimitConfig.firedAt(context),
+        "message" to LimitConfig.message(context)
       )
     }
 

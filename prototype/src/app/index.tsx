@@ -37,6 +37,10 @@ export default function LabScreen() {
   const [targets, setTargets] = useState<string[]>([]);
   const [limit, setLimit] = useState<UsageLimitStatus | null>(null);
 
+  // A3
+  const [notifications, setNotifications] = useState<PermissionState | null>(null);
+  const [message, setMessage] = useState('Você atingiu o tempo que definiu para hoje.');
+
   const refreshLog = useCallback(async () => {
     setLog(await monitoring.getLog());
   }, []);
@@ -44,6 +48,7 @@ export default function LabScreen() {
   const refreshPermission = useCallback(async () => {
     const status = await monitoring.getPermissionStatus();
     setPermission(status.usageAccess);
+    setNotifications(status.notifications);
   }, []);
 
   const refreshLimit = useCallback(async () => {
@@ -239,6 +244,7 @@ export default function LabScreen() {
                   await monitoring.startUsageLimit({
                     minutes: Number(minutes) || 1,
                     packages: targets,
+                    message,
                   });
                 })
               }
@@ -250,12 +256,6 @@ export default function LabScreen() {
               onPress={() => run('stopLimit', () => monitoring.stopUsageLimit())}
             />
           </View>
-
-          <Button
-            label="Ajustes de notificação"
-            busy={busy === 'notif'}
-            onPress={() => run('notif', async () => void monitoring.openNotificationSettings())}
-          />
 
           {limit ? (
             <>
@@ -269,6 +269,61 @@ export default function LabScreen() {
               />
             </>
           ) : null}
+        </Section>
+
+        <Section title="A3 — Alerta de nível 1 (notificação)">
+          <Row label="Permissão de notificação" value={permissionLabel(notifications)} />
+
+          <View style={styles.rowButtons}>
+            <Button
+              label="Pedir permissão"
+              compact
+              busy={busy === 'askNotif'}
+              onPress={() =>
+                run('askNotif', async () => {
+                  await monitoring.requestNotificationPermission();
+                })
+              }
+            />
+            <Button
+              label="Ajustes"
+              compact
+              busy={busy === 'notifSettings'}
+              onPress={() =>
+                run('notifSettings', async () => {
+                  await monitoring.openNotificationSettings();
+                })
+              }
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>
+              Texto do alerta — precisa ser neutro na tela bloqueada (C2)
+            </Text>
+            <TextInput
+              style={styles.input}
+              value={message}
+              onChangeText={setMessage}
+              multiline
+              placeholder="Você atingiu o tempo que definiu para hoje."
+              placeholderTextColor="#475569"
+            />
+          </View>
+
+          <Text style={styles.note}>
+            O texto acima é salvo ao tocar em &quot;Iniciar limite&quot;, na seção A2.
+          </Text>
+
+          <Button
+            label="Disparar alerta de teste"
+            busy={busy === 'testAlert'}
+            onPress={() =>
+              run('testAlert', async () => {
+                await monitoring.sendTestAlert();
+              })
+            }
+          />
         </Section>
 
         <Section title={`S4 — Log compartilhado (${log.length})`}>

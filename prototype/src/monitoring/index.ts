@@ -9,6 +9,7 @@ import {
   type UsageEntry,
   type UsageLimitConfig,
   type UsageLimitStatus,
+  type NotificationPermissionResult,
   type Unsupported,
 } from './types';
 
@@ -23,7 +24,12 @@ const monitoring: MonitoringModule = {
 
   async requestPermissions(): Promise<PermissionStatus> {
     const result = await LabMonitoring.requestUsageAccess();
-    return { usageAccess: result.usageAccess };
+    // A concessao acontece fora do app, entao o status de notificacao vem da
+    // leitura corrente, nao do resultado deste pedido.
+    return {
+      usageAccess: result.usageAccess,
+      notifications: LabMonitoring.getPermissionStatus().notifications,
+    };
   },
 
   async selectTargets(): Promise<SelectionSummary | Unsupported> {
@@ -35,7 +41,7 @@ const monitoring: MonitoringModule = {
   },
 
   async startUsageLimit(config: UsageLimitConfig): Promise<void> {
-    return LabMonitoring.startUsageLimit(config.minutes, config.packages);
+    return LabMonitoring.startUsageLimit(config.minutes, config.packages, config.message);
   },
 
   async stopUsageLimit(): Promise<void> {
@@ -48,6 +54,14 @@ const monitoring: MonitoringModule = {
 
   async openNotificationSettings(): Promise<boolean> {
     return LabMonitoring.openNotificationSettings();
+  },
+
+  async requestNotificationPermission(): Promise<NotificationPermissionResult> {
+    return LabMonitoring.requestNotificationPermission();
+  },
+
+  async sendTestAlert(): Promise<void> {
+    return LabMonitoring.sendTestAlert();
   },
 
   async startAdultContentWatch(_config: AdultContentWatchConfig): Promise<void> {

@@ -16,7 +16,7 @@ public class LabMonitoringModule: Module {
     Name("LabMonitoring")
 
     Function("getPermissionStatus") { () -> [String: Any] in
-      return ["usageAccess": "unsupported"]
+      return ["usageAccess": "unsupported", "notifications": "unsupported"]
     }
 
     AsyncFunction("requestUsageAccess") { () -> [String: Any] in
@@ -41,7 +41,16 @@ public class LabMonitoringModule: Module {
 
     // O equivalente no iOS e o DeviceActivityMonitor do Screen Time, agendado via
     // Family Controls. Chega no experimento I3.
-    AsyncFunction("startUsageLimit") { (_: Int, _: [String]) in
+    AsyncFunction("startUsageLimit") { (_: Int, _: [String], _: String) in
+      throw UnsupportedOnIOSException()
+    }
+
+    // No iOS o alerta sai da extensao DeviceActivityMonitor (experimento I4).
+    AsyncFunction("requestNotificationPermission") { () -> [String: Any] in
+      return ["requested": false, "notifications": "unsupported"]
+    }
+
+    AsyncFunction("sendTestAlert") {
       throw UnsupportedOnIOSException()
     }
 
@@ -50,7 +59,7 @@ public class LabMonitoringModule: Module {
     }
 
     Function("getUsageLimitStatus") { () -> [String: Any] in
-      return ["active": false, "minutes": 0, "packages": [String](), "firedAt": 0]
+      return ["active": false, "minutes": 0, "packages": [String](), "message": "", "firedAt": 0]
     }
 
     AsyncFunction("openNotificationSettings") { () -> Bool in

@@ -57,6 +57,11 @@
       </intent-filter>
     </receiver>
 
+    <!-- A3: botao "Emergência" da notificacao de alerta. -->
+    <receiver
+      android:name=".NotificationActionReceiver"
+      android:exported="false" />
+
     <service
       android:name=".UsageLimitService"
       android:exported="false"

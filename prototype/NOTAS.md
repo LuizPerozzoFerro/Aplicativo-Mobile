@@ -100,6 +100,9 @@ prototype/
     android/.../UsageLimitService.kt       # serviço em primeiro plano (A2)
     android/.../LimitConfig.kt             # configuração do limite em disco (A2)
     android/.../BootReceiver.kt            # religa o serviço após reinício (A9)
+    android/.../Notifier.kt                # canais e notificação de alerta (A3)
+    android/.../Notifications.kt           # permissão de notificação (A3)
+    android/.../NotificationActionReceiver.kt  # botão "Emergência" (A3)
     android/.../LabMonitoringModule.kt     # fachada Expo Modules
     ios/LabMonitoringModule.swift          # esqueleto: tudo 'unsupported'
 ```
@@ -118,6 +121,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | S4 | ✅ Funciona | Evento gravado pelo Kotlin apareceu na tela com `source: UsageReader`. Arquivo lido direto do aparelho com `adb shell run-as com.norte.lab.dev cat files/lab-events.jsonl`. O log **sobreviveu à reinstalação do app** |
 | A1 | ✅ Funciona | Leitura por `queryEvents` coincidiu com a contabilidade do sistema no mesmo minuto (`1:41:10`), 17/09/2026. O caminho agregado foi descartado por dois defeitos medidos. Ver achado abaixo |
 | A2 | ✅ Funciona | `threshold_reached` registrado às 16:36:44 com o protótipo fechado, 9 s após o Instagram cruzar o limite de 2 min. Serviço em primeiro plano `specialUse` sobreviveu ao app ser arrastado para fora dos recentes. Segunda rodada após 2 h de Doze: latência de 3 s |
+| A3 | ⚠️ Funciona com limitações | Notificação disparada pelo Kotlin com o app fechado, **14 ms** após a detecção (~6 s do limite real até o alerta). Texto neutro e configurável. **Mas o botão "Emergência" não aparece com a notificação recolhida no One UI** — exige expandir antes, o que são dois toques |
 | A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. Faltam "Apps em suspensão" da Samsung (precisa de dias) e o roteiro T6 |
 
 ### Achado A1 — como medir tempo de uso por app, e o que não funciona
@@ -294,6 +298,72 @@ desde a última verificação.
   deixado assim de propósito, por ser a condição de um usuário comum.
 - O intervalo de 20 s foi escolhido sem medição. Calibrar contra bateria.
 
+
+
+### Achado A3 — alerta de nível 1 funciona, mas o botão fica escondido
+
+**Resultado: ⚠️ funciona com limitações.** A notificação é disparada pelo código
+nativo com o protótipo fechado, quase instantaneamente após a detecção. Mas o
+botão de ação — que no produto leva ao botão de emergência — **não fica visível
+sem o usuário expandir a notificação**.
+
+#### Latência
+
+```
+23:49:32      uso do Instagram cruzou 13 min (reconstruído do dumpsys)
+23:49:37.888  threshold_reached
+23:49:37.902  notification_sent      (14 ms depois)
+```
+
+Total de ~6 s entre o limite real e o alerta na mão do usuário. Praticamente
+todo esse tempo é a detecção do A2 (limitada pelo intervalo de 20 s); postar a
+notificação em si custou 14 milissegundos.
+
+O critério da spec ("notificação aparece segundos após o limite") é atendido com
+folga.
+
+#### O problema: o botão "Emergência" exige dois toques
+
+Relato do responsável no aparelho: na gaveta do One UI, o botão de ação **não
+aparece** com a notificação recolhida. É preciso tocar na seta para expandir
+antes de o botão surgir.
+
+Isso colide com o princípio **P3** do documento 01 — "registrar algo deve custar
+no máximo um toque". Num momento de vulnerabilidade, dois toques e uma descoberta
+de interface são muito.
+
+**Implicações a levar para o produto:**
+- O alerta de nível 1 sozinho não entrega o botão de emergência de forma
+  acessível no Samsung, que é justamente a marca mais popular do Brasil.
+- Reforça a importância do **A4** (tela de interrupção): é lá que a emergência
+  pode ficar a um toque.
+- Vale testar `setFullScreenIntent`, que transforma a notificação em algo mais
+  intrusivo — mas isso tem restrição própria de permissão desde o Android 14 e
+  precisa ser verificado antes de ser prometido.
+
+#### Texto neutro e configurável (adianta o C2)
+
+O texto vem da configuração, não do código, e é editável na tela de laboratório.
+Padrão: título "Momento de pausa", corpo "Você atingiu o tempo que definiu para
+hoje." Nada no título, no corpo ou no nome dos canais ("Monitoramento",
+"Alertas") revela o tema do app.
+
+#### Notificação permanente: aparece, com ~10 s de atraso
+
+O Android adia a exibição da notificação de serviço em primeiro plano por cerca
+de 10 segundos após o serviço subir. Verificado: ausente aos 7 s, presente aos
+30 s.
+
+Antes disso houve uma confusão que vale registrar: enquanto a permissão de
+notificação estava negada, o serviço rodava normalmente (`isForeground=true`) mas
+sua notificação **não era exibida**. Conceder a permissão depois não a republica
+— é preciso reiniciar o serviço.
+
+#### Permissão de notificação
+
+Diferente do acesso a dados de uso do A1, esta é permissão de runtime comum, com
+pop-up do sistema. Concedida em 23:35:54. Sem ela o serviço roda, mas nenhum
+alerta chega ao usuário — o que tornaria o produto inútil sem avisar.
 
 ### Achado A9 (parcial) — sobrevivência em segundo plano e custo
 

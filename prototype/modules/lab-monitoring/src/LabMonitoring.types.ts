@@ -22,7 +22,15 @@ export type PermissionState = 'granted' | 'denied' | Unsupported;
 
 export type PermissionStatus = {
   usageAccess: PermissionState;
+  notifications: PermissionState;
 };
+
+export type NotificationPermissionResult = {
+  /** Se o pop-up chegou a ser exibido. Falso no Android 12 ou anterior. */
+  requested: boolean;
+  notifications: PermissionState;
+};
+
 
 /**
  * Qual variante do intent abriu os Ajustes. 'targeted' aponta direto para o app
@@ -55,6 +63,8 @@ export type UsageLimitStatus = {
   active: boolean;
   minutes: number;
   packages: string[];
+  /** Texto neutro do alerta (experimento C2). */
+  message: string;
   /** Epoch em ms de quando o limite foi atingido; 0 se ainda nao foi. */
   firedAt: number;
 };

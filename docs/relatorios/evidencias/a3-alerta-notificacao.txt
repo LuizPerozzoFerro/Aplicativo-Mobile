@@ -1,0 +1,36 @@
+# A3 — Alerta de nível 1 (notificação)
+# Galaxy S22, Android 16 / One UI 8, 17/09/2026
+
+## Disparo com o protótipo fechado
+  23:49:32      uso do Instagram cruzou 13 min (reconstruído do dumpsys)
+  23:49:37.888  threshold_reached
+  23:49:37.902  notification_sent   (14 ms após a detecção)
+
+  latência total até o alerta: ~6 s
+  (5,9 s de detecção, limitados pelo intervalo de 20 s do serviço,
+   mais 14 ms para postar a notificação)
+
+  {"timestamp":"2026-09-17T23:35:54.383-03:00","platform":"android","source":"app","experiment":"A3","event":"notification_permission_requested"}
+  {"timestamp":"2026-09-17T23:37:19.209-03:00","platform":"android","source":"app","experiment":"A3","event":"notification_sent","details":"disparo manual de teste"}
+  {"timestamp":"2026-09-17T23:49:37.902-03:00","platform":"android","source":"UsageLimitService","experiment":"A3","event":"notification_sent"}
+
+## A notificação, como o sistema a registra
+  NotificationRecord(0x021f170d: pkg=com.norte.lab.dev user=UserHandle{0} id=1002 tag=null importance=4 key=0|com.norte.lab.dev|1002|null|10162: Notification(channel=lab-alerts shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=AUTO_CANCEL color=0x00000000 actions=1 vis=PRIVATE semFlags=0x2008 semPriority=0 semMissedCount=0))
+
+  canal=lab-alerts  importance=4 (HIGH)  actions=1  flags=AUTO_CANCEL
+  título: "Momento de pausa"
+  texto:  configurável pela tela de laboratório; padrão neutro
+
+## Notificação permanente do serviço
+  NotificationRecord(0x025409a8: pkg=com.norte.lab.dev user=UserHandle{0} id=1001 tag=null importance=2 key=0|com.norte.lab.dev|1001|null|10162: Notification(channel=lab-monitoring shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|NO_CLEAR|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0))
+
+  O Android adia a exibição desta notificação por cerca de 10 s após o
+  serviço subir. Verificado: ausente aos 7 s, presente aos 30 s.
+
+## Observação do responsável sobre o botão Emergência
+  Na gaveta de notificações do One UI, o botão de ação NÃO aparece no
+  estado recolhido. É preciso tocar na seta para expandir a notificação
+  antes que o botão fique visível. Ou seja: dois toques até a emergência.
+
+  Captura da gaveta não versionada: mostra notificações pessoais do
+  responsável (CLAUDE.md seção 9).

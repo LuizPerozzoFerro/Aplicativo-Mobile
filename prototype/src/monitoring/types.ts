@@ -13,6 +13,7 @@ import type {
   PermissionStatus,
   UsageEntry,
   UsageLimitStatus,
+  NotificationPermissionResult,
   Unsupported,
 } from '../../modules/lab-monitoring/src/LabMonitoring.types';
 
@@ -23,6 +24,7 @@ export type {
   PermissionStatus,
   UsageEntry,
   UsageLimitStatus,
+  NotificationPermissionResult,
   Unsupported,
 } from '../../modules/lab-monitoring/src/LabMonitoring.types';
 
@@ -34,8 +36,8 @@ export type UsageLimitConfig = {
   minutes: number;
   /** Pacotes Android a monitorar. No iOS a selecao vem do seletor da Apple (I2). */
   packages: string[];
-  /** Texto exibido na tela de interrupcao. Passa a ter efeito no A4. */
-  motivation?: string;
+  /** Texto neutro do alerta (A3). Configuravel para atender o C2. */
+  message: string;
 };
 
 export type AdultContentWatchConfig = {
@@ -55,6 +57,11 @@ export interface MonitoringModule {
 
   /** Abre os ajustes de notificacao do app. Necessario para o alerta do A3. */
   openNotificationSettings(): Promise<boolean>;
+
+  requestNotificationPermission(): Promise<NotificationPermissionResult>;
+
+  /** Dispara o alerta do A3 imediatamente, sem esperar o limite. */
+  sendTestAlert(): Promise<void>;
 
   startAdultContentWatch(config: AdultContentWatchConfig): Promise<void>;
   stopAdultContentWatch(): Promise<void>;
