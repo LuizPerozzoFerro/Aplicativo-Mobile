@@ -668,8 +668,8 @@ decidido fora do Claude Code.
 | I-6 | Sem a permissão de notificação o serviço roda, mas nenhum alerta chega — e nada avisa o usuário | Doc 01 §6.9, onboarding | O app precisa detectar e explicar o modo degradado |
 | I-7 | A tela de interrupção depende de `SYSTEM_ALERT_WINDOW`, e a documentação do Android enquadra "atividade sobre o app em uso" como **sequestro de interface** | Doc 02 riscos, A10 | Risco de loja para a tela de interrupção; justificar no pedido |
 | I-8 | A tela inicial do sistema aparece na lista de uso como se fosse um app | Doc 01 §6.8 | Filtrar lançadores das estatísticas |
-| I-10 | Com a sobreposição, o app monitorado continua em primeiro plano por baixo: o tempo diante da tela de interrupção conta como uso dele | Doc 01 §6.2 e §6.8 | Descontar esse tempo das estatísticas e da streak de moderação |
 | I-9 | Custo medido do monitoramento: 0,138% de CPU e 0,65% do consumo do aparelho, incluindo ruído do ambiente de desenvolvimento | Doc 02 riscos (bateria) | O risco de bateria parece baixo; confirmar no roteiro T6 |
+| I-10 | Com a sobreposição, o app monitorado continua em primeiro plano por baixo: o tempo diante da tela de interrupção conta como uso dele | Doc 01 §6.2 e §6.8 | Descontar esse tempo das estatísticas e da streak de moderação |
 
 ## Comandos
 
