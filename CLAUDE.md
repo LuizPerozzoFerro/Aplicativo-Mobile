@@ -40,7 +40,8 @@ Os documentos em `docs/` são a fonte da verdade. **Não altere `docs/01` e `doc
 |---|---|
 | Sistema | **Windows** (sem Mac, sem Xcode) |
 | iOS | iPhone físico; conta Apple Developer **pessoal**; entitlement **Family Controls (Development)** apenas |
-| Android | Samsung Galaxy S22 + emulador Android recente |
+| Android | Samsung Galaxy S22 (Android 16 / One UI 8) **pelo cabo USB**. O emulador `lab_android16` existe, mas não dá boot: a virtualização está desligada na BIOS (P2 em `prototype/NOTAS.md`) |
+| JDK | **Temurin 17**, via `JAVA_HOME`. O JDK 25 que vem com o Android Studio quebra a compilação de C++ do React Native (P1) |
 | Builds | **Android:** build local na máquina (Android Studio). **iOS:** **EAS Build** na nuvem, perfil de development build. **Não usar Expo Go** (não suporta módulos nativos). Justificativa em D1 de `prototype/NOTAS.md` |
 | Identificadores | Provisórios, ex.: `com.<provisorio>.lab.dev`. Nunca usar o identificador definitivo do app |
 
@@ -108,19 +109,27 @@ Mesmo no protótipo:
 
 Preencher e manter atualizado conforme o projeto for configurado.
 
-Todos os comandos rodam dentro de `prototype/`.
+Todos os comandos rodam dentro de `prototype/`. A lista completa, com os
+diagnósticos via `adb` e `dumpsys`, está na seção "Comandos" de
+`prototype/NOTAS.md`; o roteiro de cada sessão está em "Procedimento de início
+de sessão" no mesmo arquivo.
 
 | Ação | Comando |
 |---|---|
 | Instalar dependências | `npm install` |
 | Verificar tipos | `npm run typecheck` |
 | Lint | `npm run lint` |
-| Compilar e instalar no Android (aparelho ou emulador) | `npm run android` |
-| Iniciar servidor de desenvolvimento | `npx expo start --dev-client` |
+| Subir o servidor de desenvolvimento | `nohup npx expo start --dev-client --port 8081 > metro.log 2>&1 & disown` — desacoplado, e encerrado no fim da sessão |
+| Ligar o app ao servidor pelo cabo | `adb reverse tcp:8081 tcp:8081` — refazer após toda reinstalação e reinício |
+| Compilar e instalar no Android | `cd android && ./gradlew.bat installDebug` |
 | Regerar o projeto nativo Android | `npx expo prebuild --platform android --clean` |
+| Ler o log compartilhado sem abrir o app | `adb shell run-as com.norte.lab.dev cat files/lab-events.jsonl` |
 | Ver aparelhos Android conectados | `adb devices` |
 | Registrar iPhone para builds internos | `eas device:create` |
 | Build de desenvolvimento iOS | `eas build --profile development --platform ios` |
+
+Não usar `npm run android` em segundo plano: ele encerra após instalar e deixa o
+servidor órfão, preso na porta 8081 (P4).
 
 ## 11. Ao final da Fase 1
 

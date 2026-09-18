@@ -5,6 +5,37 @@
 
 ---
 
+## Estado atual e próximo passo
+
+> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 18/09/2026.
+
+**Branch:** `prototype/android-usage`. Tudo commitado.
+
+**Placar do Android:**
+
+| ID | Resultado |
+|---|---|
+| S1 · S4 · A1 · A2 | ✅ |
+| A3 · A9 | ⚠️ com limitações documentadas |
+| A4 | código pronto; teste no aparelho em 18/09/2026 (ver tabela de experimentos) |
+| A5 · A6 · A7 · A8 · A10 | não iniciados |
+| S2 · S3 · iOS | não iniciados — dependem da conta Apple Developer pessoal |
+
+**Próximo passo:** A5 (pausa após "continuar mesmo assim"). O serviço hoje dispara
+o alerta e a interrupção uma vez por dia e para ali; o A5 precisa reagendar.
+
+**Estado do aparelho ao fim da última sessão:** serviço em primeiro plano ativo,
+limite de 2 min no Instagram, modo sobreposição, todas as permissões concedidas
+(acesso a dados de uso, notificação, sobreposição).
+
+**Pendências que dependem de tempo, e podem correr em paralelo:**
+- A9: "Apps em suspensão" da Samsung — dias sem abrir o protótipo.
+- T6: um dia inteiro de uso normal com o monitoramento ligado.
+
+**Antes de trabalhar:** seguir o "Procedimento de início de sessão" mais abaixo.
+
+---
+
 ## Ambiente
 
 | Item | Versão / caminho |
@@ -103,6 +134,8 @@ prototype/
     android/.../Notifier.kt                # canais e notificação de alerta (A3)
     android/.../Notifications.kt           # permissão de notificação (A3)
     android/.../NotificationActionReceiver.kt  # botão "Emergência" (A3)
+    android/.../InterruptionOverlay.kt     # tela de interrupção por sobreposição (A4a)
+    android/.../InterruptionActivity.kt    # tela de interrupção como activity (A4b)
     android/.../LabMonitoringModule.kt     # fachada Expo Modules
     ios/LabMonitoringModule.swift          # esqueleto: tudo 'unsupported'
 ```
@@ -122,6 +155,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | A1 | ✅ Funciona | Leitura por `queryEvents` coincidiu com a contabilidade do sistema no mesmo minuto (`1:41:10`), 17/09/2026. O caminho agregado foi descartado por dois defeitos medidos. Ver achado abaixo |
 | A2 | ✅ Funciona | `threshold_reached` registrado às 16:36:44 com o protótipo fechado, 9 s após o Instagram cruzar o limite de 2 min. Serviço em primeiro plano `specialUse` sobreviveu ao app ser arrastado para fora dos recentes. Segunda rodada após 2 h de Doze: latência de 3 s |
 | A3 | ⚠️ Funciona com limitações | Notificação disparada pelo Kotlin com o app fechado, **14 ms** após a detecção (~6 s do limite real até o alerta). Apareceu **flutuando por cima do Instagram**, texto neutro e configurável. **Mas o botão "Emergência" só aparece se a notificação for expandida** — dois toques até a emergência |
+| A4 | ⏳ em teste | Código das duas abordagens pronto (sobreposição e activity). Ambas dependem de `SYSTEM_ALERT_WINDOW`, concedida em 18/09/2026. Teste no aparelho em andamento |
 | A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. Faltam "Apps em suspensão" da Samsung (precisa de dias) e o roteiro T6 |
 
 ### Achado A1 — como medir tempo de uso por app, e o que não funciona
@@ -474,6 +508,13 @@ Metro**, inalcançável sem o cabo. Medido depois: ~12 consultas DNS por 25 s se
 Os 0,138% de CPU e 0,476 mAh, portanto, **incluem ruído de desenvolvimento que
 não existirá em produção**. O custo do serviço em si é menor que o medido.
 
+#### Sobreviveu a uma noite inteira
+
+Na noite de 17 para 18/09/2026 o serviço ficou armado sem que o protótipo fosse
+aberto. Às 13:19 do dia seguinte: `isForeground=true`, `createTime=-13h14m` — a
+mesma instância, nunca recriada pelo sistema. Não houve instrumentação de
+bateria nessa janela; o dado vale só como sobrevivência.
+
 #### Ainda não testado
 
 - **"Apps em suspensão" da Samsung** e rebaixamento para bucket RARE/RESTRICTED:
@@ -491,89 +532,108 @@ não existirá em produção**. O custo do serviço em si é menor que o medido.
   interruptor, em vez da lista com dezenas de apps. Registrado no log como
   `rota: targeted`. Bom para o onboarding do app definitivo.
 - **`<queries>` MAIN/LAUNCHER basta.** Os nomes dos apps foram resolvidos
-  corretamente sem `QUERY_ALL_PACKAGES`.
+  corretamente sem `QUERY_ALL_PACKAGES` — 202 apps visíveis no S22.
 - **`AppState` detecta o retorno dos Ajustes.** O status da permissão virou de
   "negado" para "concedido" sozinho quando o app voltou ao primeiro plano.
 - **O log persiste entre reinstalações.** Relevante para o A9.
-
-**Evidência do merge de manifesto (A1).** No manifesto final gerado pelo build,
-`android/app/build/intermediates/merged_manifest/debug/.../AndroidManifest.xml`:
-
-- `<uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />` presente;
-- o `<intent>` MAIN/LAUNCHER presente dentro do bloco `<queries>`;
-- `QUERY_ALL_PACKAGES` ausente.
-
-Confirma a decisão D3: o manifesto do módulo é mesclado ao do app sem config plugin.
-
-Observação para o A4: o template do Expo já declara `SYSTEM_ALERT_WINDOW` por
-padrão. A permissão de sobreposição talvez não precise ser adicionada, só
-solicitada em tempo de execução.
-
-### Roteiro da próxima sessão — Galaxy S22
-
-Decidido em 16/09/2026: seguimos pelo **cabo USB**, não pelo emulador. O caminho
-do emulador continua disponível se a virtualização for ativada um dia (ver P2).
-
-**Preparação do aparelho (antes da sessão):**
-
-1. Ter um cabo **USB-A → USB-C de dados**. Cabos de carregamento baratos muitas
-   vezes não têm os fios de dados: o aparelho carrega e o `adb` nunca o enxerga.
-2. Ajustes → Sobre o telefone → Informações do software → tocar **7 vezes** em
-   "Número da versão". Aparece "Você agora é um desenvolvedor".
-3. Ajustes → Opções do desenvolvedor → ativar **Depuração USB** e
-   **Instalar via USB** (o segundo é específico da Samsung; sem ele a instalação
-   falha sem mensagem clara).
-4. Conectar ao PC e **autorizar a chave RSA** no aviso que aparece no aparelho,
-   marcando "Sempre permitir".
-5. Usar Instagram ou YouTube por alguns minutos no dia do teste, para existir
-   uso real a ser lido.
-
-**Na sessão:**
-
-| Passo | Como |
-|---|---|
-| Confirmar que o PC vê o aparelho | `adb devices` |
-| Compilar e instalar | `npm run android` |
-| Conceder o acesso | botão na tela, ou Configurações → Apps → ⋮ → **Acesso especial** → **Acesso a dados de uso** |
-| Ler o uso | botão "Ler uso de hoje" |
-| Conferir | comparar com Ajustes → **Bem-estar digital e controles parentais** |
-
-Se o Windows não reconhecer o S22, pode ser necessário o driver USB da Samsung.
-
-### Pendências de aparelho
-O Galaxy S22 ainda não foi conectado (falta o cabo) e o emulador não dá boot
-(P2). Enquanto nenhum dos dois rodar, nada pode ser marcado como ✅: o critério é
-evidência no log ou confirmação do responsável no aparelho.
-
-O que já está provado sem aparelho: o projeto compila, o módulo nativo compila e
-o manifesto é mesclado corretamente. O que não está provado: se o
-`UsageStatsManager` devolve números corretos, se o log escrito pelo Kotlin
-aparece na tela, e se o intent abre a tela de Ajustes certa no One UI.
-
-### Campos adiados
-A spec §5.1 prevê campos de motivação de teste e de limite em minutos na tela de
-laboratório. Ficaram para o A2, quando passam a ter efeito — antes disso seriam
-campos sem função.
+- **Merge de manifesto sem config plugin (D3).** Conferido no manifesto final:
+  `PACKAGE_USAGE_STATS` e o `<intent>` MAIN/LAUNCHER presentes,
+  `QUERY_ALL_PACKAGES` ausente.
+- **`SYSTEM_ALERT_WINDOW` já vem declarada pelo template do Expo.** No A4 bastou
+  pedir ao usuário que a concedesse; não foi preciso adicioná-la ao manifesto.
 
 ---
 
+## Procedimento de início de sessão
+
+O aparelho de teste é o Galaxy S22 pelo cabo USB. O emulador está bloqueado
+pela BIOS (P2).
+
+| # | Passo | Comando / ação |
+|---|---|---|
+| 1 | Conectar o S22 e confirmar | `adb devices` deve listar `RQCT305RZ3Y device` |
+| 2 | Conferir o JDK | `JAVA_HOME` precisa apontar para o Temurin 17 (P1) |
+| 3 | Subir o Metro desacoplado | ver "Comandos" abaixo — **não** usar `npm run android` em segundo plano (P4) |
+| 4 | Redirecionar a porta pelo cabo | `adb reverse tcp:8081 tcp:8081` — refazer após **toda** reinstalação e reinício (P3) |
+| 5 | Compilar e instalar (só se mudou Kotlin) | `cd android && ./gradlew.bat installDebug` |
+| 6 | Ler o log sem abrir o app | `adb shell run-as com.norte.lab.dev cat files/lab-events.jsonl` |
+| 7 | Encerrar | matar o Metro no fim da sessão (P4) |
+
+**Regra de evidência (desde o A1):** toda medição de uso vem acompanhada do
+recorte do `dumpsys usagestats` do mesmo período. O relógio não é evidência.
+
+**Regra de privacidade:** não versionar capturas da gaveta de notificações nem o
+`dumpsys` completo — ambos mostram dados pessoais do aparelho. Guardar apenas
+recortes com os eventos de tela e os do próprio protótipo.
+
+**Coordenadas de toque:** a tela do S22 tem 1080×2340; as capturas lidas pelo
+Claude chegam reduzidas em 1,17×. Multiplicar por 1,17 antes do `adb shell input tap`.
+
+---
+
+## Dependências
+
+Justificativa exigida pelo `CLAUDE.md` §8.2. Todas são pacotes oficiais do Expo,
+na versão do SDK 57.
+
+| Pacote | Versão | Por quê | Nativo? |
+|---|---|---|---|
+| `expo-dev-client` | ~57.0.19 | Sem ele o app pedia `/index.bundle` e o Metro do SDK 57 só serve o entry virtual do Expo Router — 404 e crash. É o que torna o build um *development build* de fato, e dá um launcher para escolher o servidor. Aprovado pelo responsável em 17/09/2026 (ver P5) | sim |
+| `expo-clipboard` | ~57.0.2 | Botão "Copiar" do log, exigido pela spec §5.1 | sim |
+
+O módulo `lab-monitoring` é código próprio (D2) e não usa bibliotecas de
+terceiros.
+
+---
+
+## Impactos nos documentos 01 e 02
+
+Insumo para a seção 8 do relatório de viabilidade. **Os documentos 01 e 02 não
+são alterados aqui** (`CLAUDE.md` §3); a lista abaixo é o que precisa ser
+decidido fora do Claude Code.
+
+| # | Achado | Afeta | O que precisa ser decidido |
+|---|---|---|---|
+| I-1 | O Android não expõe API de aviso de limite (`registerAppUsageObserver` é reservada ao sistema). Monitorar exige serviço em primeiro plano com **notificação permanente** | Doc 01 P7 (discrição) | Como tratar o ícone e o nome do app visíveis na barra de status o dia inteiro |
+| I-2 | O serviço é do tipo `specialUse`, aprovado por **revisão humana** do Google Play a partir de uma justificativa em texto livre | Doc 02 riscos, fase 9 | O texto da justificativa passa a ser parte do produto; risco de rejeição |
+| I-3 | No One UI o botão de ação da notificação **só aparece expandindo-a** — dois toques até a emergência | Doc 01 P3 ("no máximo um toque"), §6.7 | A emergência pela notificação não cumpre P3 no Samsung; depende da tela de interrupção |
+| I-4 | "Hoje" do sistema não coincide com a meia-noite: o método agregado atribui uso de ontem ao dia seguinte (confirmado duas vezes) | Doc 01 §6.2 e §6.8 | Streak de moderação e estatísticas diárias precisam calcular a borda do dia explicitamente |
+| I-5 | Após reiniciar o aparelho, o monitoramento só volta **~2,5 min depois do boot e só após o primeiro desbloqueio** | Doc 01 §6.5 (P2 proativo) | Declarar a janela cega ou aceitá-la |
+| I-6 | Sem a permissão de notificação o serviço roda, mas nenhum alerta chega — e nada avisa o usuário | Doc 01 §6.9, onboarding | O app precisa detectar e explicar o modo degradado |
+| I-7 | A tela de interrupção depende de `SYSTEM_ALERT_WINDOW`, e a documentação do Android enquadra "atividade sobre o app em uso" como **sequestro de interface** | Doc 02 riscos, A10 | Risco de loja para a tela de interrupção; justificar no pedido |
+| I-8 | A tela inicial do sistema aparece na lista de uso como se fosse um app | Doc 01 §6.8 | Filtrar lançadores das estatísticas |
+| I-9 | Custo medido do monitoramento: 0,138% de CPU e 0,65% do consumo do aparelho, incluindo ruído do ambiente de desenvolvimento | Doc 02 riscos (bateria) | O risco de bateria parece baixo; confirmar no roteiro T6 |
+
 ## Comandos
+
+Rodar dentro de `prototype/`. Os exemplos usam Git Bash; `adb` fica em
+`$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe`.
 
 | Ação | Comando |
 |---|---|
 | Instalar dependências | `npm install` |
 | Verificar tipos | `npm run typecheck` |
 | Lint | `npm run lint` |
-| Compilar e instalar no aparelho/emulador | `npm run android` |
-| Servidor de desenvolvimento | `npx expo start --dev-client` |
-| Regerar o projeto nativo | `npx expo prebuild --platform android --clean` |
-| Compilar só o APK | `cd android && .\gradlew.bat assembleDebug` |
-| Ver aparelhos conectados | `adb devices` |
-| Iniciar o emulador | `emulator -avd lab_android16` |
-| Listar emuladores | `emulator -list-avds` |
+| Subir o Metro desacoplado | `nohup npx expo start --dev-client --port 8081 > metro.log 2>&1 & disown` |
+| Redirecionar porta pelo cabo | `adb reverse tcp:8081 tcp:8081` |
+| Compilar e instalar (Kotlin mudou) | `cd android && ./gradlew.bat installDebug` |
+| Regerar o projeto nativo | `npx expo prebuild --platform android --clean` (ver "Ajustes" no fim) |
+| Abrir o app | `adb shell monkey -p com.norte.lab.dev -c android.intent.category.LAUNCHER 1` |
+| Ler o log compartilhado | `adb shell run-as com.norte.lab.dev cat files/lab-events.jsonl` |
+| Ler a configuração do limite | `adb shell run-as com.norte.lab.dev cat shared_prefs/lab-limit.xml` |
+| Estado do serviço | `adb shell dumpsys activity services com.norte.lab.dev` |
+| Histórico de uso do sistema | `adb shell dumpsys usagestats` (dados pessoais — não versionar inteiro) |
+| Consumo por app | `adb shell dumpsys batterystats` (zerar antes com `--reset`) |
+| Estado do Doze | `adb shell dumpsys deviceidle` |
+| Notificações ativas | `adb shell dumpsys notification --noredact` |
+| Bucket de standby | `adb shell am get-standby-bucket com.norte.lab.dev` |
+| Capturar a tela | `adb exec-out screencap -p > tela.png` |
+| Porta 8081 ocupada? | `netstat -ano \| grep :8081` e `taskkill //PID <pid> //F` |
+| Emulador (bloqueado por P2) | `emulator -avd lab_android16` |
 
-Após `prebuild --clean`, recriar `android/local.properties` com a linha
-`sdk.dir=C\:\\Users\\User\\AppData\\Local\\Android\\Sdk`.
+Após `prebuild --clean`, recriar `android/local.properties` com
+`sdk.dir=C:/Users/User/AppData/Local/Android/Sdk` — **com barras normais**. A
+forma com barras invertidas escapadas é frágil e o `printf` do Bash a corrompe.
 
 ---
 
@@ -626,6 +686,39 @@ dá certo — conferir o resultado pelo que foi realmente instalado, não pelo c
 
 ---
 
+### P3 — `adb reverse` se perde em toda reinstalação e reinício
+**Sintoma:** o app abre em branco ou quebra com "Unable to load script" depois de
+um `installDebug`, embora o Metro esteja no ar.
+
+**Causa:** o redirecionamento de porta não sobrevive à reinstalação do pacote nem
+ao reinício do aparelho.
+
+**Solução:** refazer `adb reverse tcp:8081 tcp:8081` depois de cada uma dessas
+operações. Consta no procedimento de início de sessão.
+
+### P4 — Metro órfão segurando a porta 8081
+**Sintoma:** `Port 8081 is being used by another process`, mas o servidor não
+responde (`HTTP 000`).
+
+**Causa:** `npx expo run:android` rodado em segundo plano pela ferramenta
+encerra ao terminar a instalação, e o processo filho do Metro fica órfão, travado
+e ocupando a porta — com ~1 GB de memória.
+
+**Solução:** não usar `run:android` em segundo plano. Compilar com
+`gradlew installDebug` e subir o Metro à parte, desacoplado (`nohup ... & disown`).
+Se a porta estiver presa, identificar o PID com `netstat` e encerrá-lo. No fim
+da sessão, matar o Metro: em 17/09/2026 ele ficou rodando por quase 13 horas.
+
+### P5 — App e Metro discordavam do caminho do bundle
+**Sintoma:** `Unable to load script` mesmo com a rede funcionando pelas duas
+rotas (cabo e Wi-Fi retornavam HTTP 200 no `/status`).
+
+**Causa:** sem `expo-dev-client`, o app pedia `/index.bundle` (404), enquanto o
+Metro do SDK 57 só serve o entry virtual do Expo Router
+(`/.expo/.virtual-metro-entry.bundle`, 200 com 6,3 MB).
+
+**Solução:** instalar `expo-dev-client`, com aprovação do responsável.
+
 ## Tentativas malsucedidas
 
 - `--enable-native-access=ALL-UNNAMED` no `org.gradle.jvmargs` para contornar o P1
@@ -635,6 +728,17 @@ dá certo — conferir o resultado pelo que foi realmente instalado, não pelo c
 - Concluir sobre o comportamento do `totalTimeInForeground` a partir do tempo
   decorrido entre duas leituras, sem verificar o estado do aparelho. Levou a uma
   conclusão invertida, corrigida depois pelo `dumpsys usagestats`.
+- Ignorar `ACTIVITY_STOPPED` por completo, para corrigir o erro acima. Perdeu 15
+  minutos quando o app foi morto sem `PAUSED`. A regra certa é a de pendências.
+- Usar `getInstanceId()` para desambiguar instâncias de activity: aparece no
+  `dumpsys`, mas não é API pública e não compila.
+- Ordenar eventos do mesmo segundo pondo os de fechamento antes dos de abertura:
+  deixava abertos para sempre os usos de duração zero (Android Auto, +56 min).
+- Simular `BOOT_COMPLETED` com `adb shell am broadcast`, como a documentação
+  sugere: broadcast protegido no S22, `SecurityException`.
+- Rodar `npx expo run:android` em segundo plano: deixa o Metro órfão (P4).
+- Presumir que a notificação permanente não era exibida: ela é adiada ~10 s pelo
+  sistema, e antes estava invisível porque a permissão tinha sido negada.
 
 ---
 
