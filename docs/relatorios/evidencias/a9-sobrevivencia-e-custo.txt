@@ -1,0 +1,65 @@
+# A9 (parcial) — sobrevivência em segundo plano e custo
+# Galaxy S22, Android 16 / One UI 8, 17/09/2026
+
+## Janela desconectada
+  17:23:20  cabo removido        (plug=none)
+  19:28:38  cabo reconectado     (plug=usb)
+  duração: 2 h 05 min 18 s
+
+## O aparelho entrou em Doze profundo
+  09-17 17:25:24  device_idle=full
+  09-17 18:25:25  device_idle=off
+  09-17 18:29:19  device_idle=full
+  09-17 19:23:17  device_idle=off
+  ~114 dos 125 minutos em device_idle=full
+
+## Sobrevivência do serviço
+  isForeground=true foregroundId=1001 types=0x40000000 foregroundNoti=Notification(channel=lab-monitoring shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT|FOREGROUND_SERVICE color=0x00000000 vis=PRIVATE semFlags=0x0 semPriority=0 semMissedCount=0)
+  createTime=-4h30m32s144ms startingBgTimeout=--
+  bucket de standby ao final: 30
+
+## Custo atribuído ao app (UID u0a162)
+  Foreground services: 2h 5m 18s 430ms realtime (0 times) (running)
+  Total cpu time: u=7s 992ms s=2s 368ms 
+  Capacity: 3370, Rated: 3590, Typical: 3700, Computed drain: 73.2, actual drain: 73.2
+  UID u0a162: 0.476 bg: 0.194 fgs: 0.282 (2h 6m 56s 839ms)
+
+  ciclo de trabalho de CPU: 10,36 s em 7518 s = 0,138%
+  participação no consumo do aparelho: 0,476 de 73,2 mAh = 0,65%
+  projeção: ~5,5 mAh/dia = ~0,16% de uma bateria de 3370 mAh
+
+## Ainda detecta depois do Doze
+  {"timestamp":"2026-09-17T19:25:49.379-03:00","platform":"android","source":"UsageLimitService","experiment":"A2","event":"threshold_reached","details":"8 min de uso para limite de 8 min"}
+  Instagram cruzou 8 min em 19:25:46 (reconstruído do dumpsys)
+  threshold_reached em        19:25:49
+  latência: 3 s
+
+## Observações adicionais
+
+Bucket de standby: passou de 10 (ACTIVE) para 30 (FREQUENT) ao longo da sessão,
+enquanto o serviço seguia rodando. O bucket governa throttling de jobs e alarmes,
+não de serviços em primeiro plano, então não deve nos afetar — mas é o indicador
+a acompanhar num teste de vários dias, quando o app pode cair para RARE (40) ou
+RESTRICTED (45).
+
+Vida total do serviço até a última leitura: 4 h 30 min sem recriação.
+
+Saúde da bateria: o sistema reporta Capacity 3370 mAh contra Rated 3590 — cerca
+de 94%. Menos degradada do que o responsável supunha, o que reforça a validade do
+número. De todo modo, a métrica principal aqui é tempo de CPU, que independe
+disso.
+
+## Ressalva honesta sobre a contagem de verificações
+
+O serviço agenda as verificações com Handler.postDelayed, que NÃO segura wakelock
+e NÃO acorda o aparelho suspenso. Durante o Doze profundo, as verificações ficam
+adiadas até a CPU acordar por algum outro motivo.
+
+A aritmética é compatível com as 376 verificações previstas (10,36 s / 376 = 27,5
+ms cada), mas esses dados sozinhos não permitem afirmar quantas de fato rodaram.
+Para saber, seria preciso um contador dentro do serviço.
+
+Isso provavelmente não é um problema, e sim o comportamento desejável: se o
+aparelho está em Doze, ninguém está usando app nenhum, e não há o que detectar. A
+consequência prática é que o custo medido aqui é um PISO — num dia de uso real,
+com a tela ligada com frequência, mais verificações rodam de fato.

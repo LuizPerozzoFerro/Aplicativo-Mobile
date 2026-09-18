@@ -116,7 +116,8 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | S1 | ✅ Funciona | App instalado e aberto no Galaxy S22 (SM-S901E, Android 16 / API 36 / One UI 8.0) em 17/09/2026. Tela de laboratório renderizada, capturas em `docs/relatorios/evidencias/` |
 | S4 | ✅ Funciona | Evento gravado pelo Kotlin apareceu na tela com `source: UsageReader`. Arquivo lido direto do aparelho com `adb shell run-as com.norte.lab.dev cat files/lab-events.jsonl`. O log **sobreviveu à reinstalação do app** |
 | A1 | ✅ Funciona | Leitura por `queryEvents` coincidiu com a contabilidade do sistema no mesmo minuto (`1:41:10`), 17/09/2026. O caminho agregado foi descartado por dois defeitos medidos. Ver achado abaixo |
-| A2 | ✅ Funciona | `threshold_reached` registrado às 16:36:44 com o protótipo fechado, 9 s após o Instagram cruzar o limite de 2 min. Serviço em primeiro plano `specialUse` sobreviveu ao app ser arrastado para fora dos recentes. Bateria ainda não medida (A9/T6) |
+| A2 | ✅ Funciona | `threshold_reached` registrado às 16:36:44 com o protótipo fechado, 9 s após o Instagram cruzar o limite de 2 min. Serviço em primeiro plano `specialUse` sobreviveu ao app ser arrastado para fora dos recentes. Segunda rodada após 2 h de Doze: latência de 3 s |
+| A9 | ⏳ parcial | Sobreviveu a 2 h 05 min desconectado, com ~114 min em Doze profundo, e continuou detectando (latência 3 s). Custo: **0,138%** de CPU, 0,476 de 73,2 mAh do aparelho. Faltam reinício do aparelho, economia de bateria da Samsung e um dia inteiro (T6) |
 
 ### Achado A1 — como medir tempo de uso por app, e o que não funciona
 
@@ -291,6 +292,81 @@ desde a última verificação.
   da Samsung ligada. O app **não** está na lista de isenção de otimização —
   deixado assim de propósito, por ser a condição de um usuário comum.
 - O intervalo de 20 s foi escolhido sem medição. Calibrar contra bateria.
+
+
+### Achado A9 (parcial) — sobrevivência em segundo plano e custo
+
+**Resultado: sobrevive, e o custo é baixo.** Teste em 17/09/2026: aparelho
+desconectado da energia, parado sobre a mesa, protótipo fechado, das 17:23:20 às
+19:28:38 — **2 h 05 min**.
+
+#### O aparelho realmente dormiu
+
+```
+17:25:24  device_idle=full      (2 min após desconectar)
+18:25:25  device_idle=off
+18:29:19  device_idle=full
+19:23:17  device_idle=off       (responsável pegou o aparelho)
+```
+
+Cerca de **114 dos 125 minutos em Doze profundo**. O teste não foi de aparelho
+ocioso "de mentira".
+
+#### Sobreviveu e continua funcionando
+
+| Verificação | Resultado |
+|---|---|
+| Serviço vivo | `Foreground services: 2h 5m 18s realtime (running)` |
+| Recriado pelo sistema? | não — `createTime` contínuo desde as 16:32 (4 h 30 min na última leitura) |
+| Ainda detecta? | sim — `threshold_reached` às 19:25:49 |
+| Latência da detecção | **3 s** (uso cruzou 8 min às 19:25:46) |
+
+Sobreviver como processo e continuar detectando são coisas diferentes; o teste
+final com o Instagram cobre a segunda.
+
+#### Custo
+
+```
+Total cpu time:  u=7s992ms  s=2s368ms   =  10,36 s em 7518 s
+UID u0a162:      0,476 mAh  (bg 0,194 + fgs 0,282)
+Consumo total do aparelho na janela: 73,2 mAh
+```
+
+| Métrica | Valor |
+|---|---|
+| Ciclo de trabalho de CPU | **0,138%** |
+| Participação no consumo do aparelho | **0,65%** |
+| Projeção | ~5,5 mAh/dia ≈ **0,16%** de uma bateria de 3370 mAh |
+
+A métrica principal é **tempo de CPU**, não porcentagem de bateria: a bateria
+deste aparelho está desgastada, e porcentagem depende da capacidade real. O
+sistema reporta Capacity 3370 contra Rated 3590 — cerca de 94% de saúde, menos
+degradada do que se supunha.
+
+#### Ressalva sobre a contagem de verificações
+
+O agendamento usa `Handler.postDelayed`, que não segura wakelock nem acorda o
+aparelho suspenso. Em Doze profundo as verificações ficam adiadas. A aritmética é
+compatível com as 376 previstas (27,5 ms cada), mas estes dados **não provam**
+quantas rodaram — faltaria um contador no serviço.
+
+Provavelmente é o comportamento desejável: em Doze ninguém está usando app algum,
+e não há o que detectar. Na prática, o custo medido é um **piso**.
+
+#### Bucket de standby
+
+Passou de 10 (ACTIVE) para 30 (FREQUENT) durante a sessão, com o serviço rodando.
+O bucket governa throttling de jobs e alarmes, não de serviços em primeiro plano,
+então não deve nos afetar — mas é o indicador a acompanhar num teste de dias,
+quando o app pode cair para RARE ou RESTRICTED.
+
+#### O que falta no A9
+
+- **Reinício do aparelho.** O serviço não volta sozinho: falta um
+  `BroadcastReceiver` de `BOOT_COMPLETED`. Não implementado ainda.
+- **Economia de bateria da Samsung** e "Apps em suspensão", que precisam de dias
+  sem uso do app.
+- **Um dia inteiro de uso normal** (roteiro T6).
 
 ### Outros achados do dia
 
