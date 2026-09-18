@@ -7,7 +7,7 @@
 
 ## Estado atual e próximo passo
 
-> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 18/09/2026.
+> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 18/09/2026, fim da tarde.
 
 **Branch:** `prototype/android-usage`. Tudo commitado.
 
@@ -16,26 +16,35 @@
 | ID | Resultado |
 |---|---|
 | S1 · S4 · A1 · A2 | ✅ |
-| A3 · A9 | ⚠️ com limitações documentadas |
-| A4 | ⏳ parcial — sobreposição apareceu sobre o Instagram e "Emergência" funcionou; faltam 4 verificações |
+| A3 · A4 · A9 | ⚠️ com limitações documentadas |
 | A5 · A6 · A7 · A8 · A10 | não iniciados |
 | S2 · S3 · iOS | não iniciados — dependem da conta Apple Developer pessoal |
 
-**Próximo passo: fechar o A4.** São quatro verificações, listadas no fim do
-"Achado A4": tocar em "Continuar mesmo assim", testar o botão Voltar, conferir se
-as barras do sistema ficam cobertas e repetir com a abordagem (b), tela própria.
-Nenhuma exige código novo. Só então seguir para o A5.
+**Próximo passo: A5**, pausa depois do "continuar mesmo assim". Antes dele,
+corrigir os três pontos de instrumentação que o A4 revelou (ver "Achado A4 →
+Instrumentação"): `returned_to_app` presume o retorno, `interruption_shown`
+duplica quando a tela própria é recriada, e a dispensa pelo voltar não gera
+evento. O A5 depende de `continue_tapped` e da contagem de interrupções, então
+esses eventos precisam ser confiáveis. Exige recompilar o Kotlin.
 
-**Para rearmar o teste:** o limite de hoje já disparou (`firedAt` e `escalatedAt`
-gravados), então o serviço não interrompe de novo até ser reconfigurado. Na tela
-de laboratório, escolher o modo na seção A4 e tocar em "Iniciar limite" na A2 —
-isso limpa os dois campos. Lembrar que o limite conta o uso do dia inteiro: o
-Instagram já tem uso em 18/09, então o valor precisa ficar acima dele.
+**Abordagem para o A5:** sobreposição, pela recomendação preliminar do A4. O modo
+salvo no aparelho ficou em **tela própria** (última rodada): trocar na seção A4
+antes de "Iniciar limite".
 
-**Estado do aparelho ao fim da sessão de 18/09/2026:** serviço em primeiro plano
-ativo, limite de 2 min no Instagram já disparado, modo sobreposição, todas as
-permissões concedidas (acesso a dados de uso, notificação, sobreposição). Metro
-desligado.
+**Para rearmar o teste:** "Iniciar limite" limpa `firedAt` e `escalatedAt`, e a
+tela agora reaproveita o app e o modo salvos no nativo. O Instagram já passa de
+10 min em 18/09. Com o limite **abaixo** do uso do dia, ele estoura no ciclo
+seguinte do serviço e a interrupção vem assim que o Instagram é aberto: rodadas de
+menos de um minuto. Para medir a latência real, usar limite **acima** do uso do dia.
+
+**Estado do aparelho ao fim da sessão de 18/09/2026 (17:20):** serviço em primeiro
+plano ativo (a mesma instância desde 00:04), limite de 2 min no Instagram já
+disparado, modo **tela própria**, todas as permissões concedidas (acesso a dados de
+uso, notificação, sobreposição). Rotação automática ligada. Metro desligado.
+
+**Atenção ao abrir o laboratório:** o serviço mantém o processo vivo, e com ele o
+JavaScript antigo na memória. Subir o Metro não basta (P6): com o laboratório na
+frente, `adb shell input keyevent 46 46` recarrega.
 
 **Recomendação de trabalho:** abrir uma sessão nova do Claude Code a partir
 daqui, em vez de continuar a anterior — este arquivo é a passagem.
@@ -167,7 +176,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | A1 | ✅ Funciona | Leitura por `queryEvents` coincidiu com a contabilidade do sistema no mesmo minuto (`1:41:10`), 17/09/2026. O caminho agregado foi descartado por dois defeitos medidos. Ver achado abaixo |
 | A2 | ✅ Funciona | `threshold_reached` registrado às 16:36:44 com o protótipo fechado, 9 s após o Instagram cruzar o limite de 2 min. Serviço em primeiro plano `specialUse` sobreviveu ao app ser arrastado para fora dos recentes. Segunda rodada após 2 h de Doze: latência de 3 s |
 | A3 | ⚠️ Funciona com limitações | Notificação disparada pelo Kotlin com o app fechado, **14 ms** após a detecção (~6 s do limite real até o alerta). Apareceu **flutuando por cima do Instagram**, texto neutro e configurável. **Mas o botão "Emergência" só aparece se a notificação for expandida** — dois toques até a emergência |
-| A4 | ⏳ Parcial | Abordagem (a), sobreposição: apareceu sobre o Instagram com o app fechado, 20 s após a notificação; "Emergência" registrou `emergency_tapped`. O Instagram continua em primeiro plano por baixo. **Faltam:** "continuar mesmo assim", botão Voltar, cobertura das barras e a abordagem (b) |
+| A4 | ⚠️ Funciona com limitações | As duas abordagens cumprem o critério: a tela aparece sobre o Instagram com o protótipo fechado, mostra a motivação, e "Continuar" registra `continue_tapped` e volta **ao mesmo post**. **Sobreposição:** o voltar é ignorado, ela continua por cima da tela inicial, não cobre as barras, e o sistema publica "Norte Lab exibido sobre outros apps". **Tela própria:** o voltar a fecha sem registro. Ambas dependem de `SYSTEM_ALERT_WINDOW`. Ver achado abaixo |
 | A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. Faltam "Apps em suspensão" da Samsung (precisa de dias) e o roteiro T6 |
 
 ### Achado A1 — como medir tempo de uso por app, e o que não funciona
@@ -413,14 +422,139 @@ Diferente do acesso a dados de uso do A1, esta é permissão de runtime comum, c
 pop-up do sistema. Concedida em 23:35:54. Sem ela o serviço roda, mas nenhum
 alerta chega ao usuário — o que tornaria o produto inútil sem avisar.
 
-### Achado A4 (parcial) — tela de interrupção por sobreposição funciona
+### Achado A4 — tela de interrupção: as duas abordagens funcionam, com comportamentos opostos
 
-**Resultado: ⏳ parcial.** A abordagem (a), sobreposição, apareceu por cima do
-Instagram com o protótipo fechado, e o botão "Emergência" funcionou. Mas o
-critério da spec inclui o "continuar mesmo assim", que ainda não foi exercitado,
-e a abordagem (b) não foi testada.
+**Resultado: ⚠️ funciona com limitações.** O critério da spec foi cumprido nas
+duas abordagens: a tela aparece sobre o Instagram com o protótipo fechado, mostra
+a motivação, e "Continuar mesmo assim" registra `continue_tapped` e devolve o
+usuário **ao mesmo post**. As limitações estão no que acontece fora dos botões, e
+cada abordagem falha num ponto diferente.
 
-#### Sequência medida em 18/09/2026
+Testado em 18/09/2026: uma sessão às 13:24 (sobreposição, "Emergência") e cinco
+rodadas, de A a E, entre 16:37 e 17:16. Evidência completa em
+`docs/relatorios/evidencias/a4-tela-de-interrupcao.txt`.
+
+#### Como foi medido
+
+O log compartilhado não enxerga tudo: a tela própria some pelo voltar sem gerar
+evento, por exemplo. Em cada rodada, um vigia no computador (script Bash sobre
+`adb`) registrava a **janela com foco** (`dumpsys window`, `mCurrentFocus`) a
+cada ~1,5 s. Quando a interrupção aparecia, ele guardava também a tela, as
+janelas e as tarefas. O `logcat` do sistema, filtrado pelo pacote, mostrou o
+resto: a exceção que liberou o início em segundo plano, os gestos de voltar
+entregues a cada janela e as recriações. Nenhuma dessas medições exige código no
+app.
+
+#### Comparação
+
+| | (a) Sobreposição | (b) Tela própria |
+|---|---|---|
+| Aparece sobre o app monitorado | ✅ | ✅ O início em segundo plano foi liberado por `BAL_ALLOW_SAW_PERMISSION` |
+| "Continuar" volta ao mesmo ponto | ✅ Trivial: o Instagram nunca saiu da tela, e a janela dele é a mesma antes e depois | ✅ Reabre o Instagram pelo intent de lançamento, e o sistema traz a tarefa existente à frente (`result code=2`) |
+| Gesto de voltar | **Ignorado.** 5 tentativas, todas entregues à sobreposição | **Fecha a tela**, sem evento no nosso log |
+| Destino do voltar | — | Com o app fechado: Instagram, mesmo post. Com o app nos recentes: **tela do Norte Lab** |
+| Gesto de início | **A sobreposição continua** por cima da tela inicial, e nenhum app abre até o toque num botão | não testado |
+| Barras de status e navegação | Não cobre, e não pode (ver abaixo). Gaveta e gestos seguem funcionando | Ocupa a tela inteira (ponta a ponta), e as barras são desenhadas por cima |
+| Conteúdo do app de trás | Legível através do fundo, que é 95% opaco no protótipo | Invisível |
+| Ciclo de vida do app de trás | Segue `RESUMED`: o tempo na tela **conta como uso** (I-10) | Recebe `PAUSED`: o tempo **não** conta |
+| Efeito colateral | Notificação do sistema "Norte Lab exibido sobre outros apps." | Splash screen do app antes da tela; recriação a cada giro |
+| Permissão | `SYSTEM_ALERT_WINDOW` | A mesma: é ela que libera o início em segundo plano |
+
+#### (a) Sobreposição: trava o aparelho inteiro até a escolha
+
+- **Voltar:** o gesto chega à sobreposição (`startBackNavigation` com o callback
+  da nossa janela), que não o trata. Não passa para o Instagram, então o usuário
+  precisa escolher um dos botões.
+- **Início:** a sobreposição não pertence a app nenhum, então continua na tela
+  quando o usuário vai para a tela inicial. Nenhum app pode ser aberto, nem os
+  recentes, que abrem por baixo dela. Depois do "Continuar", o usuário fica onde
+  estava, no caso a tela inicial, e não no Instagram.
+- **Barras:** a janela ocupa `[0,81]–[1080,2295]` e fica **abaixo** da barra de
+  status, da gaveta, da barra de navegação e do detector do gesto de voltar. É
+  regra do Android, não escolha nossa: a referência de `TYPE_APPLICATION_OVERLAY`
+  diz que essas janelas ficam abaixo das janelas críticas do sistema. A mesma
+  página avisa que o sistema pode mudar a posição, o tamanho ou a visibilidade
+  delas a qualquer momento.
+- **Notificação do sistema:** 87 ms depois de a sobreposição aparecer, o próprio
+  Android publica "Norte Lab exibido sobre outros apps.", com um toque para abrir
+  as configurações e desativar a permissão. Tem importância mínima (sem som nem
+  destaque), fica enquanto a janela existir, e o app não pode suprimi-la. Duas
+  consequências: o **nome do app** aparece na gaveta durante a interrupção, e
+  desligar a proteção fica **a um toque** justamente no momento de
+  vulnerabilidade.
+- A sessão das 13:24 e a rodada A confirmaram de novo o I-10: o Instagram não
+  recebeu nenhum `PAUSED` enquanto a sobreposição estava na tela.
+
+#### (b) Tela própria: uma tela comum, que o voltar dispensa
+
+- **Início em segundo plano:** nas três rodadas, o sistema registrou
+  `START ... InterruptionActivity ... (BAL_ALLOW_SAW_PERMISSION) result code=0`.
+  Isso prova que a exceção usada é exatamente a da permissão de sobreposição. Sem
+  ela, o início seria bloqueado **em silêncio**, sem exceção no app.
+- **A tela entra na tarefa do próprio app.** Com o laboratório nos recentes, ela
+  foi criada na tarefa dele (#22), por cima da tela do laboratório. O voltar a
+  fechou e revelou **a tela do Norte Lab**. Com o laboratório fechado, cada
+  interrupção ganhou uma tarefa própria (#29, #32), e o voltar levou ao
+  Instagram. No app definitivo, `android:taskAffinity=""` isola a tela em
+  qualquer caso.
+- **O voltar dispensa sem escolha e sem registro:** o sistema grava
+  `wm_finish_activity ... app-request`, e com o app fechado o usuário volta
+  direto ao Instagram.
+- **Um giro recria a tela.** O Instagram e o laboratório pedem retrato. A tela de
+  interrupção não declara orientação e segue o sensor, com a rotação automática
+  ligada. Na rodada C ela girou para paisagem e voltou em 0,7 s. Foi recriada
+  duas vezes e gravou três `interruption_shown` para uma única interrupção.
+  Corrigir fixando retrato.
+- **Splash screen:** antes da tela, o sistema mostra a splash do Norte Lab. O
+  primeiro quadro vem de 75 a 280 ms depois, e a splash sai numa animação de
+  ~0,5 s. É curto, mas mostra o ícone do app.
+
+#### O comportamento do voltar depende de uma desativação temporária
+
+O template do Expo põe `android:enableOnBackInvokedCallback="false"` no
+manifesto. A página oficial de mudanças do Android 16 (consultada em 18/09/2026)
+diz que, com `targetSdk` 36, o voltar preditivo vem ligado por padrão,
+`onBackPressed` não é chamado e `KEYCODE_BACK` não é enviado. Ela trata esse
+atributo como desativação **temporária**. Tudo o que medimos sobre o voltar passou
+pelo caminho antigo. No app definitivo, o voltar precisa ser tratado de forma
+explícita (`OnBackInvokedCallback` na sobreposição e na activity) e testado de novo
+com o voltar preditivo ligado.
+
+#### Instrumentação: três pontos a corrigir antes do A5
+
+1. `returned_to_app` é gravado sempre que se toca em "Continuar" na sobreposição.
+   Na rodada B ele registrou o Instagram com o usuário na tela inicial. Registrar
+   o app que está de fato em primeiro plano.
+2. O `interruption_shown` da tela própria é gravado no `onCreate` e duplica a
+   cada recriação. Registrar só na primeira criação.
+3. A dispensa da tela própria sem botão (voltar, início) não gera evento.
+
+#### Recomendação preliminar, para o relatório
+
+**Sobreposição.** É a única abordagem em que "continuar" é de fato uma escolha,
+porque o voltar não escapa dela, e ela não mexe no ciclo de vida nem na pilha do
+app monitorado. Com quatro condições: fundo opaco (ou decisão consciente de deixar
+o conteúdo visível), voltar tratado de forma explícita, desconto do tempo de
+interrupção nas estatísticas (I-10) e justificativa sólida para
+`SYSTEM_ALERT_WINDOW` na loja (I-7). A tela própria fica como alternativa, caso a
+sobreposição seja restringida, com `taskAffinity=""`, retrato fixo e voltar
+interceptado.
+
+A intensidade da sobreposição, que para o aparelho inteiro até o toque, precisa
+ser confrontada com o P4 ("alertar, não bloquear") antes de virar produto (I-12).
+
+#### Ainda não testado
+
+- Gesto de início e botão "Emergência" na tela própria.
+- **Chamada recebida com a sobreposição na tela.** A tela de chamada é uma
+  activity e, pela regra de camadas, ficaria por baixo da sobreposição. É
+  hipótese, a testar antes do beta: trata-se de segurança.
+- Tela bloqueada com a sobreposição aberta. O protótipo usa
+  `FLAG_KEEP_SCREEN_ON`, que impede a tela de apagar sozinha enquanto a janela
+  existir. Se o usuário largar o aparelho, isso custa bateria.
+- Todo o comportamento de voltar com o voltar preditivo ligado.
+
+#### Latência, medida na sessão das 13:24 (fluxo real)
 
 ```
 13:24:08      uso do Instagram cruza 2 min (reconstruído do dumpsys)
@@ -435,15 +569,6 @@ no ciclo seguinte do serviço, se o usuário ainda estiver no app monitorado. Es
 intervalo passa a ser um parâmetro do produto — quanto tempo o usuário tem para
 reagir ao aviso antes de ser interrompido.
 
-#### O app monitorado continua "em uso" por baixo da sobreposição
-
-O Instagram **não** recebeu `ACTIVITY_PAUSED` quando a sobreposição apareceu:
-ficou em primeiro plano, por baixo dela, até 13:24:58. É a vantagem esperada da
-abordagem (a) — o app de trás não é interrompido, e o "continuar" só precisa
-remover a janela. Mas tem um efeito colateral: **o tempo olhando a tela de
-interrupção conta como uso do Instagram**. Relevante para o A5 e para as
-estatísticas do produto.
-
 #### Permissão
 
 As duas abordagens dependem de `SYSTEM_ALERT_WINDOW` ("Aparecer sobre outros
@@ -452,20 +577,10 @@ apps"), concedida manualmente nos Ajustes. O intent
 até o Norte Lab.
 
 A documentação do Android lista essa permissão como uma das exceções que deixam
-um app em segundo plano iniciar uma activity — e, na mesma página, descreve como
+um app em segundo plano iniciar uma activity. Na mesma página, descreve como
 abuso "um app em segundo plano inicia uma atividade sobre o app com que o usuário
-está interagindo". Tecnicamente é o que fazemos. Risco a levar para o A10.
-
-#### Pendente para fechar o A4
-
-1. Tocar em **"Continuar mesmo assim"** e confirmar `continue_tapped` e o retorno
-   ao Instagram no mesmo ponto.
-2. Testar o **botão Voltar** do sistema sobre a sobreposição. Se ele a dispensa,
-   decidir se é aceitável — o princípio P4 ("alertar, não bloquear") pode até
-   preferir que sim.
-3. Conferir se a sobreposição cobre as **barras de status e de navegação**.
-4. Repetir tudo com a **abordagem (b)**, tela própria (botão "Tela própria" na
-   seção A4 do laboratório), e comparar.
+está interagindo". Tecnicamente é o que fazemos na abordagem (b), e o
+`BAL_ALLOW_SAW_PERMISSION` do log confirma. Risco a levar para o A10.
 
 ### Achado A9 (parcial) — sobrevivência em segundo plano e custo
 
@@ -589,8 +704,7 @@ bateria nessa janela; o dado vale só como sobrevivência.
 - **Força-parada pelo usuário.** É comportamento conhecido do Android que um app
   força-parado deixa de receber broadcasts até ser aberto de novo — o que
   desligaria o religamento automático. Não testado aqui; exigiria outro reinício.
-  `BroadcastReceiver` de `BOOT_COMPLETED`. Não implementado ainda.
-  sem uso do app.
+
 ### Outros achados do dia
 
 - **Intent direcionado funciona no One UI 8.** `ACTION_USAGE_ACCESS_SETTINGS` com
@@ -622,8 +736,9 @@ pela BIOS (P2).
 | 3 | Subir o Metro desacoplado | ver "Comandos" abaixo — **não** usar `npm run android` em segundo plano (P4) |
 | 4 | Redirecionar a porta pelo cabo | `adb reverse tcp:8081 tcp:8081` — refazer após **toda** reinstalação e reinício (P3) |
 | 5 | Compilar e instalar (só se mudou Kotlin) | `cd android && ./gradlew.bat installDebug` |
-| 6 | Ler o log sem abrir o app | `adb shell run-as com.norte.lab.dev cat files/lab-events.jsonl` |
-| 7 | Encerrar | matar o Metro no fim da sessão (P4) |
+| 6 | Garantir o JavaScript atual | com o laboratório na frente, `adb shell input keyevent 46 46`; conferir `Android Bundled` no `metro.log` (P6) |
+| 7 | Ler o log sem abrir o app | `adb shell run-as com.norte.lab.dev cat files/lab-events.jsonl` |
+| 8 | Encerrar | matar o Metro no fim da sessão (P4) |
 
 **Regra de evidência (desde o A1):** toda medição de uso vem acompanhada do
 recorte do `dumpsys usagestats` do mesmo período. O relógio não é evidência.
@@ -670,6 +785,10 @@ decidido fora do Claude Code.
 | I-8 | A tela inicial do sistema aparece na lista de uso como se fosse um app | Doc 01 §6.8 | Filtrar lançadores das estatísticas |
 | I-9 | Custo medido do monitoramento: 0,138% de CPU e 0,65% do consumo do aparelho, incluindo ruído do ambiente de desenvolvimento | Doc 02 riscos (bateria) | O risco de bateria parece baixo; confirmar no roteiro T6 |
 | I-10 | Com a sobreposição, o app monitorado continua em primeiro plano por baixo: o tempo diante da tela de interrupção conta como uso dele | Doc 01 §6.2 e §6.8 | Descontar esse tempo das estatísticas e da streak de moderação |
+| I-11 | Enquanto a sobreposição está na tela, o Android publica "<nome do app> exibido sobre outros apps", com um toque para desativar a permissão. O app não pode suprimir | Doc 01 P7 (discrição), §6.5 | O nome do app aparece na gaveta durante a interrupção, e desligar a proteção fica a um toque no momento de vulnerabilidade |
+| I-12 | A sobreposição trava o aparelho inteiro até o toque num botão: o voltar é ignorado, e ela continua por cima da tela inicial e de qualquer app | Doc 01 P4 ("alertar, não bloquear"), §6.5 | Se essa intensidade é a pretendida; o que acontece com chamadas e emergências (não testado) |
+| I-13 | Na tela própria, o voltar fecha a interrupção sem escolha e sem registro, e com o app fechado devolve o usuário direto ao app monitorado | Doc 01 §6.5 | Se a tela própria for usada, interceptar o voltar ou tratá-lo como "continuar" e registrá-lo |
+| I-14 | Todo o comportamento de voltar medido depende de uma desativação que o Android 16 chama de temporária (`enableOnBackInvokedCallback="false"`) | Doc 02 riscos | Tratar o voltar de forma explícita no app definitivo e testar com o voltar preditivo ligado |
 
 ## Comandos
 
@@ -695,8 +814,16 @@ Rodar dentro de `prototype/`. Os exemplos usam Git Bash; `adb` fica em
 | Notificações ativas | `adb shell dumpsys notification --noredact` |
 | Bucket de standby | `adb shell am get-standby-bucket com.norte.lab.dev` |
 | Capturar a tela | `adb exec-out screencap -p > tela.png` |
+| Recarregar o JavaScript | `adb shell input keyevent 46 46`, com o laboratório na frente (P6) |
+| Janela com foco agora | `adb shell dumpsys window \| grep mCurrentFocus` |
+| Inícios de activity e exceção de BAL | `adb logcat -d -b system \| grep "START u0"` |
+| Ler os textos da tela | `adb shell uiautomator dump /sdcard/ui.xml` e `adb shell cat /sdcard/ui.xml` |
 | Porta 8081 ocupada? | `netstat -ano \| grep :8081` e `taskkill //PID <pid> //F` |
 | Emulador (bloqueado por P2) | `emulator -avd lab_android16` |
+
+No Git Bash, argumentos que começam com `/` (como `/sdcard/ui.xml`) são
+convertidos em caminhos do Windows antes de chegar ao `adb`. Prefixar o comando
+com `MSYS_NO_PATHCONV=1`.
 
 Após `prebuild --clean`, recriar `android/local.properties` com
 `sdk.dir=C:/Users/User/AppData/Local/Android/Sdk` — **com barras normais**. A
@@ -786,6 +913,20 @@ Metro do SDK 57 só serve o entry virtual do Expo Router
 
 **Solução:** instalar `expo-dev-client`, com aprovação do responsável.
 
+### P6 — O laboratório roda JavaScript antigo mesmo com o Metro no ar
+**Sintoma:** uma mudança em `src/` não aparece no aparelho, e o `metro.log` não
+registra nenhum `Android Bundled`.
+
+**Causa:** o serviço em primeiro plano mantém o processo vivo por dias (A9), e o
+React Native guarda o bundle carregado na memória do processo. Abrir o
+laboratório só recria a tela, com o JavaScript de quando o processo nasceu —
+servido por um Metro de outra sessão, que já não existe. A conexão de recarga com
+o Metro também não se refaz.
+
+**Solução:** com o laboratório na frente, `adb shell input keyevent 46 46`, o
+"R R" do React Native. Conferir o `Android Bundled` no `metro.log`. Consta no
+procedimento de início de sessão.
+
 ## Tentativas malsucedidas
 
 - `--enable-native-access=ALL-UNNAMED` no `org.gradle.jvmargs` para contornar o P1
@@ -806,6 +947,8 @@ Metro do SDK 57 só serve o entry virtual do Expo Router
 - Rodar `npx expo run:android` em segundo plano: deixa o Metro órfão (P4).
 - Presumir que a notificação permanente não era exibida: ela é adiada ~10 s pelo
   sistema, e antes estava invisível porque a permissão tinha sido negada.
+- Recarregar o JavaScript mandando `reload` pelo socket `/message` do Metro: o
+  app, com um bundle de sessão anterior, não estava conectado a ele (P6).
 
 ---
 

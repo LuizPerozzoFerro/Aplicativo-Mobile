@@ -1,19 +1,29 @@
-# A4 — Alerta de nível 2 (tela de interrupção), abordagem (a) sobreposição
+# A4 — Alerta de nível 2 (tela de interrupção)
 # Galaxy S22, Android 16 / One UI 8, 18/09/2026
+# targetSdk 36 · enableOnBackInvokedCallback=false (vem do template do Expo)
+# navegação por gestos (navigation_mode=2) · rotação automática ligada
 
-## Configuração
-  alvo: com.instagram.android (zero uso no dia até o teste)
-  limite: 2 min | modo: overlay (TYPE_APPLICATION_OVERLAY)
-  SYSTEM_ALERT_WINDOW: allow | POST_NOTIFICATIONS: granted
-  protótipo fechado durante todo o teste
+## Configuração comum
+  alvo: com.instagram.android · limite: 2 min
+  SYSTEM_ALERT_WINDOW: allow · POST_NOTIFICATIONS: granted
+  (a) sobreposição = InterruptionOverlay, TYPE_APPLICATION_OVERLAY
+  (b) tela própria = InterruptionActivity, iniciada pelo serviço em segundo plano
 
-## Log compartilhado
-  {"timestamp":"2026-09-18T13:24:16.864-03:00","platform":"android","source":"UsageLimitService","experiment":"A2","event":"threshold_reached","details":"2 min de uso para limite de 2 min"}
-  {"timestamp":"2026-09-18T13:24:16.974-03:00","platform":"android","source":"UsageLimitService","experiment":"A3","event":"notification_sent"}
-  {"timestamp":"2026-09-18T13:24:37.135-03:00","platform":"android","source":"InterruptionOverlay","experiment":"A4","event":"interruption_shown","details":"abordagem: sobreposicao"}
-  {"timestamp":"2026-09-18T13:24:41.872-03:00","platform":"android","source":"InterruptionOverlay","experiment":"A4","event":"emergency_tapped","details":"abordagem: sobreposicao"}
+  Nas rodadas A–E o Instagram já passava de 2 min no dia. "Iniciar limite"
+  fazia o limite estourar no ciclo seguinte do serviço (<= 20 s); a interrupção
+  vinha no ciclo seguinte ao da abertura do Instagram.
 
-## Sequência
+  Fontes de evidência, além do log compartilhado:
+  - FOCO: janela com foco (dumpsys window, mCurrentFocus), amostrada a cada ~1,5 s
+  - logcat do sistema, filtrado pelo pacote do protótipo
+  - dumpsys usagestats, só as linhas do Instagram e da InterruptionActivity
+  - dumpsys window windows e dumpsys activity activities no momento da interrupção
+  Capturas de tela NÃO versionadas: mostram o feed e as notificações do responsável.
+
+=====================================================================
+## Sessão 1 (13:24) — (a) sobreposição, botão "Emergência"
+  protótipo fechado; o Instagram tinha zero uso no dia
+
   13:22:08      Instagram em primeiro plano
   13:24:08      uso cruza 120 s (reconstruído do dumpsys)
   13:24:16.864  threshold_reached      +8,9 s
@@ -21,17 +31,208 @@
   13:24:37.135  interruption_shown     +20,2 s (ciclo seguinte do serviço)
   13:24:41.872  emergency_tapped       toque do responsável
 
-## Linha do tempo do Instagram (dumpsys usagestats)
-  13:22:08 ACTIVITY_RESUMED com.instagram.android com.instagram.mainactivity.InstagramMainActivity
-  13:24:58 ACTIVITY_PAUSED com.instagram.android com.instagram.mainactivity.InstagramMainActivity
-  13:24:59 ACTIVITY_STOPPED com.instagram.android com.instagram.mainactivity.InstagramMainActivity
+  Instagram (dumpsys usagestats):
+  13:22:08 ACTIVITY_RESUMED  ...  13:24:58 ACTIVITY_PAUSED
+  Sem PAUSED quando a sobreposição apareceu: o Instagram seguiu em primeiro
+  plano por baixo dela, e esse tempo conta como uso dele.
 
-  O Instagram NÃO recebeu ACTIVITY_PAUSED quando a sobreposição apareceu:
-  ficou em primeiro plano, por baixo dela, até 13:24:58. Ou seja, o tempo
-  olhando a tela de interrupção continua contando como uso do Instagram.
+=====================================================================
+## Rodada A (16:37) — (a) sobreposição: voltar, barras, "Continuar"
 
-## Não verificado neste teste
-  - "Continuar mesmo assim" (continue_tapped) e o retorno ao app
-  - botão Voltar do sistema sobre a sobreposição
-  - se a sobreposição cobre também as barras de status e de navegação
-  - abordagem (b), InterruptionActivity
+  Log compartilhado
+  16:36:52.467  limit_configured       2 min para 1 app(s)
+  16:37:05.593  threshold_reached
+  16:37:05.602  notification_sent
+  16:37:25.675  interruption_shown     abordagem: sobreposicao
+  16:39:22.110  continue_tapped        abordagem: sobreposicao
+  16:39:22.115  returned_to_app        com.instagram.android
+
+  FOCO
+  16:37:21  com.instagram.android/...MainTabActivity    janela f49288b
+  16:37:31  com.norte.lab.dev                           a sobreposição recebe o foco
+  16:38:23  NotificationShade                           gaveta aberta por cima dela
+  16:39:22  com.norte.lab.dev
+  16:39:24  com.instagram.android/...MainTabActivity    janela f49288b — a MESMA
+
+  Gesto de voltar (logcat, CoreBackPreview) — 5 tentativas, nenhum efeito
+  16:37:25.685  Window{7924b45 u0 com.norte.lab.dev}: Setting back callback ...@41156c1
+  16:38:10.254  startBackNavigation currentTask=null, topRunningActivity=null, callbackInfo=...@41156c1
+  16:38:11.710  idem
+  16:38:12.555  idem
+  16:38:13.357  idem
+  16:38:14.106  idem
+  16:39:22.118  Window{7924b45 u0 com.norte.lab.dev}: Setting back callback null
+  O voltar vai para o callback da própria sobreposição, que não o trata. Não
+  passa para o Instagram.
+
+  Geometria (dumpsys window windows, sobreposição visível)
+  sobreposição    ty=APPLICATION_OVERLAY fl=1000080 fitTypes=207  frame=[0,81][1080,2295]
+  StatusBar       frame=[0,0][1080,81]
+  NavigationBar0  frame=[0,2196][1080,2340]   (inset efetivo de 45 px, navegação por gestos)
+  fl=1000080 = FLAG_HARDWARE_ACCELERATED | FLAG_KEEP_SCREEN_ON
+  fitTypes=207 = systemBars(): a janela se encaixa entre as barras
+
+  Ordem das janelas, do topo para baixo
+  #4  EdgeBackGestureHandler0
+  #5  NavigationBar0
+  #9  NotificationShade
+  #10 StatusBar
+  #11 InputMethod
+  #12 com.norte.lab.dev                   <- sobreposição
+  #14 com.instagram.android/...MainTabActivity
+
+  Notificação do sistema publicada junto com a sobreposição (logcat)
+  16:37:25.762  NotificationManager: android: notify(0, com.android.server.wm.AlertWindowNotification - com.norte.lab.dev, ...)
+  16:39:22.125  remove ... AlertWindowNotification - com.norte.lab.dev
+
+  Instagram (dumpsys usagestats)
+  16:37:19 ACTIVITY_RESUMED ... 16:42:34 ACTIVITY_PAUSED (fora do teste)
+  De novo sem PAUSED durante a sobreposição.
+
+  Relato do responsável: o voltar não fez nada, a tela ficou estática; a gaveta
+  abre normalmente; "Continuar" voltou ao mesmo post.
+
+=====================================================================
+## Rodada B (16:48) — (a) sobreposição: gesto de início
+
+  Log compartilhado
+  16:47:19.794  limit_configured
+  16:47:26.126  threshold_reached
+  16:47:26.140  notification_sent
+  16:48:46.311  interruption_shown     abordagem: sobreposicao
+  16:50:03.619  continue_tapped        abordagem: sobreposicao
+  16:50:03.624  returned_to_app        com.instagram.android   <- FALSO: o usuário estava na tela inicial
+
+  FOCO
+  16:48:36  com.instagram.android/...MainTabActivity
+  16:48:52  com.norte.lab.dev              mantém o foco até o toque, mesmo após o gesto de início
+  16:50:05  com.sec.android.app.launcher/...LauncherActivity   (depois do "Continuar")
+
+  Atividades (dumpsys usagestats)
+  16:49:00  Launcher RESUMED
+  16:49:01  Instagram PAUSED          <- gesto de início; a sobreposição continua
+  16:49:02  RecentsActivity RESUMED   <- recentes aberto por baixo dela, sem interação possível
+
+  Notificação do sistema (dumpsys notification, só este registro)
+  tag=com.android.server.wm.AlertWindowNotification - com.norte.lab.dev   pkg=android
+  android.title = "Norte Lab exibido sobre outros apps."
+  android.text  = "Se você não quer que o Norte Lab use este recurso, toque para abrir as configurações e desativá-lo."
+  importance=1 (MIN)   flags=ONGOING_EVENT|LOCAL_ONLY   contentIntent -> configurações
+
+  Relato do responsável: a sobreposição continua por cima da tela inicial; não
+  consegue abrir nenhum app; depois do "Continuar", fica na tela inicial. Não viu
+  a notificação do sistema — abriu a gaveta às 16:47:37, antes de ela existir.
+
+=====================================================================
+## Rodada C (17:10) — (b) tela própria, laboratório nos recentes: gesto de voltar
+
+  Log compartilhado
+  17:09:10.347  limit_configured
+  17:09:27.262  threshold_reached
+  17:09:27.272  notification_sent
+  17:10:07.599  interruption_shown     abordagem: activity · voltar para com.instagram.android
+  17:10:14.275  interruption_shown     idem   <- recriação (giro para paisagem)
+  17:10:14.953  interruption_shown     idem   <- recriação (giro de volta)
+  (nenhum evento ao dispensar pelo voltar)
+
+  Sistema (logcat)
+  17:10:07.395  wm_create_activity ... task 22 ... InterruptionActivity
+  17:10:07.408  START u0 {flg=0x14000000 cmp=com.norte.lab.dev/expo.modules.labmonitoring.InterruptionActivity (has extras)}
+                with LAUNCH_SINGLE_TASK from uid 10162 (BAL_ALLOW_SAW_PERMISSION) result code=0
+  17:10:07.461  janela inicial "Splash Screen com.norte.lab.dev"
+  17:10:07.734  primeiro quadro da InterruptionActivity
+  17:10:08.204  splash destruída (após a animação de saída)
+  17:10:14.213  Checking to restart InterruptionActivity: changed={CONFIG_ORIENTATION, CONFIG_SCREEN_SIZE}
+  17:10:14.924  idem (volta a retrato)
+  17:10:16.169  startBackNavigation currentTask=Task #22, topRunningActivity=InterruptionActivity
+  17:10:16.242  wm_finish_activity ... InterruptionActivity, app-request
+  17:10:16.256  wm_set_resumed_activity com.norte.lab.dev/.MainActivity
+
+  Tarefa #22 no momento da interrupção (A=10162:com.norte.lab.dev, sz=2)
+  Hist #1  InterruptionActivity     requestedOrientation=UNSPECIFIED
+  Hist #0  MainActivity             requestedOrientation=PORTRAIT
+  Instagram MainTabActivity (tarefa 27): requestedOrientation=PORTRAIT
+  accelerometer_rotation=1
+
+  Atividades (dumpsys usagestats)
+  17:10:07  Instagram PAUSED + InterruptionActivity RESUMED
+  17:10:16  InterruptionActivity PAUSED   (o voltar leva à tela do laboratório)
+
+  Sem relato do responsável nesta rodada; a evidência é a do sistema.
+
+=====================================================================
+## Rodada D (17:12) — (b) tela própria, laboratório fechado: "Continuar"
+
+  Log compartilhado
+  17:12:19.610  limit_configured
+  17:12:27.597  threshold_reached
+  17:12:27.609  notification_sent
+  17:12:47.736  interruption_shown     abordagem: activity · voltar para com.instagram.android
+  17:13:03.083  continue_tapped        abordagem: activity
+
+  Sistema (logcat)
+  17:12:47.677  wm_create_activity ... task 29 ... InterruptionActivity    (tarefa nova, sz=1)
+  17:12:47.680  START ... InterruptionActivity ... (BAL_ALLOW_SAW_PERMISSION) result code=0
+  17:12:47.696  janela inicial "Splash Screen com.norte.lab.dev"
+  17:12:47.771  primeiro quadro da InterruptionActivity
+  17:12:48.276  splash destruída
+  17:13:03.103  START u0 {act=MAIN cat=[LAUNCHER] flg=0x10000000 pkg=com.instagram.android
+                cmp=com.instagram.android/.activity.MainTabActivity} with LAUNCH_SINGLE_TOP
+                from uid 10162 (BAL_ALLOW_VISIBLE_WINDOW) result code=2
+                result code 2 = START_TASK_TO_FRONT: tarefa existente trazida à frente
+
+  Janela da tela própria (dumpsys window windows)
+  ty=BASE_APPLICATION  layoutInDisplayCutoutMode=always  frame=[0,0][1080,2340]
+  Ponta a ponta (obrigatório no targetSdk 36); barras do sistema desenhadas por cima.
+
+  FOCO
+  17:12:35  com.instagram.android/...MainTabActivity    janela 78e8d62
+  17:12:52  com.norte.lab.dev/...InterruptionActivity
+  17:13:06  com.instagram.android/...MainTabActivity    janela 78e8d62 — a MESMA
+
+  Atividades (dumpsys usagestats)
+  17:12:47  Instagram PAUSED + InterruptionActivity RESUMED
+  17:13:03  InterruptionActivity PAUSED + Instagram RESUMED
+  O tempo diante da tela própria NÃO conta como uso do Instagram.
+
+  Relato do responsável: voltou ao mesmo post.
+
+=====================================================================
+## Rodada E (17:16) — (b) tela própria, laboratório fechado: gesto de voltar
+
+  Log compartilhado
+  17:15:35.866  limit_configured
+  17:15:47.988  threshold_reached
+  17:15:48.012  notification_sent
+  17:16:08.124  interruption_shown     abordagem: activity · voltar para com.instagram.android
+  (nenhum evento ao dispensar pelo voltar)
+
+  Sistema (logcat)
+  17:16:08.074  wm_create_activity ... task 32 ... InterruptionActivity    (tarefa nova)
+  17:16:08.082  START ... InterruptionActivity ... (BAL_ALLOW_SAW_PERMISSION) result code=0
+  17:16:19.045  startBackNavigation currentTask=Task #32, topRunningActivity=InterruptionActivity
+  17:16:19.128  wm_finish_activity ... InterruptionActivity, app-request
+  17:16:19.744  wm_task_removed 32
+
+  FOCO
+  17:15:51  com.instagram.android/...MainTabActivity    janela b2951c
+  17:16:14  com.norte.lab.dev/...InterruptionActivity
+  17:16:22  com.instagram.android/...MainTabActivity    janela b2951c — a MESMA
+
+  Atividades (dumpsys usagestats)
+  17:16:08  Instagram PAUSED + InterruptionActivity RESUMED
+  17:16:19  InterruptionActivity PAUSED + Instagram RESUMED
+
+  Relato do responsável: voltou ao Instagram, no mesmo post.
+
+=====================================================================
+## Documentação oficial consultada em 18/09/2026
+  - WindowManager.LayoutParams, TYPE_APPLICATION_OVERLAY: as sobreposições ficam
+    acima de todas as activities, mas "below critical system windows like the
+    status bar or IME". A mesma página avisa que o sistema pode mudar posição,
+    tamanho ou visibilidade dessas janelas a qualquer momento.
+  - Mudanças de comportamento do Android 16 (targetSdk 36): o voltar preditivo
+    fica ativo por padrão, onBackPressed deixa de ser chamado e KEYCODE_BACK
+    deixa de ser enviado. android:enableOnBackInvokedCallback="false" é descrito
+    como desativação temporária. Todo o comportamento de voltar medido aqui
+    passou por esse caminho antigo.
