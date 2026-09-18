@@ -23,3 +23,17 @@ Contabilidade do sistema:
 ## Vazamento do dia anterior no método agregado
   package=com.sec.android.gallery3d totalTimeUsed="02:50" lastTimeUsed="2026-09-16 17:16:29" totalTimeVisible="02:51" lastTimeVisible="2026-09-16 17:16:30" lastTimeComponentUsed="2026-09-17 10:47:49" totalTimeFS="00:00" lastTimeFS="1969-12-31 21:00:00" appLaunchCount=2 
   (3 min atribuídos a hoje; lastTimeUsed é de 16/09)
+
+## Segunda confirmação do vazamento de borda de dia (18/09/2026, 00:06)
+
+Seis minutos depois da meia-noite, com o Instagram sem nenhum uso no novo dia:
+
+  eventos (nosso método):  zero uso em 18/09 — nenhum ACTIVITY_* registrado
+  agregado do sistema:     totalTimeUsed=07:46  lastTimeUsed=2026-09-17 23:49:52
+
+O agregado reporta 7m46s como uso "de hoje", mas o lastTimeUsed é de ONTEM às
+23:49. É o mesmo efeito observado com a Galeria, capturado desta vez no momento
+exato da virada.
+
+Confirma que o problema não era específico da Galeria e que a borda do dia
+precisa de tratamento explícito no app definitivo.
