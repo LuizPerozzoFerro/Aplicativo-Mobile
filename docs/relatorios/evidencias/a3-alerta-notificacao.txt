@@ -34,3 +34,11 @@
 
   Captura da gaveta não versionada: mostra notificações pessoais do
   responsável (CLAUDE.md seção 9).
+
+## Comportamento observado no aparelho
+
+Confirmado pelo responsável: o alerta apareceu FLUTUANDO por cima do Instagram,
+não apenas na gaveta. O canal em IMPORTANCE_HIGH produz mesmo a interrupção
+pretendida no One UI.
+
+Ressalva: o botão de ação só fica visível após expandir a notificação.

@@ -121,7 +121,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | S4 | ✅ Funciona | Evento gravado pelo Kotlin apareceu na tela com `source: UsageReader`. Arquivo lido direto do aparelho com `adb shell run-as com.norte.lab.dev cat files/lab-events.jsonl`. O log **sobreviveu à reinstalação do app** |
 | A1 | ✅ Funciona | Leitura por `queryEvents` coincidiu com a contabilidade do sistema no mesmo minuto (`1:41:10`), 17/09/2026. O caminho agregado foi descartado por dois defeitos medidos. Ver achado abaixo |
 | A2 | ✅ Funciona | `threshold_reached` registrado às 16:36:44 com o protótipo fechado, 9 s após o Instagram cruzar o limite de 2 min. Serviço em primeiro plano `specialUse` sobreviveu ao app ser arrastado para fora dos recentes. Segunda rodada após 2 h de Doze: latência de 3 s |
-| A3 | ⚠️ Funciona com limitações | Notificação disparada pelo Kotlin com o app fechado, **14 ms** após a detecção (~6 s do limite real até o alerta). Texto neutro e configurável. **Mas o botão "Emergência" não aparece com a notificação recolhida no One UI** — exige expandir antes, o que são dois toques |
+| A3 | ⚠️ Funciona com limitações | Notificação disparada pelo Kotlin com o app fechado, **14 ms** após a detecção (~6 s do limite real até o alerta). Apareceu **flutuando por cima do Instagram**, texto neutro e configurável. **Mas o botão "Emergência" só aparece se a notificação for expandida** — dois toques até a emergência |
 | A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. Faltam "Apps em suspensão" da Samsung (precisa de dias) e o roteiro T6 |
 
 ### Achado A1 — como medir tempo de uso por app, e o que não funciona
@@ -303,7 +303,9 @@ desde a última verificação.
 ### Achado A3 — alerta de nível 1 funciona, mas o botão fica escondido
 
 **Resultado: ⚠️ funciona com limitações.** A notificação é disparada pelo código
-nativo com o protótipo fechado, quase instantaneamente após a detecção. Mas o
+nativo com o protótipo fechado, quase instantaneamente após a detecção, e
+aparece **flutuando por cima do app monitorado** — o canal em IMPORTANCE_HIGH
+entrega a interrupção pretendida. Mas o
 botão de ação — que no produto leva ao botão de emergência — **não fica visível
 sem o usuário expandir a notificação**.
 
