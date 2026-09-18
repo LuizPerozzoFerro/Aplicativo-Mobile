@@ -241,13 +241,19 @@ object UsageReader {
    * Usado pelo A4 para decidir se vale interromper: so faz sentido mostrar a tela
    * se o usuario ainda estiver no app monitorado. Aplica a mesma regra de
    * pendencia de STOPPED descrita no achado A1.
+   *
+   * A janela precisa alcancar o ACTIVITY_RESUMED do app que esta na tela. Com 5
+   * minutos, como era ate 18/09/2026, um app sem nenhum RESUMED nesse intervalo
+   * (o uso continuo dentro da mesma activity) dava null: nem a escalada do A4 nem
+   * o retorno depois da pausa do A5 aconteceriam. 24 horas cobre qualquer sessao
+   * real, porque a tela apagada fecha tudo (SCREEN_NON_INTERACTIVE).
    */
   fun currentForegroundPackage(context: Context): String? {
     val manager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
       ?: return null
 
     val end = System.currentTimeMillis()
-    val events = manager.queryEvents(end - 5 * 60_000L, end)
+    val events = manager.queryEvents(end - 24 * 60 * 60_000L, end)
     val event = UsageEvents.Event()
 
     val openedAt = HashMap<String, Long>()

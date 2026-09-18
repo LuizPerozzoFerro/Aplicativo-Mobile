@@ -80,7 +80,7 @@ class UsageLimitService : Service() {
   }
 
   override fun onDestroy() {
-    Handler(mainLooper).post { InterruptionOverlay.hide(this) }
+    Handler(mainLooper).post { InterruptionOverlay.hide(this, reason = "servico parado") }
     handler?.removeCallbacks(check)
     thread?.quitSafely()
     thread = null
@@ -172,15 +172,7 @@ class UsageLimitService : Service() {
 
     // A sobreposicao precisa ser adicionada na thread principal.
     Handler(mainLooper).post {
-      InterruptionOverlay.show(this, motivation) {
-        EventLog.append(
-          context = this,
-          source = "UsageLimitService",
-          experiment = "A4",
-          event = "returned_to_app",
-          details = foregroundPackage
-        )
-      }
+      InterruptionOverlay.show(this, motivation, interruptedPackage = foregroundPackage)
     }
   }
 

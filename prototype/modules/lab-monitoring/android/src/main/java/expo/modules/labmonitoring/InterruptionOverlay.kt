@@ -34,7 +34,12 @@ object InterruptionOverlay {
 
   val isShowing: Boolean get() = view != null
 
-  fun show(context: Context, motivation: String, onContinue: () -> Unit) {
+  /**
+   * @param interruptedPackage app que estava na tela quando a interrupcao foi
+   * disparada. Serve para conferir, depois do "Continuar", se o usuario de fato
+   * voltou a ele.
+   */
+  fun show(context: Context, motivation: String, interruptedPackage: String?) {
     if (!canDraw(context)) {
       EventLog.append(
         context = context,
@@ -82,7 +87,12 @@ object InterruptionOverlay {
           details = "abordagem: sobreposicao"
         )
         hide(context)
-        onContinue()
+        InterruptionExits.logReturn(
+          context = context,
+          source = "InterruptionOverlay",
+          approach = "sobreposicao",
+          expected = interruptedPackage
+        )
       }
     })
 
@@ -96,6 +106,32 @@ object InterruptionOverlay {
           event = "emergency_tapped",
           details = "abordagem: sobreposicao"
         )
+        hide(context)
+      }
+    })
+
+    // I-15: saida que respeita o limite sem passar pela emergencia. O lancador e
+    // aberto ANTES de remover a sobreposicao, para o app monitorado nao reaparecer
+    // por um instante entre uma coisa e outra.
+    root.addView(Button(context).apply {
+      text = "Ir para a tela inicial"
+      setOnClickListener {
+        EventLog.append(
+          context = context,
+          source = "InterruptionOverlay",
+          experiment = "A4",
+          event = "home_tapped",
+          details = "abordagem: sobreposicao"
+        )
+        InterruptionExits.goHome(context).onFailure {
+          EventLog.append(
+            context = context,
+            source = "InterruptionOverlay",
+            experiment = "A4",
+            event = "home_failed",
+            details = "${it.javaClass.simpleName}: ${it.message}"
+          )
+        }
         hide(context)
       }
     })
@@ -136,10 +172,33 @@ object InterruptionOverlay {
     }
   }
 
-  fun hide(context: Context) {
+  /**
+   * Remove a sobreposicao. Os botoes registram o proprio evento; [reason] e para
+   * os fechamentos por codigo (servico parado, botao do laboratorio), para toda
+   * interruption_shown terminar com um evento de saida no log.
+   */
+  fun hide(context: Context, reason: String? = null) {
     val current = view ?: return
     val manager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-    runCatching { manager.removeView(current) }
+    val removed = runCatching { manager.removeView(current) }
     view = null
+
+    if (removed.isFailure) {
+      EventLog.append(
+        context = context,
+        source = "InterruptionOverlay",
+        experiment = "A4",
+        event = "interruption_close_failed",
+        details = removed.exceptionOrNull()?.let { "${it.javaClass.simpleName}: ${it.message}" }
+      )
+    } else if (reason != null) {
+      EventLog.append(
+        context = context,
+        source = "InterruptionOverlay",
+        experiment = "A4",
+        event = "interruption_closed",
+        details = "abordagem: sobreposicao · motivo: $reason"
+      )
+    }
   }
 }

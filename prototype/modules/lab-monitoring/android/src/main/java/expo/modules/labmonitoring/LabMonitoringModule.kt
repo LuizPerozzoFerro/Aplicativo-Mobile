@@ -6,6 +6,7 @@ import android.os.Build
 import android.net.Uri
 import android.provider.Settings
 import expo.modules.kotlin.exception.Exceptions
+import expo.modules.kotlin.functions.Queues
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
@@ -54,10 +55,15 @@ class LabMonitoringModule : Module() {
       mapOf("settingsOpened" to opened)
     }
 
-    /** Fecha a sobreposicao, se estiver na tela. */
+    /**
+     * Fecha a sobreposicao, se estiver na tela. Roda na thread principal, a mesma
+     * que adicionou a janela: a fila padrao do Expo e outra thread, e views nao sao
+     * seguras entre threads. Nao chegou a haver falha observada; se houvesse, o
+     * runCatching de hide() a engoliria, e agora ela vira interruption_close_failed.
+     */
     AsyncFunction("hideInterruption") {
-      InterruptionOverlay.hide(context)
-    }
+      InterruptionOverlay.hide(context, reason = "botao do laboratorio")
+    }.runOnQueue(Queues.MAIN)
 
     /**
      * Pede a permissao de notificacao (Android 13+). Ao contrario do acesso a

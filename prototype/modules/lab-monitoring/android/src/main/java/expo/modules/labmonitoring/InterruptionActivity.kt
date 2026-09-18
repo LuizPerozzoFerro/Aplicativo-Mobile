@@ -31,6 +31,15 @@ class InterruptionActivity : Activity() {
     const val EXTRA_RETURN_TO = "returnTo"
   }
 
+  /** Verdadeiro depois do toque num dos botoes, que registram o proprio evento. */
+  private var resolved = false
+
+  /**
+   * Por que a tela saiu sem toque em botao, quando da para saber. Achado A4,
+   * instrumentacao, item 3: o voltar e o inicio a dispensavam sem deixar rastro.
+   */
+  private var leaveReason: String? = null
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
@@ -62,6 +71,7 @@ class InterruptionActivity : Activity() {
     root.addView(Button(this).apply {
       text = "Continuar mesmo assim"
       setOnClickListener {
+        resolved = true
         EventLog.append(
           context = this@InterruptionActivity,
           source = "InterruptionActivity",
@@ -76,12 +86,19 @@ class InterruptionActivity : Activity() {
           packageManager.getLaunchIntentForPackage(returnTo)?.let { startActivity(it) }
         }
         finish()
+        InterruptionExits.logReturn(
+          context = this@InterruptionActivity,
+          source = "InterruptionActivity",
+          approach = "activity",
+          expected = returnTo
+        )
       }
     })
 
     root.addView(Button(this).apply {
       text = "Emergência"
       setOnClickListener {
+        resolved = true
         EventLog.append(
           context = this@InterruptionActivity,
           source = "InterruptionActivity",
@@ -93,14 +110,78 @@ class InterruptionActivity : Activity() {
       }
     })
 
+    // I-15: saida que respeita o limite sem passar pela emergencia.
+    root.addView(Button(this).apply {
+      text = "Ir para a tela inicial"
+      setOnClickListener {
+        resolved = true
+        EventLog.append(
+          context = this@InterruptionActivity,
+          source = "InterruptionActivity",
+          experiment = "A4",
+          event = "home_tapped",
+          details = "abordagem: activity"
+        )
+        InterruptionExits.goHome(this@InterruptionActivity).onFailure {
+          EventLog.append(
+            context = this@InterruptionActivity,
+            source = "InterruptionActivity",
+            experiment = "A4",
+            event = "home_failed",
+            details = "${it.javaClass.simpleName}: ${it.message}"
+          )
+        }
+        finish()
+      }
+    })
+
     setContentView(root)
 
-    EventLog.append(
-      context = this,
-      source = "InterruptionActivity",
-      experiment = "A4",
-      event = "interruption_shown",
-      details = "abordagem: activity" + (returnTo?.let { " · voltar para $it" } ?: "")
-    )
+    // Achado A4, instrumentacao, item 2: um giro recria a activity e passa por aqui
+    // de novo. So a primeira criacao chega sem estado salvo.
+    if (savedInstanceState == null) {
+      EventLog.append(
+        context = this,
+        source = "InterruptionActivity",
+        experiment = "A4",
+        event = "interruption_shown",
+        details = "abordagem: activity" + (returnTo?.let { " · voltar para $it" } ?: "")
+      )
+    }
+  }
+
+  /**
+   * Caminho antigo do voltar. Continua valendo porque o template do Expo desliga o
+   * voltar preditivo (enableOnBackInvokedCallback="false"); sem essa desativacao,
+   * o Android 16 nao chama este metodo (I-14) e o motivo sai como "outro".
+   */
+  @Deprecated("Caminho antigo do voltar; ver comentario acima.")
+  override fun onBackPressed() {
+    leaveReason = "voltar"
+    super.onBackPressed()
+  }
+
+  /** Chamado quando o usuario sai por escolha propria: inicio ou recentes. */
+  override fun onUserLeaveHint() {
+    if (leaveReason == null) leaveReason = "inicio ou recentes"
+    super.onUserLeaveHint()
+  }
+
+  /**
+   * Com noHistory, a tela e encerrada pelo sistema assim que deixa de ser visivel
+   * (exceto com a tela apagada), entao toda saida sem botao termina aqui. A
+   * recriacao por giro tambem passa por aqui, e nao conta como saida.
+   */
+  override fun onDestroy() {
+    if (!resolved && !isChangingConfigurations) {
+      EventLog.append(
+        context = this,
+        source = "InterruptionActivity",
+        experiment = "A4",
+        event = "interruption_dismissed",
+        details = "abordagem: activity · motivo: ${leaveReason ?: "outro"}"
+      )
+    }
+    super.onDestroy()
   }
 }
