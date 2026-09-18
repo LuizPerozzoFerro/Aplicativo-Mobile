@@ -1,0 +1,197 @@
+# A4 (complemento) — instrumentação corrigida e botão "Ir para a tela inicial"
+# Galaxy S22, Android 16 / One UI 8, 18/09/2026, 17:50–18:03
+# targetSdk 36 · enableOnBackInvokedCallback=false · navegação por gestos · rotação automática ligada
+
+## O que mudou no código (antes do A5)
+  1. returned_to_app deixou de ser presumido. 1,5 s depois do "Continuar", o app lê
+     qual app está de fato em primeiro plano. Se for o app interrompido, grava
+     returned_to_app; se não for, not_returned_to_app, com o que está na tela.
+  2. interruption_shown da tela própria: gravado só na primeira criação da activity
+     (savedInstanceState == null). Um giro não duplica mais o evento.
+  3. interruption_dismissed: a tela própria encerrada sem toque em botão grava o
+     evento no onDestroy, com o motivo: "voltar" (onBackPressed) ou "inicio ou
+     recentes" (onUserLeaveHint). A recriação por giro não conta.
+  4. Botão "Ir para a tela inicial" nas duas abordagens, com o evento home_tapped
+     (I-15). Abre o lançador pelo intent de HOME.
+  Correções encontradas no caminho:
+  5. currentForegroundPackage consultava só os últimos 5 min de eventos. Um app
+     aberto havia mais tempo, sem novo ACTIVITY_RESUMED, dava null: a escalada do
+     A4 não aconteceria, nem o item 1. Janela ampliada para 24 h. Achado lendo o
+     código, não observado em teste: nas rodadas o Instagram sempre era aberto
+     segundos antes da interrupção.
+  6. O botão "Fechar interrupção (se travar)" do laboratório removia a janela fora
+     da thread principal (fila padrão do Expo). Nenhuma falha foi observada, mas uma
+     falha ali seria engolida sem registro. Passou para a fila principal; os
+     fechamentos por código gravam interruption_closed, e uma falha na remoção,
+     interruption_close_failed. Não validado no aparelho.
+
+## Configuração comum
+  alvo: com.instagram.android · limite: 2 min (o Instagram já passava de 10 min no dia)
+  Cada rodada: "Iniciar limite" no laboratório → Instagram aberto pelo adb (monkey)
+  → o limite estoura no ciclo seguinte do serviço → a interrupção vem no ciclo depois.
+
+  Toques e gestos injetados pelo adb, não pelo dedo:
+    toque     input tap no centro do botão (posição lida do uiautomator dump)
+    início    input swipe 540 2320 540 1500 200   (de baixo para cima)
+    voltar    input swipe 3 1200 500 1200 180     (da borda esquerda para dentro)
+  Os gestos passaram pelo caminho do sistema: o voltar por startBackNavigation
+  (CoreBackPreview), o início pelo lançador retomado com userLeaving=true.
+
+  Fontes: log compartilhado; FOCO = janela com foco (dumpsys window, mCurrentFocus),
+  lida a cada ~1 s; logcat do sistema (buffers system e events), filtrado.
+  Capturas de tela NÃO versionadas: mostram o feed do responsável.
+
+  Botões na tela (uiautomator dump), de cima para baixo:
+    sobreposição   CONTINUAR MESMO ASSIM [64,1138][1016,1282] · EMERGÊNCIA [..1426] · IR PARA A TELA INICIAL [..1570]
+    tela própria   Continuar mesmo assim [64,1168][1016,1285] · Emergência [..1402] · Ir para a tela inicial [..1519]
+  (na sobreposição os rótulos aparecem em caixa alta; na tela própria, não)
+
+=====================================================================
+## O1 (17:50) — sobreposição, "Continuar" → returned_to_app correto
+
+  Log compartilhado
+  17:50:29.476  limit_configured       2 min para 1 app(s)
+  17:50:37.201  threshold_reached      11 min de uso para limite de 2 min
+  17:50:37.217  notification_sent
+  17:50:57.356  interruption_shown     abordagem: sobreposicao
+  17:51:28.134  continue_tapped        abordagem: sobreposicao
+  17:51:29.721  returned_to_app        com.instagram.android · abordagem: sobreposicao
+
+  FOCO
+  17:50:34  com.instagram.android/...MainTabActivity    janela 2036047
+  17:51:04  com.norte.lab.dev                           a sobreposição
+  17:51:29  com.instagram.android/...MainTabActivity    janela 2036047 — a MESMA
+
+  Sistema
+  17:50:31.975  wm_set_resumed_activity  Instagram
+  17:50:57.463  notify AlertWindowNotification - com.norte.lab.dev   (aviso do sistema)
+  17:51:28.153  notification_cancel AlertWindowNotification           (19 ms após o continue_tapped)
+  Nenhum wm_pause_activity do Instagram entre 17:50:31 e 17:51:53: ele seguiu em
+  primeiro plano por baixo da sobreposição (I-10, de novo).
+
+=====================================================================
+## O2 (17:53) — sobreposição, gesto de início, depois "Continuar"
+## Repete a rodada B do A4, em que o log afirmou um retorno que não houve
+
+  Log compartilhado
+  17:52:17.462  limit_configured
+  17:52:37.480  threshold_reached      13 min de uso para limite de 2 min
+  17:52:37.500  notification_sent
+  17:52:57.635  interruption_shown     abordagem: sobreposicao
+  17:53:21.991  continue_tapped        abordagem: sobreposicao
+  17:53:23.536  not_returned_to_app    em primeiro plano: com.sec.android.app.launcher ·
+                                       esperado: com.instagram.android · abordagem: sobreposicao
+
+  FOCO
+  17:53:04  com.norte.lab.dev              a sobreposição mantém o foco após o gesto de início
+  17:53:24  com.sec.android.app.launcher/...LauncherActivity   depois do "Continuar"
+
+  Sistema
+  17:53:03.986  wm_set_resumed_activity  LauncherActivity           (gesto de início)
+  17:53:04.897  wm_pause_activity        Instagram, userLeaving=true
+  Por baixo da sobreposição, antes do toque: topResumedActivity = LauncherActivity
+
+=====================================================================
+## O3 (17:54) — sobreposição, "Ir para a tela inicial"
+
+  Log compartilhado
+  17:54:04.503  limit_configured
+  17:54:17.728  threshold_reached
+  17:54:17.743  notification_sent
+  17:54:37.850  interruption_shown     abordagem: sobreposicao
+  17:54:44.759  home_tapped            abordagem: sobreposicao
+
+  FOCO
+  17:54:45  com.norte.lab.dev
+  17:54:46  com.sec.android.app.launcher/...LauncherActivity
+
+  Sistema
+  17:54:44.784  wm_pause_activity  Instagram, userLeaving=true
+  17:54:44.787  START u0 {act=MAIN cat=[HOME] flg=0x10000000 cmp=com.sec.android.app.launcher/.activities.LauncherActivity}
+                with LAUNCH_SINGLE_TASK from uid 10162 (BAL_ALLOW_NON_APP_VISIBLE_WINDOW) result code=2
+  17:54:44.801  notification_cancel AlertWindowNotification - com.norte.lab.dev
+  17:54:44.824  wm_set_resumed_activity  LauncherActivity
+  O início foi liberado pela própria sobreposição visível (janela que não é de
+  activity), não pela permissão: o lançador é aberto antes de a sobreposição sair.
+  Do home_tapped até o Instagram pausar: 25 ms; até o lançador na frente: 65 ms.
+
+=====================================================================
+## T4 (17:57) — tela própria, "Continuar" → returned_to_app correto
+
+  Log compartilhado
+  17:57:18.189  interruption_shown     abordagem: activity · voltar para com.instagram.android
+  17:57:33.544  continue_tapped        abordagem: activity
+  17:57:35.139  returned_to_app        com.instagram.android · abordagem: activity
+  (nenhum interruption_dismissed: a saída por botão não é contada como dispensa)
+
+  Sistema
+  17:57:33.578  START u0 {act=MAIN cat=[LAUNCHER] ... pkg=com.instagram.android ...}
+                from uid 10162 (BAL_ALLOW_VISIBLE_WINDOW) result code=2
+  17:57:33.584  wm_finish_activity  InterruptionActivity, app-request
+  17:57:33.595  wm_set_resumed_activity  Instagram
+
+=====================================================================
+## T3 (17:58) — tela própria, "Ir para a tela inicial"
+
+  Log compartilhado
+  17:58:38.394  interruption_shown     abordagem: activity · voltar para com.instagram.android
+  17:58:44.829  home_tapped            abordagem: activity
+
+  FOCO
+  17:58:44  com.norte.lab.dev/...InterruptionActivity
+  17:58:47  com.sec.android.app.launcher/...LauncherActivity
+
+  Sistema
+  17:58:44.859  wm_set_resumed_activity  LauncherActivity
+  17:58:44.862  START u0 {act=MAIN cat=[HOME] ... LauncherActivity} from uid 10162
+                (BAL_ALLOW_VISIBLE_WINDOW) result code=2
+  17:58:44.864  wm_finish_activity  InterruptionActivity, app-request
+
+=====================================================================
+## T2 (18:00) — tela própria, gesto de início → interruption_dismissed
+
+  Log compartilhado
+  17:59:58.623  interruption_shown     abordagem: activity · voltar para com.instagram.android
+  18:00:06.259  interruption_dismissed abordagem: activity · motivo: inicio ou recentes
+
+  FOCO
+  18:00:05  com.norte.lab.dev/...InterruptionActivity
+  18:00:08  com.sec.android.app.launcher/...LauncherActivity
+
+  Sistema
+  18:00:05.262  wm_set_resumed_activity  LauncherActivity
+  18:00:06.227  wm_pause_activity   InterruptionActivity, userLeaving=true, finishTransition
+  18:00:06.240  wm_finish_activity  InterruptionActivity, stop-no-history
+  18:00:06.241  wm_destroy_activity InterruptionActivity
+  userLeaving=true é o que dispara o onUserLeaveHint; o noHistory encerra a tela
+  assim que ela deixa de ser visível. Antes da correção, esta saída não gerava
+  nenhum evento.
+
+=====================================================================
+## T5 (18:01) — tela própria, gesto de voltar → interruption_dismissed
+## Laboratório nos recentes: a tela nasce na tarefa dele (#34), como na rodada C
+
+  Log compartilhado
+  18:01:18.819  interruption_shown     abordagem: activity · voltar para com.instagram.android
+  18:01:28.051  interruption_dismissed abordagem: activity · motivo: voltar
+
+  FOCO
+  18:01:20  com.norte.lab.dev/...InterruptionActivity
+  18:01:29  com.norte.lab.dev/com.norte.lab.dev.MainActivity    (a tela do laboratório)
+
+  Sistema
+  18:01:27.227  startBackNavigation currentTask=Task #34, topRunningActivity=InterruptionActivity
+  18:01:27.398  wm_finish_activity  InterruptionActivity, app-request
+  18:01:27.409  wm_set_resumed_activity  com.norte.lab.dev/.MainActivity
+  18:01:27.976  wm_destroy_activity InterruptionActivity
+  O evento sai no onDestroy, ~0,8 s depois do gesto.
+
+=====================================================================
+## T1 — tela própria, giro (item 2): PENDENTE
+  18:02:59.075  interruption_shown     abordagem: activity · voltar para com.instagram.android
+  Aguardando o giro feito pelo responsável. A tela foi apagada pelo botão
+  liga/desliga às 18:09:39 (mLastSleepReason=power_button). Às 19:26 a
+  InterruptionActivity seguia como activity retomada da tarefa #34, atrás da tela
+  de bloqueio (foco em NotificationShade, aparelho em Dozing). É coerente com o
+  código do Android, que não encerra uma activity noHistory enquanto o aparelho
+  dorme. Falta ver o que aparece ao desbloquear.

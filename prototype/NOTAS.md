@@ -7,7 +7,7 @@
 
 ## Estado atual e próximo passo
 
-> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 18/09/2026, fim da tarde.
+> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 18/09/2026, 19:30.
 
 **Branch:** `prototype/android-usage`. Tudo commitado.
 
@@ -20,23 +20,27 @@
 | A5 · A6 · A7 · A8 · A10 | não iniciados |
 | S2 · S3 · iOS | não iniciados — dependem da conta Apple Developer pessoal |
 
-**Próximo passo: A5**, pausa depois do "continuar mesmo assim". Antes dele, duas
-tarefas que complementam o A4. As duas mexem no Kotlin e exigem recompilar:
+**Feito em 18/09 à noite, antes do A5** (detalhes em "Achado A4 → Instrumentação"
+e no terceiro botão, em "Recomendação preliminar"):
+- Instrumentação corrigida: o retorno depois do "Continuar" é conferido
+  (`returned_to_app` ou `not_returned_to_app`), `interruption_shown` sai uma vez
+  por interrupção, e o voltar e o início na tela própria geram
+  `interruption_dismissed`. Validado nas rodadas O1–O3 e T2–T5.
+- Botão "Ir para a tela inicial" nas duas abordagens, com `home_tapped`.
+  Validado nas rodadas O3 e T3.
+- Achado no caminho: a detecção do app em primeiro plano só olhava 5 minutos para
+  trás. Corrigido para 24 h; afetaria a escalada do A4 e o retorno do alerta no A5.
 
-1. **Corrigir a instrumentação** (ver "Achado A4 → Instrumentação"):
-   `returned_to_app` presume o retorno, `interruption_shown` duplica quando a tela
-   própria é recriada, e a dispensa pelo voltar não gera evento. O A5 depende de
-   `continue_tapped` e da contagem de interrupções.
-2. **Adicionar o botão "Ir para a tela inicial"** às duas abordagens, com o evento
-   `home_tapped` (sugestão do responsável, I-15).
-
-Validar as duas com uma rodada rápida em cada modo e registrar a evidência.
-A decidir com o responsável no início do A5: depois de "Ir para a tela inicial",
-reabrir o app monitorado interrompe de novo, ou também entra em pausa?
-
-**Abordagem para o A5:** sobreposição, pela recomendação preliminar do A4. O modo
-salvo no aparelho ficou em **tela própria** (última rodada): trocar na seção A4
-antes de "Iniciar limite".
+**Pendente:**
+1. **Rodada T1, com giro**, que valida o item 2 da instrumentação. Precisa do
+   responsável: com a tela própria aberta, girar para paisagem, voltar para
+   retrato e tocar em "Continuar". Esperado: um único `interruption_shown`,
+   nenhum `interruption_dismissed`, depois `continue_tapped` e `returned_to_app`.
+2. **Próximo passo: A5**, pausa depois do "continuar mesmo assim", na abordagem
+   **sobreposição** (recomendação preliminar do A4). **Antes de implementar a
+   pausa, perguntar ao responsável** se "Ir para a tela inicial" também pausa os
+   alertas. O modo salvo no aparelho está em **tela própria** (rodada T1): trocar
+   na seção A4 antes de "Iniciar limite".
 
 **Para rearmar o teste:** "Iniciar limite" limpa `firedAt` e `escalatedAt`, e a
 tela agora reaproveita o app e o modo salvos no nativo. O Instagram já passa de
@@ -44,10 +48,12 @@ tela agora reaproveita o app e o modo salvos no nativo. O Instagram já passa de
 seguinte do serviço e a interrupção vem assim que o Instagram é aberto: rodadas de
 menos de um minuto. Para medir a latência real, usar limite **acima** do uso do dia.
 
-**Estado do aparelho ao fim da sessão de 18/09/2026 (17:20):** serviço em primeiro
-plano ativo (a mesma instância desde 00:04), limite de 2 min no Instagram já
-disparado, modo **tela própria**, todas as permissões concedidas (acesso a dados de
-uso, notificação, sobreposição). Rotação automática ligada. Metro desligado.
+**Estado do aparelho em 18/09/2026, 19:30:** serviço em primeiro plano ativo
+(instância nova, religada pelo `MY_PACKAGE_REPLACED` na reinstalação das 17:46),
+limite de 2 min no Instagram já disparado, modo **tela própria**, com a
+`InterruptionActivity` da rodada T1 aberta atrás da tela de bloqueio. Todas as
+permissões concedidas (acesso a dados de uso, notificação, sobreposição). Rotação
+automática ligada. Metro desligado.
 
 **Atenção ao abrir o laboratório:** o serviço mantém o processo vivo, e com ele o
 JavaScript antigo na memória. Subir o Metro não basta (P6): com o laboratório na
@@ -164,6 +170,7 @@ prototype/
     android/.../NotificationActionReceiver.kt  # botão "Emergência" (A3)
     android/.../InterruptionOverlay.kt     # tela de interrupção por sobreposição (A4a)
     android/.../InterruptionActivity.kt    # tela de interrupção como activity (A4b)
+    android/.../InterruptionExits.kt       # saídas comuns: tela inicial e conferência do retorno (A4)
     android/.../LabMonitoringModule.kt     # fachada Expo Modules
     ios/LabMonitoringModule.swift          # esqueleto: tudo 'unsupported'
 ```
@@ -183,7 +190,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | A1 | ✅ Funciona | Leitura por `queryEvents` coincidiu com a contabilidade do sistema no mesmo minuto (`1:41:10`), 17/09/2026. O caminho agregado foi descartado por dois defeitos medidos. Ver achado abaixo |
 | A2 | ✅ Funciona | `threshold_reached` registrado às 16:36:44 com o protótipo fechado, 9 s após o Instagram cruzar o limite de 2 min. Serviço em primeiro plano `specialUse` sobreviveu ao app ser arrastado para fora dos recentes. Segunda rodada após 2 h de Doze: latência de 3 s |
 | A3 | ⚠️ Funciona com limitações | Notificação disparada pelo Kotlin com o app fechado, **14 ms** após a detecção (~6 s do limite real até o alerta). Apareceu **flutuando por cima do Instagram**, texto neutro e configurável. **Mas o botão "Emergência" só aparece se a notificação for expandida** — dois toques até a emergência |
-| A4 | ⚠️ Funciona com limitações | As duas abordagens cumprem o critério: a tela aparece sobre o Instagram com o protótipo fechado, mostra a motivação, e "Continuar" registra `continue_tapped` e volta **ao mesmo post**. **Sobreposição:** o voltar é ignorado, ela continua por cima da tela inicial, não cobre as barras, e o sistema publica "Norte Lab exibido sobre outros apps". **Tela própria:** o voltar a fecha sem registro. Ambas dependem de `SYSTEM_ALERT_WINDOW`. Ver achado abaixo |
+| A4 | ⚠️ Funciona com limitações | As duas abordagens cumprem o critério: a tela aparece sobre o Instagram com o protótipo fechado, mostra a motivação, e "Continuar" registra `continue_tapped` e volta **ao mesmo post**. **Sobreposição:** o voltar é ignorado, ela continua por cima da tela inicial, não cobre as barras, e o sistema publica "Norte Lab exibido sobre outros apps". **Tela própria:** o voltar a fecha sem escolha. Ambas dependem de `SYSTEM_ALERT_WINDOW`. Em 18/09 à noite: instrumentação corrigida e botão "Ir para a tela inicial" nas duas, validados no aparelho (falta a rodada com giro). Ver achado abaixo |
 | A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. Faltam "Apps em suspensão" da Samsung (precisa de dias) e o roteiro T6 |
 
 ### Achado A1 — como medir tempo de uso por app, e o que não funciona
@@ -527,14 +534,45 @@ pelo caminho antigo. No app definitivo, o voltar precisa ser tratado de forma
 explícita (`OnBackInvokedCallback` na sobreposição e na activity) e testado de novo
 com o voltar preditivo ligado.
 
-#### Instrumentação: três pontos a corrigir antes do A5
+#### Instrumentação: corrigida antes do A5 (18/09/2026, 17:50–18:03)
 
-1. `returned_to_app` é gravado sempre que se toca em "Continuar" na sobreposição.
-   Na rodada B ele registrou o Instagram com o usuário na tela inicial. Registrar
-   o app que está de fato em primeiro plano.
-2. O `interruption_shown` da tela própria é gravado no `onCreate` e duplica a
-   cada recriação. Registrar só na primeira criação.
-3. A dispensa da tela própria sem botão (voltar, início) não gera evento.
+As rodadas A–E deixaram três pontos em que o log não contava a verdade. Todos
+foram corrigidos e validados no S22, com toques e gestos injetados pelo `adb`
+(ver "Comandos"). Evidência: `docs/relatorios/evidencias/a4-instrumentacao-e-botao-inicio.txt`.
+
+| # | Problema | Correção | Validação |
+|---|---|---|---|
+| 1 | `returned_to_app` gravado a cada "Continuar" na sobreposição, mesmo com o usuário na tela inicial (rodada B) | 1,5 s depois do toque, o app lê o que está em primeiro plano: `returned_to_app` se for o app interrompido; senão, `not_returned_to_app` com o que está na tela. Vale para as duas abordagens | ✅ O1 e T4: Instagram. O2, a rodada B repetida: `not_returned_to_app`, primeiro plano: lançador |
+| 2 | `interruption_shown` da tela própria gravado de novo a cada recriação | Gravado só quando o `onCreate` chega sem estado salvo | ⏳ Falta a rodada com giro, que depende do responsável |
+| 3 | A dispensa da tela própria sem botão não gerava evento | `interruption_dismissed` no `onDestroy`, se nenhum botão foi tocado e não é recriação. O motivo vem de `onBackPressed` ("voltar") ou de `onUserLeaveHint` ("inicio ou recentes"); fora isso, "outro" | ✅ T5: voltar. T2: início |
+
+O item 3 depende do `noHistory`: é ele que faz o sistema encerrar a tela quando o
+usuário vai para o início (`wm_finish_activity ... stop-no-history`). Sem ele, a
+tela ficaria parada na tarefa e o evento só sairia quando o processo morresse.
+O motivo "voltar" depende do caminho antigo do voltar (I-14): com o voltar
+preditivo ligado, o `onBackPressed` não é chamado e o motivo sairia "outro".
+
+**Dois defeitos latentes, achados no caminho e corrigidos:**
+
+- **`currentForegroundPackage` só olhava os últimos 5 minutos de eventos.** Um app
+  sem nenhum `ACTIVITY_RESUMED` nesse intervalo, como o Instagram usado sem trocar
+  de activity, dava `null`. A escalada para a tela de interrupção não aconteceria
+  para quem já estava no app havia mais de 5 minutos quando o limite estourou. O A5
+  seria afetado em cheio: depois de uma pausa de 5 minutos ou mais, o alerta não
+  voltaria. As rodadas do A4 não pegaram isso porque o Instagram era sempre aberto
+  segundos antes. Janela ampliada para 24 h. **Achado lendo o código, não
+  observado em teste.**
+- **O botão "Fechar interrupção (se travar)" removia a janela fora da thread
+  principal:** a `AsyncFunction` do Expo roda numa fila própria. Nenhuma falha foi
+  observada, mas uma falha ali seria engolida pelo `runCatching`. Agora roda na
+  fila principal (`runOnQueue(Queues.MAIN)`). Os fechamentos por código passaram a
+  gravar `interruption_closed` com o motivo, e uma falha na remoção vira
+  `interruption_close_failed`. Não validado no aparelho.
+
+**Com isso, toda `interruption_shown` termina num evento de saída:**
+`continue_tapped`, `emergency_tapped`, `home_tapped`, `interruption_dismissed`
+(tela própria) ou `interruption_closed` (sobreposição fechada por código). É o que
+o A5 precisa para contar interrupções e respostas.
 
 #### Recomendação preliminar, para o relatório
 
@@ -556,13 +594,32 @@ mas "Continuar" está sempre a um toque. Ela não bloqueia o usuário.
 **Terceiro botão, sugerido pelo responsável:** além de "Emergência" e "Continuar
 mesmo assim", um botão **"Ir para a tela inicial"**, que fecha a interrupção e
 leva à tela inicial do aparelho. É a saída que respeita o limite sem passar pelo
-fluxo de emergência. A §6.5 do documento 01 prevê só as duas opções (I-15). A
-implementar no protótipo antes do A5, com o evento `home_tapped`. Evitar o rótulo
-"Início", que é o nome de uma aba do app (§6.1).
+fluxo de emergência. A §6.5 do documento 01 prevê só as duas opções (I-15). Evitar
+o rótulo "Início", que é o nome de uma aba do app (§6.1).
+
+**Implementado e validado em 18/09/2026** nas duas abordagens, como terceiro botão,
+com o evento `home_tapped` (rodadas O3 e T3 da evidência acima). O botão abre o
+lançador pelo intent de HOME:
+
+- **Sobreposição:** o lançador é aberto **antes** de a sobreposição sair, para o
+  Instagram não reaparecer entre uma coisa e outra. O sistema liberou o início por
+  `BAL_ALLOW_NON_APP_VISIBLE_WINDOW`, ou seja, pela própria sobreposição visível, e
+  não pela permissão. Do `home_tapped` ao lançador na frente: 65 ms.
+- **Tela própria:** liberado por `BAL_ALLOW_VISIBLE_WINDOW`, a própria activity.
+
+Um início de activity barrado pelo sistema **não gera exceção**, só uma linha no
+logcat (documentação oficial de restrições de início em segundo plano, consultada
+em 18/09/2026). O `home_tapped` prova o toque, não a chegada à tela inicial; a
+prova de chegada veio do sistema.
 
 #### Ainda não testado
 
-- Gesto de início e botão "Emergência" na tela própria.
+- Botão "Emergência" na tela própria. (O gesto de início foi testado em 18/09,
+  rodada T2: o sistema encerra a tela por causa do `noHistory`.)
+- **Tela própria com o aparelho bloqueado:** parcial. Na rodada T1, a tela foi
+  apagada pelo botão liga/desliga com a interrupção aberta, às 18:09. Às 19:26 a
+  `InterruptionActivity` seguia retomada no topo da tarefa, atrás da tela de
+  bloqueio. Falta ver o que aparece ao desbloquear.
 - **Chamada recebida com a sobreposição na tela.** A tela de chamada é uma
   activity e, pela regra de camadas, ficaria por baixo da sobreposição. É
   hipótese, a testar antes do beta: trata-se de segurança.
@@ -804,7 +861,7 @@ decidido fora do Claude Code.
 | I-10 | Com a sobreposição, o app monitorado continua em primeiro plano por baixo: o tempo diante da tela de interrupção conta como uso dele | Doc 01 §6.2 e §6.8 | Descontar esse tempo das estatísticas e da streak de moderação |
 | I-11 | Enquanto a sobreposição está na tela, o Android publica "<nome do app> exibido sobre outros apps", com um toque para desativar a permissão. O app não pode suprimir | Doc 01 P7 (discrição), §6.5 | O nome do app aparece na gaveta durante a interrupção, e desligar a proteção fica a um toque no momento de vulnerabilidade |
 | I-12 | A sobreposição pede uma escolha antes de qualquer outro uso do aparelho: o voltar é ignorado, e ela continua por cima da tela inicial e de qualquer app | Doc 01 §6.5 | Não fere o princípio P4 ("Continuar" está sempre a um toque; leitura confirmada pelo responsável em 18/09/2026). Falta testar uma chamada recebida com a sobreposição na tela |
-| I-13 | Na tela própria, o voltar fecha a interrupção sem escolha e sem registro, e com o app fechado devolve o usuário direto ao app monitorado | Doc 01 §6.5 | Se a tela própria for usada, interceptar o voltar ou tratá-lo como "continuar" e registrá-lo |
+| I-13 | Na tela própria, o voltar fecha a interrupção sem escolha, e com o app fechado devolve o usuário direto ao app monitorado. (Desde 18/09 o protótipo ao menos registra a saída, como `interruption_dismissed`) | Doc 01 §6.5 | Se a tela própria for usada, interceptar o voltar ou tratá-lo como "continuar" e registrá-lo |
 | I-14 | Todo o comportamento de voltar medido depende de uma desativação que o Android 16 chama de temporária (`enableOnBackInvokedCallback="false"`) | Doc 02 riscos | Tratar o voltar de forma explícita no app definitivo e testar com o voltar preditivo ligado |
 | I-15 | Sugestão do responsável: um terceiro botão na tela de interrupção, "Ir para a tela inicial", como saída que respeita o limite sem passar pela emergência | Doc 01 §6.5, que prevê só "Emergência" e "Continuar mesmo assim" | Incluir a opção no documento 01; definir se ela conta como vitória nas estatísticas (§6.8) e se reabrir o app monitorado interrompe de novo, sem pausa |
 
@@ -835,7 +892,12 @@ Rodar dentro de `prototype/`. Os exemplos usam Git Bash; `adb` fica em
 | Recarregar o JavaScript | `adb shell input keyevent 46 46`, com o laboratório na frente (P6) |
 | Janela com foco agora | `adb shell dumpsys window \| grep mCurrentFocus` |
 | Inícios de activity e exceção de BAL | `adb logcat -d -b system \| grep "START u0"` |
-| Ler os textos da tela | `adb shell uiautomator dump /sdcard/ui.xml` e `adb shell cat /sdcard/ui.xml` |
+| Ler os textos da tela | `adb shell uiautomator dump /sdcard/ui.xml` e `adb shell cat /sdcard/ui.xml` (posições já em pixels reais) |
+| Tocar num ponto | `adb shell input tap <x> <y>` |
+| Gesto de início | `adb shell input swipe 540 2320 540 1500 200` (passa pelo lançador como o dedo) |
+| Gesto de voltar | `adb shell input swipe 3 1200 500 1200 180` (passa por `startBackNavigation` como o dedo) |
+| Log do sistema desde uma hora | `adb logcat -d -b system,events -v time -T "09-18 17:54:40.000"` |
+| Por que a tela apagou | `adb shell dumpsys power \| grep mLastSleepReason` |
 | Porta 8081 ocupada? | `netstat -ano \| grep :8081` e `taskkill //PID <pid> //F` |
 | Emulador (bloqueado por P2) | `emulator -avd lab_android16` |
 

@@ -19,6 +19,7 @@ One UI 8.0.
 | `a2-deteccao-de-limite.txt` | A2 | Detecção com o app fechado e latência de 9 s |
 | `a3-alerta-notificacao.txt` | A3 | Notificação disparada pelo nativo, latência de ~6 s |
 | `a4-tela-de-interrupcao.txt` | A4 | Sessão inicial e rodadas A–E: sobreposição e tela própria comparadas (voltar, início, barras, "Continuar", exceção de início em segundo plano, notificação do sistema) |
+| `a4-instrumentacao-e-botao-inicio.txt` | A4 | Rodadas O1–O3 e T2–T5: retorno real após "Continuar", dispensa pelo voltar e pelo início registrada, botão "Ir para a tela inicial" nas duas abordagens |
 | `a9-leitura-de-base.txt` | A9 | Estado do aparelho antes do teste de 2 h |
 | `a9-sobrevivencia-e-custo.txt` | A9 | Doze profundo, custo de CPU, reinício do aparelho |
 
