@@ -23,6 +23,7 @@ export type PermissionState = 'granted' | 'denied' | Unsupported;
 export type PermissionStatus = {
   usageAccess: PermissionState;
   notifications: PermissionState;
+  overlay: PermissionState;
 };
 
 export type NotificationPermissionResult = {
@@ -65,6 +66,16 @@ export type UsageLimitStatus = {
   packages: string[];
   /** Texto neutro do alerta (experimento C2). */
   message: string;
+  interruptionMode: InterruptionMode;
+  /** Epoch em ms do alerta de nivel 2; 0 se ainda nao houve. */
+  escalatedAt: number;
   /** Epoch em ms de quando o limite foi atingido; 0 se ainda nao foi. */
   firedAt: number;
+};
+
+/** Abordagem da tela de interrupcao do A4. */
+export type InterruptionMode = 'overlay' | 'activity';
+
+export type OverlayPermissionResult = {
+  settingsOpened: boolean;
 };

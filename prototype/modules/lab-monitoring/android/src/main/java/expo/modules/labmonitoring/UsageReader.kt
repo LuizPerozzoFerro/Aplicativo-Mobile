@@ -236,6 +236,58 @@ object UsageReader {
   }
 
   /**
+   * Qual app esta em primeiro plano agora, ou null.
+   *
+   * Usado pelo A4 para decidir se vale interromper: so faz sentido mostrar a tela
+   * se o usuario ainda estiver no app monitorado. Aplica a mesma regra de
+   * pendencia de STOPPED descrita no achado A1.
+   */
+  fun currentForegroundPackage(context: Context): String? {
+    val manager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
+      ?: return null
+
+    val end = System.currentTimeMillis()
+    val events = manager.queryEvents(end - 5 * 60_000L, end)
+    val event = UsageEvents.Event()
+
+    val openedAt = HashMap<String, Long>()
+    val ownerOf = HashMap<String, String>()
+    val pendingStops = HashMap<String, Int>()
+
+    while (events.hasNextEvent()) {
+      events.getNextEvent(event)
+      val packageName = event.packageName ?: continue
+      val key = "$packageName|${event.className.orEmpty()}"
+
+      when (event.eventType) {
+        UsageEvents.Event.ACTIVITY_RESUMED -> {
+          openedAt[key] = event.timeStamp
+          ownerOf[key] = packageName
+        }
+        UsageEvents.Event.ACTIVITY_PAUSED -> {
+          openedAt.remove(key); ownerOf.remove(key)
+          pendingStops[key] = (pendingStops[key] ?: 0) + 1
+        }
+        UsageEvents.Event.ACTIVITY_STOPPED -> {
+          val pending = pendingStops[key] ?: 0
+          if (pending > 0) {
+            pendingStops[key] = pending - 1
+          } else {
+            openedAt.remove(key); ownerOf.remove(key)
+          }
+        }
+        UsageEvents.Event.SCREEN_NON_INTERACTIVE -> {
+          openedAt.clear(); ownerOf.clear()
+        }
+      }
+    }
+
+    // Se sobrar mais de um intervalo aberto, o mais recente e o que esta na tela.
+    val latest = openedAt.maxByOrNull { it.value }?.key ?: return null
+    return ownerOf[latest]
+  }
+
+  /**
    * Apps com icone na gaveta, para o usuario escolher o que monitorar.
    * Depende da declaracao <queries> no manifesto do modulo.
    */

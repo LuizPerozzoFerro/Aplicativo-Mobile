@@ -14,6 +14,8 @@ import type {
   UsageEntry,
   UsageLimitStatus,
   NotificationPermissionResult,
+  InterruptionMode,
+  OverlayPermissionResult,
   Unsupported,
 } from '../../modules/lab-monitoring/src/LabMonitoring.types';
 
@@ -25,6 +27,8 @@ export type {
   UsageEntry,
   UsageLimitStatus,
   NotificationPermissionResult,
+  InterruptionMode,
+  OverlayPermissionResult,
   Unsupported,
 } from '../../modules/lab-monitoring/src/LabMonitoring.types';
 
@@ -36,6 +40,8 @@ export type UsageLimitConfig = {
   minutes: number;
   /** Pacotes Android a monitorar. No iOS a selecao vem do seletor da Apple (I2). */
   packages: string[];
+  /** Abordagem da tela de interrupcao (A4). */
+  interruptionMode: InterruptionMode;
   /** Texto neutro do alerta (A3). Configuravel para atender o C2. */
   message: string;
 };
@@ -59,6 +65,12 @@ export interface MonitoringModule {
   openNotificationSettings(): Promise<boolean>;
 
   requestNotificationPermission(): Promise<NotificationPermissionResult>;
+
+  /** A4: abre os Ajustes de "Aparecer sobre outros apps". */
+  requestOverlayPermission(): Promise<OverlayPermissionResult>;
+
+  /** Fecha a tela de interrupcao, se estiver visivel. */
+  hideInterruption(): Promise<void>;
 
   /** Dispara o alerta do A3 imediatamente, sem esperar o limite. */
   sendTestAlert(): Promise<void>;

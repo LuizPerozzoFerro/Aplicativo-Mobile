@@ -80,6 +80,7 @@ class UsageLimitService : Service() {
   }
 
   override fun onDestroy() {
+    Handler(mainLooper).post { InterruptionOverlay.hide(this) }
     handler?.removeCallbacks(check)
     thread?.quitSafely()
     thread = null
@@ -96,10 +97,23 @@ class UsageLimitService : Service() {
 
   private fun checkLimit() {
     if (!LimitConfig.isActive(this)) return
-    if (LimitConfig.firedAt(this) > 0L) return // ja alertou; A5 vai tratar a pausa
 
     val targets = LimitConfig.packages(this)
     if (targets.isEmpty()) return
+
+    // Alerta de nivel 2 (A4): se o limite ja estourou e o usuario CONTINUA no app
+    // monitorado, escalamos para a tela de interrupcao. Isso e o "se o uso
+    // continuar" do documento 01, secao 6.5.
+    if (LimitConfig.firedAt(this) > 0L) {
+      if (LimitConfig.escalatedAt(this) == 0L) {
+        val foreground = UsageReader.currentForegroundPackage(this)
+        if (foreground != null && foreground in targets) {
+          LimitConfig.markEscalated(this, System.currentTimeMillis())
+          showInterruption(foreground)
+        }
+      }
+      return // A5 vai tratar a pausa depois do "continuar mesmo assim"
+    }
 
     val limitMs = LimitConfig.minutes(this) * 60_000L
     val usage = UsageReader.getUsageTodayFromEvents(this)
@@ -129,6 +143,44 @@ class UsageLimitService : Service() {
         event = if (sent.isSuccess) "notification_sent" else "notification_failed",
         details = sent.exceptionOrNull()?.let { "${it.javaClass.simpleName}: ${it.message}" }
       )
+    }
+  }
+
+  /** A4: mostra a tela de interrupcao, pela abordagem configurada. */
+  private fun showInterruption(foregroundPackage: String) {
+    val motivation = LimitConfig.message(this)
+
+    if (LimitConfig.interruptionMode(this) == "activity") {
+      val intent = Intent(this, InterruptionActivity::class.java).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        putExtra(InterruptionActivity.EXTRA_MOTIVATION, motivation)
+        putExtra(InterruptionActivity.EXTRA_RETURN_TO, foregroundPackage)
+      }
+      val started = runCatching { startActivity(intent) }
+      if (started.isFailure) {
+        EventLog.append(
+          context = this,
+          source = "UsageLimitService",
+          experiment = "A4",
+          event = "interruption_failed",
+          details = "abordagem: activity · " +
+            started.exceptionOrNull()?.let { "${it.javaClass.simpleName}: ${it.message}" }
+        )
+      }
+      return
+    }
+
+    // A sobreposicao precisa ser adicionada na thread principal.
+    Handler(mainLooper).post {
+      InterruptionOverlay.show(this, motivation) {
+        EventLog.append(
+          context = this,
+          source = "UsageLimitService",
+          experiment = "A4",
+          event = "returned_to_app",
+          details = foregroundPackage
+        )
+      }
     }
   }
 

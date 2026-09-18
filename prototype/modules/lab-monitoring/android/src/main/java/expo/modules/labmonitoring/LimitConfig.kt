@@ -16,17 +16,27 @@ object LimitConfig {
   private const val KEY_PACKAGES = "packages"
   private const val KEY_FIRED_AT = "firedAt"
   private const val KEY_MESSAGE = "message"
+  private const val KEY_MODE = "interruptionMode"
+  private const val KEY_ESCALATED_AT = "escalatedAt"
 
   private fun prefs(context: Context) =
     context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-  fun save(context: Context, minutes: Int, packages: List<String>, message: String) {
+  fun save(
+    context: Context,
+    minutes: Int,
+    packages: List<String>,
+    message: String,
+    interruptionMode: String
+  ) {
     prefs(context).edit()
       .putBoolean(KEY_ACTIVE, true)
       .putInt(KEY_MINUTES, minutes)
       .putStringSet(KEY_PACKAGES, packages.toSet())
       .putString(KEY_MESSAGE, message)
+      .putString(KEY_MODE, interruptionMode)
       .remove(KEY_FIRED_AT)
+      .remove(KEY_ESCALATED_AT)
       .apply()
   }
 
@@ -51,5 +61,16 @@ object LimitConfig {
 
   fun markFired(context: Context, at: Long) {
     prefs(context).edit().putLong(KEY_FIRED_AT, at).apply()
+  }
+
+  /** 'overlay' (sobreposicao) ou 'activity' (tela propria). Ver achado A4. */
+  fun interruptionMode(context: Context): String =
+    prefs(context).getString(KEY_MODE, null) ?: "overlay"
+
+  /** Epoch em ms do alerta de nivel 2, ou 0 se ainda nao houve. */
+  fun escalatedAt(context: Context) = prefs(context).getLong(KEY_ESCALATED_AT, 0L)
+
+  fun markEscalated(context: Context, at: Long) {
+    prefs(context).edit().putLong(KEY_ESCALATED_AT, at).apply()
   }
 }

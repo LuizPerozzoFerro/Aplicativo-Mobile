@@ -9,6 +9,7 @@ import {
   type UsageEntry,
   type UsageLimitStatus,
   type NotificationPermissionResult,
+  type OverlayPermissionResult,
   type Unsupported,
 } from './LabMonitoring.types';
 
@@ -18,7 +19,7 @@ import {
  */
 class LabMonitoringModule extends NativeModule<{}> {
   getPermissionStatus(): PermissionStatus {
-    return { usageAccess: UNSUPPORTED, notifications: UNSUPPORTED };
+    return { usageAccess: UNSUPPORTED, notifications: UNSUPPORTED, overlay: UNSUPPORTED };
   }
 
   async requestUsageAccess(): Promise<UsageAccessRequestResult> {
@@ -43,6 +44,12 @@ class LabMonitoringModule extends NativeModule<{}> {
 
   async startUsageLimit(): Promise<void> {}
 
+  async requestOverlayPermission(): Promise<OverlayPermissionResult> {
+    return { settingsOpened: false };
+  }
+
+  async hideInterruption(): Promise<void> {}
+
   async requestNotificationPermission(): Promise<NotificationPermissionResult> {
     return { requested: false, notifications: UNSUPPORTED };
   }
@@ -52,7 +59,15 @@ class LabMonitoringModule extends NativeModule<{}> {
   async stopUsageLimit(): Promise<void> {}
 
   getUsageLimitStatus(): UsageLimitStatus {
-    return { active: false, minutes: 0, packages: [], message: "", firedAt: 0 };
+    return {
+      active: false,
+      minutes: 0,
+      packages: [],
+      message: '',
+      interruptionMode: 'overlay',
+      escalatedAt: 0,
+      firedAt: 0,
+    };
   }
 
   async openNotificationSettings(): Promise<boolean> {

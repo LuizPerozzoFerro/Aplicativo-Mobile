@@ -10,6 +10,7 @@ import {
   type UsageLimitConfig,
   type UsageLimitStatus,
   type NotificationPermissionResult,
+  type OverlayPermissionResult,
   type Unsupported,
 } from './types';
 
@@ -26,9 +27,11 @@ const monitoring: MonitoringModule = {
     const result = await LabMonitoring.requestUsageAccess();
     // A concessao acontece fora do app, entao o status de notificacao vem da
     // leitura corrente, nao do resultado deste pedido.
+    const current = LabMonitoring.getPermissionStatus();
     return {
       usageAccess: result.usageAccess,
-      notifications: LabMonitoring.getPermissionStatus().notifications,
+      notifications: current.notifications,
+      overlay: current.overlay,
     };
   },
 
@@ -41,7 +44,12 @@ const monitoring: MonitoringModule = {
   },
 
   async startUsageLimit(config: UsageLimitConfig): Promise<void> {
-    return LabMonitoring.startUsageLimit(config.minutes, config.packages, config.message);
+    return LabMonitoring.startUsageLimit(
+      config.minutes,
+      config.packages,
+      config.message,
+      config.interruptionMode
+    );
   },
 
   async stopUsageLimit(): Promise<void> {
@@ -58,6 +66,14 @@ const monitoring: MonitoringModule = {
 
   async requestNotificationPermission(): Promise<NotificationPermissionResult> {
     return LabMonitoring.requestNotificationPermission();
+  },
+
+  async requestOverlayPermission(): Promise<OverlayPermissionResult> {
+    return LabMonitoring.requestOverlayPermission();
+  },
+
+  async hideInterruption(): Promise<void> {
+    return LabMonitoring.hideInterruption();
   },
 
   async sendTestAlert(): Promise<void> {

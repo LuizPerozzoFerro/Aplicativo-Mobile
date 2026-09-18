@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import monitoring, {
   type InstalledApp,
   type LogEvent,
+  type InterruptionMode,
   type PermissionState,
   type UsageEntry,
   type UsageLimitStatus,
@@ -41,6 +42,10 @@ export default function LabScreen() {
   const [notifications, setNotifications] = useState<PermissionState | null>(null);
   const [message, setMessage] = useState('Você atingiu o tempo que definiu para hoje.');
 
+  // A4
+  const [overlay, setOverlay] = useState<PermissionState | null>(null);
+  const [interruptionMode, setInterruptionMode] = useState<InterruptionMode>('overlay');
+
   const refreshLog = useCallback(async () => {
     setLog(await monitoring.getLog());
   }, []);
@@ -49,6 +54,7 @@ export default function LabScreen() {
     const status = await monitoring.getPermissionStatus();
     setPermission(status.usageAccess);
     setNotifications(status.notifications);
+    setOverlay(status.overlay);
   }, []);
 
   const refreshLimit = useCallback(async () => {
@@ -245,6 +251,7 @@ export default function LabScreen() {
                     minutes: Number(minutes) || 1,
                     packages: targets,
                     message,
+                    interruptionMode,
                   });
                 })
               }
@@ -324,6 +331,56 @@ export default function LabScreen() {
               })
             }
           />
+        </Section>
+
+        <Section title="A4 — Alerta de nível 2 (tela de interrupção)">
+          <Row label="Aparecer sobre outros apps" value={permissionLabel(overlay)} />
+
+          <Button
+            label="Pedir permissão de sobreposição"
+            busy={busy === 'askOverlay'}
+            onPress={() =>
+              run('askOverlay', async () => {
+                await monitoring.requestOverlayPermission();
+              })
+            }
+          />
+
+          <Text style={styles.fieldLabel}>Abordagem (a spec pede comparar as duas)</Text>
+          <View style={styles.rowButtons}>
+            <Button
+              label={interruptionMode === 'overlay' ? '✓ Sobreposição' : 'Sobreposição'}
+              compact
+              onPress={() => setInterruptionMode('overlay')}
+            />
+            <Button
+              label={interruptionMode === 'activity' ? '✓ Tela própria' : 'Tela própria'}
+              compact
+              onPress={() => setInterruptionMode('activity')}
+            />
+          </View>
+
+          <Text style={styles.note}>
+            A escolha é salva ao tocar em &quot;Iniciar limite&quot;. Depois que o limite estourar, o
+            serviço escala para esta tela se você ainda estiver no app monitorado.
+          </Text>
+
+          <Button
+            label="Fechar interrupção (se travar)"
+            busy={busy === 'hideInt'}
+            onPress={() =>
+              run('hideInt', async () => {
+                await monitoring.hideInterruption();
+              })
+            }
+          />
+
+          {limit?.escalatedAt ? (
+            <Row
+              label="Interrupção mostrada"
+              value={new Date(limit.escalatedAt).toLocaleTimeString('pt-BR')}
+            />
+          ) : null}
         </Section>
 
         <Section title={`S4 — Log compartilhado (${log.length})`}>

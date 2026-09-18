@@ -62,6 +62,19 @@
       android:name=".NotificationActionReceiver"
       android:exported="false" />
 
+    <!--
+      A4, abordagem (b): tela de interrupcao como Activity.
+      excludeFromRecents para nao poluir a lista de recentes, e noHistory para
+      nao ressurgir quando o usuario voltar ao app monitorado.
+    -->
+    <activity
+      android:name=".InterruptionActivity"
+      android:exported="false"
+      android:excludeFromRecents="true"
+      android:noHistory="true"
+      android:launchMode="singleTask"
+      android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+
     <service
       android:name=".UsageLimitService"
       android:exported="false"

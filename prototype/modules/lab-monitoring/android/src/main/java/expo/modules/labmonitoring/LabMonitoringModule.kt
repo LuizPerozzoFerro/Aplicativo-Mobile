@@ -3,6 +3,7 @@ package expo.modules.labmonitoring
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.net.Uri
 import android.provider.Settings
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.modules.Module
@@ -25,8 +26,37 @@ class LabMonitoringModule : Module() {
     Function("getPermissionStatus") {
       mapOf(
         "usageAccess" to if (UsageReader.hasUsageAccess(context)) "granted" else "denied",
-        "notifications" to if (Notifications.isAllowed(context)) "granted" else "denied"
+        "notifications" to if (Notifications.isAllowed(context)) "granted" else "denied",
+        "overlay" to if (InterruptionOverlay.canDraw(context)) "granted" else "denied"
       )
+    }
+
+    /**
+     * A4: abre os Ajustes de "Aparecer sobre outros apps". Essa permissao serve as
+     * DUAS abordagens: desenhar a sobreposicao e, por tabela, iniciar uma activity
+     * estando em segundo plano.
+     */
+    AsyncFunction("requestOverlayPermission") {
+      val intent = Intent(
+        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+        Uri.parse("package:${context.packageName}")
+      ).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+
+      val opened = runCatching { context.startActivity(intent) }.isSuccess
+
+      EventLog.append(
+        context = context,
+        source = "app",
+        experiment = "A4",
+        event = if (opened) "overlay_settings_opened" else "overlay_settings_unavailable"
+      )
+
+      mapOf("settingsOpened" to opened)
+    }
+
+    /** Fecha a sobreposicao, se estiver na tela. */
+    AsyncFunction("hideInterruption") {
+      InterruptionOverlay.hide(context)
     }
 
     /**
@@ -138,7 +168,7 @@ class LabMonitoringModule : Module() {
       apps
     }
 
-    AsyncFunction("startUsageLimit") { minutes: Int, packages: List<String>, message: String ->
+    AsyncFunction("startUsageLimit") { minutes: Int, packages: List<String>, message: String, interruptionMode: String ->
       if (!UsageReader.hasUsageAccess(context)) {
         throw PermissionDeniedException()
       }
@@ -146,7 +176,7 @@ class LabMonitoringModule : Module() {
         throw NoTargetsException()
       }
 
-      LimitConfig.save(context, minutes, packages, message)
+      LimitConfig.save(context, minutes, packages, message, interruptionMode)
 
       val intent = Intent(context, UsageLimitService::class.java)
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -175,7 +205,9 @@ class LabMonitoringModule : Module() {
         "minutes" to LimitConfig.minutes(context),
         "packages" to LimitConfig.packages(context),
         "firedAt" to LimitConfig.firedAt(context),
-        "message" to LimitConfig.message(context)
+        "message" to LimitConfig.message(context),
+        "interruptionMode" to LimitConfig.interruptionMode(context),
+        "escalatedAt" to LimitConfig.escalatedAt(context)
       )
     }
 
