@@ -20,12 +20,19 @@
 | A5 · A6 · A7 · A8 · A10 | não iniciados |
 | S2 · S3 · iOS | não iniciados — dependem da conta Apple Developer pessoal |
 
-**Próximo passo: A5**, pausa depois do "continuar mesmo assim". Antes dele,
-corrigir os três pontos de instrumentação que o A4 revelou (ver "Achado A4 →
-Instrumentação"): `returned_to_app` presume o retorno, `interruption_shown`
-duplica quando a tela própria é recriada, e a dispensa pelo voltar não gera
-evento. O A5 depende de `continue_tapped` e da contagem de interrupções, então
-esses eventos precisam ser confiáveis. Exige recompilar o Kotlin.
+**Próximo passo: A5**, pausa depois do "continuar mesmo assim". Antes dele, duas
+tarefas que complementam o A4. As duas mexem no Kotlin e exigem recompilar:
+
+1. **Corrigir a instrumentação** (ver "Achado A4 → Instrumentação"):
+   `returned_to_app` presume o retorno, `interruption_shown` duplica quando a tela
+   própria é recriada, e a dispensa pelo voltar não gera evento. O A5 depende de
+   `continue_tapped` e da contagem de interrupções.
+2. **Adicionar o botão "Ir para a tela inicial"** às duas abordagens, com o evento
+   `home_tapped` (sugestão do responsável, I-15).
+
+Validar as duas com uma rodada rápida em cada modo e registrar a evidência.
+A decidir com o responsável no início do A5: depois de "Ir para a tela inicial",
+reabrir o app monitorado interrompe de novo, ou também entra em pausa?
 
 **Abordagem para o A5:** sobreposição, pela recomendação preliminar do A4. O modo
 salvo no aparelho ficou em **tela própria** (última rodada): trocar na seção A4
@@ -460,7 +467,7 @@ app.
 | Efeito colateral | Notificação do sistema "Norte Lab exibido sobre outros apps." | Splash screen do app antes da tela; recriação a cada giro |
 | Permissão | `SYSTEM_ALERT_WINDOW` | A mesma: é ela que libera o início em segundo plano |
 
-#### (a) Sobreposição: trava o aparelho inteiro até a escolha
+#### (a) Sobreposição: pede uma escolha antes de qualquer outro uso
 
 - **Voltar:** o gesto chega à sobreposição (`startBackNavigation` com o callback
   da nossa janela), que não o trata. Não passa para o Instagram, então o usuário
@@ -540,8 +547,18 @@ interrupção nas estatísticas (I-10) e justificativa sólida para
 sobreposição seja restringida, com `taskAffinity=""`, retrato fixo e voltar
 interceptado.
 
-A intensidade da sobreposição, que para o aparelho inteiro até o toque, precisa
-ser confrontada com o P4 ("alertar, não bloquear") antes de virar produto (I-12).
+**Leitura do princípio P4 do documento 01, esclarecida pelo responsável em
+18/09/2026.** "Alertar, não bloquear" significa nunca impedir o usuário de seguir
+em frente com o app monitorado. A §6.5 diz que o app nunca bloqueia
+*definitivamente* o acesso. A sobreposição cumpre o princípio: pede uma escolha,
+mas "Continuar" está sempre a um toque. Ela não bloqueia o usuário.
+
+**Terceiro botão, sugerido pelo responsável:** além de "Emergência" e "Continuar
+mesmo assim", um botão **"Ir para a tela inicial"**, que fecha a interrupção e
+leva à tela inicial do aparelho. É a saída que respeita o limite sem passar pelo
+fluxo de emergência. A §6.5 do documento 01 prevê só as duas opções (I-15). A
+implementar no protótipo antes do A5, com o evento `home_tapped`. Evitar o rótulo
+"Início", que é o nome de uma aba do app (§6.1).
 
 #### Ainda não testado
 
@@ -786,9 +803,10 @@ decidido fora do Claude Code.
 | I-9 | Custo medido do monitoramento: 0,138% de CPU e 0,65% do consumo do aparelho, incluindo ruído do ambiente de desenvolvimento | Doc 02 riscos (bateria) | O risco de bateria parece baixo; confirmar no roteiro T6 |
 | I-10 | Com a sobreposição, o app monitorado continua em primeiro plano por baixo: o tempo diante da tela de interrupção conta como uso dele | Doc 01 §6.2 e §6.8 | Descontar esse tempo das estatísticas e da streak de moderação |
 | I-11 | Enquanto a sobreposição está na tela, o Android publica "<nome do app> exibido sobre outros apps", com um toque para desativar a permissão. O app não pode suprimir | Doc 01 P7 (discrição), §6.5 | O nome do app aparece na gaveta durante a interrupção, e desligar a proteção fica a um toque no momento de vulnerabilidade |
-| I-12 | A sobreposição trava o aparelho inteiro até o toque num botão: o voltar é ignorado, e ela continua por cima da tela inicial e de qualquer app | Doc 01 P4 ("alertar, não bloquear"), §6.5 | Se essa intensidade é a pretendida; o que acontece com chamadas e emergências (não testado) |
+| I-12 | A sobreposição pede uma escolha antes de qualquer outro uso do aparelho: o voltar é ignorado, e ela continua por cima da tela inicial e de qualquer app | Doc 01 §6.5 | Não fere o princípio P4 ("Continuar" está sempre a um toque; leitura confirmada pelo responsável em 18/09/2026). Falta testar uma chamada recebida com a sobreposição na tela |
 | I-13 | Na tela própria, o voltar fecha a interrupção sem escolha e sem registro, e com o app fechado devolve o usuário direto ao app monitorado | Doc 01 §6.5 | Se a tela própria for usada, interceptar o voltar ou tratá-lo como "continuar" e registrá-lo |
 | I-14 | Todo o comportamento de voltar medido depende de uma desativação que o Android 16 chama de temporária (`enableOnBackInvokedCallback="false"`) | Doc 02 riscos | Tratar o voltar de forma explícita no app definitivo e testar com o voltar preditivo ligado |
+| I-15 | Sugestão do responsável: um terceiro botão na tela de interrupção, "Ir para a tela inicial", como saída que respeita o limite sem passar pela emergência | Doc 01 §6.5, que prevê só "Emergência" e "Continuar mesmo assim" | Incluir a opção no documento 01; definir se ela conta como vitória nas estatísticas (§6.8) e se reabrir o app monitorado interrompe de novo, sem pausa |
 
 ## Comandos
 

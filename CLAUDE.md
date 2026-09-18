@@ -121,6 +121,7 @@ de sessão" no mesmo arquivo.
 | Lint | `npm run lint` |
 | Subir o servidor de desenvolvimento | `nohup npx expo start --dev-client --port 8081 > metro.log 2>&1 & disown` — desacoplado, e encerrado no fim da sessão |
 | Ligar o app ao servidor pelo cabo | `adb reverse tcp:8081 tcp:8081` — refazer após toda reinstalação e reinício |
+| Recarregar o JavaScript do app | `adb shell input keyevent 46 46`, com o laboratório na frente; conferir `Android Bundled` no `metro.log` |
 | Compilar e instalar no Android | `cd android && ./gradlew.bat installDebug` |
 | Regerar o projeto nativo Android | `npx expo prebuild --platform android --clean` |
 | Ler o log compartilhado sem abrir o app | `adb shell run-as com.norte.lab.dev cat files/lab-events.jsonl` |
@@ -130,6 +131,10 @@ de sessão" no mesmo arquivo.
 
 Não usar `npm run android` em segundo plano: ele encerra após instalar e deixa o
 servidor órfão, preso na porta 8081 (P4).
+
+Subir o Metro não atualiza um app que já estava aberto: o serviço em primeiro
+plano mantém o processo vivo com o JavaScript antigo na memória. Recarregar com o
+comando acima (P6).
 
 ## 11. Ao final da Fase 1
 
