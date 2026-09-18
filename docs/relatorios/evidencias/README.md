@@ -18,6 +18,7 @@ One UI 8.0.
 | `a1-verificacao-final.txt` | A1 | Os três casos ambíguos de `STOPPED` e o vazamento de borda de dia |
 | `a2-deteccao-de-limite.txt` | A2 | Detecção com o app fechado e latência de 9 s |
 | `a3-alerta-notificacao.txt` | A3 | Notificação disparada pelo nativo, latência de ~6 s |
+| `a4-tela-de-interrupcao.txt` | A4 | Sobreposição sobre o Instagram, 20 s após o alerta; app de trás segue em primeiro plano |
 | `a9-leitura-de-base.txt` | A9 | Estado do aparelho antes do teste de 2 h |
 | `a9-sobrevivencia-e-custo.txt` | A9 | Doze profundo, custo de CPU, reinício do aparelho |
 

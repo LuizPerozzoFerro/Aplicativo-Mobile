@@ -17,16 +17,28 @@
 |---|---|
 | S1 · S4 · A1 · A2 | ✅ |
 | A3 · A9 | ⚠️ com limitações documentadas |
-| A4 | código pronto; teste no aparelho em 18/09/2026 (ver tabela de experimentos) |
+| A4 | ⏳ parcial — sobreposição apareceu sobre o Instagram e "Emergência" funcionou; faltam 4 verificações |
 | A5 · A6 · A7 · A8 · A10 | não iniciados |
 | S2 · S3 · iOS | não iniciados — dependem da conta Apple Developer pessoal |
 
-**Próximo passo:** A5 (pausa após "continuar mesmo assim"). O serviço hoje dispara
-o alerta e a interrupção uma vez por dia e para ali; o A5 precisa reagendar.
+**Próximo passo: fechar o A4.** São quatro verificações, listadas no fim do
+"Achado A4": tocar em "Continuar mesmo assim", testar o botão Voltar, conferir se
+as barras do sistema ficam cobertas e repetir com a abordagem (b), tela própria.
+Nenhuma exige código novo. Só então seguir para o A5.
 
-**Estado do aparelho ao fim da última sessão:** serviço em primeiro plano ativo,
-limite de 2 min no Instagram, modo sobreposição, todas as permissões concedidas
-(acesso a dados de uso, notificação, sobreposição).
+**Para rearmar o teste:** o limite de hoje já disparou (`firedAt` e `escalatedAt`
+gravados), então o serviço não interrompe de novo até ser reconfigurado. Na tela
+de laboratório, escolher o modo na seção A4 e tocar em "Iniciar limite" na A2 —
+isso limpa os dois campos. Lembrar que o limite conta o uso do dia inteiro: o
+Instagram já tem uso em 18/09, então o valor precisa ficar acima dele.
+
+**Estado do aparelho ao fim da sessão de 18/09/2026:** serviço em primeiro plano
+ativo, limite de 2 min no Instagram já disparado, modo sobreposição, todas as
+permissões concedidas (acesso a dados de uso, notificação, sobreposição). Metro
+desligado.
+
+**Recomendação de trabalho:** abrir uma sessão nova do Claude Code a partir
+daqui, em vez de continuar a anterior — este arquivo é a passagem.
 
 **Pendências que dependem de tempo, e podem correr em paralelo:**
 - A9: "Apps em suspensão" da Samsung — dias sem abrir o protótipo.
@@ -155,7 +167,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | A1 | ✅ Funciona | Leitura por `queryEvents` coincidiu com a contabilidade do sistema no mesmo minuto (`1:41:10`), 17/09/2026. O caminho agregado foi descartado por dois defeitos medidos. Ver achado abaixo |
 | A2 | ✅ Funciona | `threshold_reached` registrado às 16:36:44 com o protótipo fechado, 9 s após o Instagram cruzar o limite de 2 min. Serviço em primeiro plano `specialUse` sobreviveu ao app ser arrastado para fora dos recentes. Segunda rodada após 2 h de Doze: latência de 3 s |
 | A3 | ⚠️ Funciona com limitações | Notificação disparada pelo Kotlin com o app fechado, **14 ms** após a detecção (~6 s do limite real até o alerta). Apareceu **flutuando por cima do Instagram**, texto neutro e configurável. **Mas o botão "Emergência" só aparece se a notificação for expandida** — dois toques até a emergência |
-| A4 | ⏳ em teste | Código das duas abordagens pronto (sobreposição e activity). Ambas dependem de `SYSTEM_ALERT_WINDOW`, concedida em 18/09/2026. Teste no aparelho em andamento |
+| A4 | ⏳ Parcial | Abordagem (a), sobreposição: apareceu sobre o Instagram com o app fechado, 20 s após a notificação; "Emergência" registrou `emergency_tapped`. O Instagram continua em primeiro plano por baixo. **Faltam:** "continuar mesmo assim", botão Voltar, cobertura das barras e a abordagem (b) |
 | A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. Faltam "Apps em suspensão" da Samsung (precisa de dias) e o roteiro T6 |
 
 ### Achado A1 — como medir tempo de uso por app, e o que não funciona
@@ -401,6 +413,60 @@ Diferente do acesso a dados de uso do A1, esta é permissão de runtime comum, c
 pop-up do sistema. Concedida em 23:35:54. Sem ela o serviço roda, mas nenhum
 alerta chega ao usuário — o que tornaria o produto inútil sem avisar.
 
+### Achado A4 (parcial) — tela de interrupção por sobreposição funciona
+
+**Resultado: ⏳ parcial.** A abordagem (a), sobreposição, apareceu por cima do
+Instagram com o protótipo fechado, e o botão "Emergência" funcionou. Mas o
+critério da spec inclui o "continuar mesmo assim", que ainda não foi exercitado,
+e a abordagem (b) não foi testada.
+
+#### Sequência medida em 18/09/2026
+
+```
+13:24:08      uso do Instagram cruza 2 min (reconstruído do dumpsys)
+13:24:16.864  threshold_reached        +8,9 s
+13:24:16.974  notification_sent        +110 ms       (nível 1)
+13:24:37.135  interruption_shown       +20,2 s       (nível 2, sobreposição)
+13:24:41.872  emergency_tapped
+```
+
+O intervalo de ~20 s entre a notificação e a tela não é acaso: a escalada acontece
+no ciclo seguinte do serviço, se o usuário ainda estiver no app monitorado. Esse
+intervalo passa a ser um parâmetro do produto — quanto tempo o usuário tem para
+reagir ao aviso antes de ser interrompido.
+
+#### O app monitorado continua "em uso" por baixo da sobreposição
+
+O Instagram **não** recebeu `ACTIVITY_PAUSED` quando a sobreposição apareceu:
+ficou em primeiro plano, por baixo dela, até 13:24:58. É a vantagem esperada da
+abordagem (a) — o app de trás não é interrompido, e o "continuar" só precisa
+remover a janela. Mas tem um efeito colateral: **o tempo olhando a tela de
+interrupção conta como uso do Instagram**. Relevante para o A5 e para as
+estatísticas do produto.
+
+#### Permissão
+
+As duas abordagens dependem de `SYSTEM_ALERT_WINDOW` ("Aparecer sobre outros
+apps"), concedida manualmente nos Ajustes. O intent
+`ACTION_MANAGE_OVERLAY_PERMISSION` com o pacote abriu a lista geral já rolada
+até o Norte Lab.
+
+A documentação do Android lista essa permissão como uma das exceções que deixam
+um app em segundo plano iniciar uma activity — e, na mesma página, descreve como
+abuso "um app em segundo plano inicia uma atividade sobre o app com que o usuário
+está interagindo". Tecnicamente é o que fazemos. Risco a levar para o A10.
+
+#### Pendente para fechar o A4
+
+1. Tocar em **"Continuar mesmo assim"** e confirmar `continue_tapped` e o retorno
+   ao Instagram no mesmo ponto.
+2. Testar o **botão Voltar** do sistema sobre a sobreposição. Se ele a dispensa,
+   decidir se é aceitável — o princípio P4 ("alertar, não bloquear") pode até
+   preferir que sim.
+3. Conferir se a sobreposição cobre as **barras de status e de navegação**.
+4. Repetir tudo com a **abordagem (b)**, tela própria (botão "Tela própria" na
+   seção A4 do laboratório), e comparar.
+
 ### Achado A9 (parcial) — sobrevivência em segundo plano e custo
 
 **Resultado: sobrevive, e o custo é baixo.** Teste em 17/09/2026: aparelho
@@ -602,6 +668,7 @@ decidido fora do Claude Code.
 | I-6 | Sem a permissão de notificação o serviço roda, mas nenhum alerta chega — e nada avisa o usuário | Doc 01 §6.9, onboarding | O app precisa detectar e explicar o modo degradado |
 | I-7 | A tela de interrupção depende de `SYSTEM_ALERT_WINDOW`, e a documentação do Android enquadra "atividade sobre o app em uso" como **sequestro de interface** | Doc 02 riscos, A10 | Risco de loja para a tela de interrupção; justificar no pedido |
 | I-8 | A tela inicial do sistema aparece na lista de uso como se fosse um app | Doc 01 §6.8 | Filtrar lançadores das estatísticas |
+| I-10 | Com a sobreposição, o app monitorado continua em primeiro plano por baixo: o tempo diante da tela de interrupção conta como uso dele | Doc 01 §6.2 e §6.8 | Descontar esse tempo das estatísticas e da streak de moderação |
 | I-9 | Custo medido do monitoramento: 0,138% de CPU e 0,65% do consumo do aparelho, incluindo ruído do ambiente de desenvolvimento | Doc 02 riscos (bateria) | O risco de bateria parece baixo; confirmar no roteiro T6 |
 
 ## Comandos

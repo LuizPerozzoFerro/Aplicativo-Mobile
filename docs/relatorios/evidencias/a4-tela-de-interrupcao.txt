@@ -1,0 +1,37 @@
+# A4 — Alerta de nível 2 (tela de interrupção), abordagem (a) sobreposição
+# Galaxy S22, Android 16 / One UI 8, 18/09/2026
+
+## Configuração
+  alvo: com.instagram.android (zero uso no dia até o teste)
+  limite: 2 min | modo: overlay (TYPE_APPLICATION_OVERLAY)
+  SYSTEM_ALERT_WINDOW: allow | POST_NOTIFICATIONS: granted
+  protótipo fechado durante todo o teste
+
+## Log compartilhado
+  {"timestamp":"2026-09-18T13:24:16.864-03:00","platform":"android","source":"UsageLimitService","experiment":"A2","event":"threshold_reached","details":"2 min de uso para limite de 2 min"}
+  {"timestamp":"2026-09-18T13:24:16.974-03:00","platform":"android","source":"UsageLimitService","experiment":"A3","event":"notification_sent"}
+  {"timestamp":"2026-09-18T13:24:37.135-03:00","platform":"android","source":"InterruptionOverlay","experiment":"A4","event":"interruption_shown","details":"abordagem: sobreposicao"}
+  {"timestamp":"2026-09-18T13:24:41.872-03:00","platform":"android","source":"InterruptionOverlay","experiment":"A4","event":"emergency_tapped","details":"abordagem: sobreposicao"}
+
+## Sequência
+  13:22:08      Instagram em primeiro plano
+  13:24:08      uso cruza 120 s (reconstruído do dumpsys)
+  13:24:16.864  threshold_reached      +8,9 s
+  13:24:16.974  notification_sent      +110 ms
+  13:24:37.135  interruption_shown     +20,2 s (ciclo seguinte do serviço)
+  13:24:41.872  emergency_tapped       toque do responsável
+
+## Linha do tempo do Instagram (dumpsys usagestats)
+  13:22:08 ACTIVITY_RESUMED com.instagram.android com.instagram.mainactivity.InstagramMainActivity
+  13:24:58 ACTIVITY_PAUSED com.instagram.android com.instagram.mainactivity.InstagramMainActivity
+  13:24:59 ACTIVITY_STOPPED com.instagram.android com.instagram.mainactivity.InstagramMainActivity
+
+  O Instagram NÃO recebeu ACTIVITY_PAUSED quando a sobreposição apareceu:
+  ficou em primeiro plano, por baixo dela, até 13:24:58. Ou seja, o tempo
+  olhando a tela de interrupção continua contando como uso do Instagram.
+
+## Não verificado neste teste
+  - "Continuar mesmo assim" (continue_tapped) e o retorno ao app
+  - botão Voltar do sistema sobre a sobreposição
+  - se a sobreposição cobre também as barras de status e de navegação
+  - abordagem (b), InterruptionActivity
