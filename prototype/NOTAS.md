@@ -7,7 +7,7 @@
 
 ## Estado atual e próximo passo
 
-> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 19/09/2026, 00:00.
+> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 18/09/2026, 23:45.
 
 **Branch:** `prototype/android-vpn`, criado a partir de `prototype/android-usage`
 (que ficou com A1–A5 e A9) para o grupo da VPN: A6, A7 e A8. Tudo commitado.
@@ -50,7 +50,7 @@ Desde o A5, **cada** abertura do Instagram acima do limite e fora da pausa
 interrompe de novo. Ao terminar, subir o limite outra vez, para não atrapalhar o
 uso normal do aparelho.
 
-**Estado do aparelho em 19/09/2026, 00:00:** serviço do limite ativo (religado
+**Estado do aparelho em 18/09/2026, 23:45:** serviço do limite ativo (religado
 pelo `MY_PACKAGE_REPLACED` na reinstalação das 23:26), **limite de 600 min** no
 Instagram (acima do uso diário: o serviço segue rodando sem interromper), modo
 **sobreposição**, pausa de 2 min. VPN desligada. Todas as permissões concedidas
