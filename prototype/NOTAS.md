@@ -7,7 +7,7 @@
 
 ## Estado atual e próximo passo
 
-> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 19/09/2026, 14:45.
+> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 19/09/2026, 16:10.
 
 **Branch:** `prototype/android-vpn`, criado a partir de `prototype/android-usage`
 (que ficou com A1–A5 e A9) para o grupo da VPN: A6, A7 e A8. Tudo commitado.
@@ -18,7 +18,8 @@
 |---|---|
 | S1 · S4 · A1 · A2 · A5 | ✅ |
 | A3 · A4 · A6 · A7 · A9 | ⚠️ com limitações documentadas |
-| A8 · A10 | não iniciados |
+| A8 | em andamento: rodadas A a E feitas, falta a bateria |
+| A10 | não iniciado |
 | S2 · S3 · iOS | não iniciados — dependem da conta Apple Developer pessoal |
 
 **Feito na sessão de 18 e 19/09/2026** (pausa pedida pelo responsável na
@@ -39,12 +40,15 @@ madrugada de 19/09, retomada às 14:27):
   responsável, deu 204 s para 180,6 s reais (+13%) numa rodada de 5 min, mas o
   acerto depende de um corte numa faixa estreita e a resolução é de ~1 minuto.
 
-**Próximo passo: A8**, impacto da VPN local (spec §6.2): navegação geral, apps de
-banco, outras VPNs e bateria. Acrescentados pelos achados do A6 e do A7: DNS
-privado no modo estrito, DNS seguro do Chrome, linha de base de DNS sem VPN,
-troca de Wi-Fi para dados móveis com a VPN ligada e as consultas barradas de apps
-em segundo plano. **Combinar o roteiro com o responsável antes:** vários itens
-mexem em configurações do aparelho ou em apps pessoais (banco), e cabem a ele.
+- **A8, em andamento** (ver "Achado A8"): rodadas A a E feitas com o
+  responsável em 19/09. Um defeito do repasse foi medido e corrigido, e o DNS
+  privado estrito se mostrou incompatível com a VPN (os apps ficam sem DNS).
+
+**Próximo passo: fechar o A8 com a janela de bateria**, em andamento desde
+16:02 (cabo fora, VPN e serviço do limite ligados, uso leve de 1 a 2 h). Na
+volta do cabo: ler o `dumpsys batterystats` só do UID do protótipo e o total
+do aparelho, comparar com o retrato de antes (9,46 mAh desde 00:30) e com o A9,
+parar a VPN e registrar. Depois: A10 (políticas do Google Play, documental).
 
 **VPN no aparelho:** consentimento concedido (`appops ... ACTIVATE_VPN: allow`),
 VPN **desligada**, modo salvo **alerta**, listas example.com e example.org (A6) e
@@ -225,6 +229,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | A5 | ✅ Funciona | Pausa de 2 min depois do "Continuar", na sobreposição: nenhum alerta em 6 verificações, com a pessoa no Instagram e saindo e voltando. No fim, a notificação e, 20 s depois, a tela. O fim da pausa é notado com até 20 s de atraso (medido: 14 s). Tela inicial e emergência não pausam: reabrir o Instagram interrompe de novo em ~7 s. A pausa sobreviveu à recriação do serviço. Ver achado abaixo |
 | A6 | ⚠️ Funciona com limitações | VPN local só de DNS. No Chrome, abrir example.com gerou `adult_domain_detected` e a notificação 15 ms depois, e a página carregou: critério cumprido. Modo bloqueio também funciona (`DNS_PROBE_FINISHED_NXDOMAIN`). Zero consultas sem resposta; ida e volta de 26 ms ao DNS da rede. Limitações: o pré-carregamento dispara o alerta sem visita, página guardada no navegador aparece mesmo bloqueada, só uma VPN por vez, e o sistema diz ao usuário que a VPN "permite monitorar o tráfego da rede". Ver achado abaixo |
 | A7 | ⚠️ Funciona com limitações | Critério da spec cumprido: instagram.com no Chrome gerou `social_domain_detected` "via: navegador", e o app do Instagram saiu separado ("via: outro app"). A consulta de DNS não diz qual app perguntou; a separação vem do app em primeiro plano. Tempo no navegador, por heurística: 204 s estimados para 180,6 s reais (+13%) numa rodada de 5 min, mas com corte fora da faixa de 85–96 s o erro vai de −99% a +67%, e a resolução é de ~1 min. Ver achado abaixo |
+| A8 | Em andamento | Navegação geral ok depois de corrigir o repasse (mediana de 2,6 s → 49 ms); apps de banco ok; outra VPN derruba a nossa, que não volta sozinha; **DNS privado estrito + nossa VPN deixa os apps sem DNS**; DNS seguro do Chrome ainda deixa ver o endereço principal; a VPN sobrevive à queda do Wi-Fi. Falta a bateria. Ver achado abaixo |
 | A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. Faltam "Apps em suspensão" da Samsung (precisa de dias) e o roteiro T6 |
 
 ### Achado A1 — como medir tempo de uso por app, e o que não funciona
@@ -907,6 +912,53 @@ a alternativa mais simples é tratar o acesso pelo navegador como gatilho de
 alerta depois que o limite do app estourar, o que só exige a detecção, que
 funciona.
 
+### Achado A8 (parcial) — impacto da VPN: um defeito corrigido, um conflito grave
+
+**Situação em 19/09/2026, 16:05:** rodadas A a E feitas; a janela de bateria
+está em andamento. Evidência em `docs/relatorios/evidencias/a8-impacto-vpn.txt`.
+
+| Rodada | Resultado |
+|---|---|
+| A — navegação geral, com e sem VPN | ✅ depois de uma correção. Os 8 sites carregaram nas quatro janelas. Antes da correção, o Chrome esperou 2,4 a 3,2 s por consultas que levariam 20 ms; depois, mediana de 49 ms (15 a 38 ms sem VPN) |
+| B — apps de banco | ✅ Dois apps de banco abriram normalmente, pediram a digital e chegaram ao login; todo o DNS deles passou pela VPN, sem aviso de VPN |
+| C — outra VPN ("Wi-Fi seguro" da Samsung) | ⚠️ Ligar a outra derrubou a nossa na hora (`onRevoke`), sem travar nada; a nossa não voltou quando a outra foi desligada |
+| D1 — DNS privado estrito | ❌ **Com a nossa VPN ligada, os apps ficaram sem DNS**, e o sistema avisou "Não é possível acessar o servidor DNS privado" |
+| D2 — DNS seguro do Chrome | ⚠️ O endereço principal de cada navegação continuou passando pela VPN (2 de 2 domínios da lista detectados); os domínios secundários da página, não |
+| E — queda e volta do Wi-Fi | ✅ A VPN ficou conectada, percebeu a queda (`upstream_lost`) e pegou a rede nova sozinha 27 s depois |
+| Bateria | em andamento: janela de 1 a 2 h fora do cabo, com uso leve |
+
+#### O defeito do repasse (rodada A)
+
+O DNS do roteador perde consultas nas rajadas de páginas pesadas: 7 falhas de 5 a
+6 s **sem VPN**. A VPN repassava com 4 threads fixas e esperava 4 s por resposta,
+então cada consulta perdida segurava as outras na fila. Corrigido no commit
+`33bfb2a`: uma thread por consulta em andamento, espera de 1,5 s e uma segunda
+tentativa. Na sessão seguinte, 2 consultas só responderam na segunda tentativa,
+e as que continuaram sem resposta (~3%) são as que o roteador perde de qualquer
+jeito.
+
+#### O conflito grave: DNS privado estrito (rodada D1)
+
+Com o DNS privado apontando para `dns.google`, o sistema validou o provedor pela
+rede Wi-Fi, mas **não conseguiu pela rede da VPN**: a sondagem falhou a cada
+tentativa ("Unable to resolve host", ~4,2 s), o sistema marcou
+`PRIVATE_DNS_BROKEN`, tirou o `VALIDATED` da rede da VPN e notificou "A rede não
+tem acesso à Internet". No modo estrito o sistema não volta ao DNS comum, e as
+consultas do Chrome voltaram vazias depois de 4,2 a 8,4 s. A VPN, por sua vez,
+não recebeu nenhuma. A causa provável é a rota única da VPN, só para o servidor
+falso. Voltar ao "Automático" resolveu em menos de um minuto. Para o produto:
+detectar o modo estrito antes de ligar a VPN, e depois dela ligada, é
+obrigatório (I-22).
+
+#### O que ficou de fora
+
+- Troca de Wi-Fi para **dados móveis**: o S22 está sem serviço de celular.
+- VPN ligada primeiro e **outra VPN depois**, testado; a ordem inversa, não (pela
+  documentação, ligar a nossa desligaria a outra).
+- Outros navegadores com DNS seguro próprio (Firefox), não instalados.
+- A causa das consultas barradas de apps em segundo plano (`isBlocked=true`),
+  que aparecem com e sem VPN.
+
 ### Achado A9 (parcial) — sobrevivência em segundo plano e custo
 
 **Resultado: sobrevive, e o custo é baixo.** Teste em 17/09/2026: aparelho
@@ -1117,10 +1169,12 @@ decidido fora do Claude Code.
 | I-15 | Sugestão do responsável: um terceiro botão na tela de interrupção, "Ir para a tela inicial", como saída que respeita o limite sem passar pela emergência | Doc 01 §6.5, que prevê só "Emergência" e "Continuar mesmo assim" | Incluir a opção no documento 01; definir se ela conta como vitória nas estatísticas (§6.8). No protótipo (decisão de 18/09) ela não pausa: reabrir o app monitorado interrompe de novo |
 | I-16 | Só o "Continuar" pausa (A5). Acima do limite e fora da pausa, **cada reabertura** do app monitorado gera uma nova interrupção, em até 20 s | Doc 01 §6.5, que não fala de pausa nem de reinterrupção; risco R7 (excesso de alertas) | Definir no documento 01 a duração da pausa, quais saídas pausam, o que volta no fim dela (no protótipo: notificação e, se o uso continuar, a tela) e se há teto diário de interrupções |
 | I-17 | A VPN do A6 exige consentimento numa caixa do sistema cujo texto diz que ela "permite monitorar o tráfego da rede", e mostra a chave de VPN na barra de status enquanto estiver ligada | Doc 01 P7 (discrição), §4 (onboarding) | Preparar o usuário para essa caixa no onboarding; aceitar a chave visível o tempo todo |
-| I-18 | Só uma VPN funciona por vez: ligar a do app desliga qualquer outra do usuário (corporativa, de privacidade, "Wi-Fi seguro" da Samsung) | Doc 01 §6.5, doc 02 riscos | Decidir o que fazer com quem já usa VPN (a medir no A8) |
+| I-18 | Só uma VPN funciona por vez: ligar outra desliga a do app na hora, e ela **não volta sozinha** quando a outra é desligada (A8, com a "Wi-Fi seguro" da Samsung) | Doc 01 §6.5, doc 02 riscos | Decidir o que fazer com quem já usa VPN; o app precisa perceber a queda (`onRevoke`) e avisar o usuário |
 | I-19 | Google Play: toda VPN exige declaração no Play Console, em categoria permitida (ex.: "monitoramento de uso de apps"); ler domínios visitados conta como histórico de navegação e exige declaração em destaque com consentimento dentro do app; a revisão pede vídeos | Doc 02 riscos, fase 9; A10 | Escolher a categoria e desenhar a declaração em destaque antes da publicação |
-| I-20 | A detecção por DNS é um indício, não prova de acesso: pré-carregamento dispara alerta sem visita, página guardada no navegador aparece sem nova consulta, e DNS cifrado (modo estrito, DNS seguro do navegador) esconde o nome | Doc 01 §6.5 ("onde tecnicamente possível"), §6.8 (estatísticas, recaídas) | Não tratar detecção como recaída automática; tratar o alerta de conteúdo como lembrete |
+| I-20 | A detecção por DNS é um indício, não prova de acesso: pré-carregamento dispara alerta sem visita, e página guardada no navegador aparece sem nova consulta. DNS seguro do Chrome 153 (A8): o endereço principal de cada navegação ainda passou pela VPN, só os domínios secundários sumiram; comportamento interno, que pode mudar | Doc 01 §6.5 ("onde tecnicamente possível"), §6.8 (estatísticas, recaídas) | Não tratar detecção como recaída automática; tratar o alerta de conteúdo como lembrete |
 | I-21 | Redes sociais pelo navegador: o acesso é detectável (DNS + app em primeiro plano), mas o tempo de uso só se estima por heurística: +13% numa rodada de 5 min, resolução de ~1 min, e erro de −99% a +67% fora de uma faixa estreita de ajuste. A API do Chrome para o Bem-estar digital não é pública | Doc 01 §6.2 (limite de vídeos curtos), §6.8 (tempo de uso), risco R5 | Decidir se o limite conta o navegador (e com que precisão), ou se o navegador vira só gatilho de alerta depois que o limite do app estoura |
+| I-22 | **Com "DNS privado" no modo estrito (provedor com nome, comum para bloquear anúncios), ligar a VPN do app deixa os apps sem DNS**: o sistema não alcança o provedor pela rede da VPN, marca a rede como sem internet e avisa "Não é possível acessar o servidor DNS privado". A VPN também não vê nada nesse modo | Doc 01 §6.5, onboarding (§4); doc 02 riscos | O app precisa detectar o modo estrito antes de ligar a VPN (e depois, se mudar) e orientar o usuário, ou não ligar a VPN; nunca deixar o aparelho sem internet |
+| I-23 | O DNS do roteador doméstico perde consultas em rajadas de páginas pesadas, com ou sem VPN; um repasse ingênuo transforma essas perdas em atraso de 2 a 3 s para todas as consultas (medido e corrigido no A8) | Doc 02 riscos (qualidade da conexão com a VPN) | O repasse do app definitivo precisa de concorrência sem fila e nova tentativa curta, e de monitoramento de falhas |
 
 ## Comandos
 

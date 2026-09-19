@@ -1,0 +1,123 @@
+# A8 — Impacto da VPN local de DNS no aparelho
+# Galaxy S22, Android 16 / One UI 8, 19/09/2026, 14:41–16:02 (e janela de bateria)
+# VPN do A6/A7 em modo alerta · Chrome 153 · Wi-Fi doméstico (DNS do roteador)
+# Fontes: log compartilhado; registro de DNS do sistema (NetdEventListenerService),
+# só contagens e tempos, sem nomes de apps além do Chrome e dos citados.
+
+=====================================================================
+## Rodada A — navegação geral e latência de DNS, com e sem VPN
+  Os mesmos 8 sites públicos abertos no Chrome pelo adb, 9 s cada:
+  wikipedia.org, google.com, bbc.com, g1.globo.com, uol.com.br, gov.br,
+  github.com, youtube.com. Todos carregaram nas quatro janelas.
+
+  Consultas do Chrome (registro do sistema)
+  janela                      pedidos  ok  falha/timeout  >=1 s  mediana  p90     máx
+  sem VPN (14:41)             25       18  7 (até 6,2 s)  8      38 ms    94 ms   2011 ms
+  com VPN, antes (14:43)      22       18  4 (até 6,0 s)  16     2628 ms  3134 ms 3200 ms
+  com VPN, corrigida (14:51)  14       10  4 (até 6,0 s)  4      49 ms    134 ms  290 ms
+  sem VPN, de novo (14:53)    12       10  2 (até 5,5 s)  2      15 ms    48 ms   53 ms
+  (mediana e p90 só das consultas de verdade, com 2 ms ou mais; amostras
+  pequenas: valem como ordem de grandeza)
+
+  O que aconteceu antes da correção
+  - O DNS do roteador perde consultas nas rajadas de páginas pesadas (g1, uol):
+    7 falhas de 5 a 6 s na janela SEM VPN.
+  - A VPN repassava com 4 threads fixas e espera de 4 s. Às 14:44:11, na rajada,
+    10 consultas do Chrome esperaram 2,4 a 3,2 s cada, na fila atrás das que
+    travaram no roteador.
+  - Contadores da sessão: 655 consultas · 638 repassadas · 17 sem resposta ·
+    ida e volta média 20,0 ms.
+
+  Correção (commit 33bfb2a): uma thread por consulta em andamento, espera de
+  1,5 s e segunda tentativa. Sessão seguinte: 486 consultas · 470 repassadas
+  (2 na segunda tentativa) · 16 sem resposta · ida e volta média 30,2 ms. As
+  falhas que restam são do roteador e aparecem também sem VPN.
+
+=====================================================================
+## Rodada B — apps de banco, com a VPN ligada (15:06–15:08)
+  O responsável abriu dois apps de banco; nomes com ele. Relato: os dois
+  abriram normalmente, pediram a digital (padrão) e chegaram à tela de login.
+  Nenhum aviso sobre VPN.
+
+  DNS dos dois apps (registro do sistema), todos pela rede da VPN (110)
+  banco 1: 39 pedidos · 32 com resposta (máx. 55 ms) · 4 NODATA (resposta
+               válida, sem registro do tipo pedido) · 3 barrados pelo sistema
+  banco 2: 36 pedidos · 29 com resposta (máx. 149 ms) · 7 barrados pelo sistema
+  Os barrados (isBlocked=true, 0 ms) caíram na abertura e no fechamento dos
+  apps: o mesmo padrão de restrição a apps em segundo plano visto sem VPN no A6.
+
+=====================================================================
+## Rodada C — outra VPN: "Wi-Fi seguro" da Samsung (roteiro T8)
+  O S22 não tem outro app de VPN; tem a "Wi-Fi seguro" (com.samsung.android.fast),
+  que é uma VPN do sistema. Com a nossa ligada, o responsável a ativou, esperou
+  ~10 s e a desativou.
+
+  Sistema
+  15:12:41       tela de boas-vindas da Wi-Fi seguro (WelcomePermissionActivity)
+  15:12:57.779   Vpn: enforceControlPermissionOrInternalCaller for fast
+  15:12:57.788   [110 WIFI|VPN] CONNECTED -> DISCONNECTED (a nossa rede)
+  15:12:57.804   Vpn: Switched from com.norte.lab.dev to com.samsung.android.fast
+  15:13:02.096   VpnManagerService: establishVpn called by com.samsung.android.fast
+  15:13:02.116   endereço na interface securewifi0
+  Log compartilhado
+  15:12:57.810   vpn_revoked
+  15:12:57.908   vpn_stopped  motivo: revogada pelo sistema · consultas: 117 ·
+                 repassadas: 117 (2 na segunda tentativa) · sem resposta: 0
+  Depois que a Wi-Fi seguro foi desligada, nenhuma VPN ficou ativa: a nossa
+  não volta sozinha. appops da Wi-Fi seguro: ACTIVATE_VPN allow, com uma recusa
+  4 s antes (ela também passou pelo consentimento de VPN).
+
+=====================================================================
+## Rodada D1 — DNS privado estrito (dns.google), com a VPN ligada
+  Antes: private_dns_mode e private_dns_specifier sem valor ("Automático").
+  15:17:08.822  updatePrivateDns(113 VPN e 106 Wi-Fi, strict:dns.google)
+  15:17:09.214  validação DoT do dns.google OK pela rede Wi-Fi (106)
+  15:17:13.181  NetworkMonitor/113 (VPN): PROBE_PRIVDNS ... Error: Unable to
+                resolve host (~4,2 s), repetido a cada poucos segundos
+  15:17:13.193  NetworkNotificationManager: event=PRIVATE_DNS_BROKEN
+                transport=VPN name=VPN:com.norte.lab.dev
+  15:17:13.228  rede da VPN perde VALIDATED
+  Notificação do sistema, presa à rede da VPN:
+    "A rede não tem acesso à Internet" / "Não é possível acessar o servidor DNS privado"
+
+  Chrome, https://www.example.org: todas as consultas na rede da VPN voltaram
+  vazias (NODATA) depois de 4,2 a 8,4 s. A VPN não recebeu nenhuma consulta:
+  nenhum evento no log. Com DNS privado estrito e a VPN ligada, os apps ficam
+  sem DNS.
+
+  Volta ao "Automático" pelo responsável (private_dns_mode=opportunistic; o
+  nome dns.google fica guardado, sem uso): às 15:24:26 a VPN já detectava de
+  novo (www.example.org), a página carregou e a rede da VPN voltou a VALIDATED
+  em menos de um minuto.
+
+=====================================================================
+## Rodada D2 — DNS seguro do Chrome (Google Public DNS)
+  Padrão do Chrome, anotado pelo responsável: "Usar o provedor de serviços atual".
+  Com o Google escolhido:
+  - sem VPN, bbc.com/news (dezenas de domínios): 1 consulta do Chrome pelo DNS
+    do sistema. O DNS seguro estava valendo.
+  - com VPN, uol.com.br: 1 consulta pelo sistema.
+  - com VPN, domínios da lista: www.example.com (15:37:24) e example.org
+    (15:40:38) DETECTADOS, cada um com 1 consulta pelo sistema.
+  Padrão: o Chrome fez exatamente 1 consulta pelo DNS do sistema por
+  navegação, a do endereço principal; os demais domínios da página seguiram
+  pelo DNS seguro, invisíveis à VPN. É comportamento interno do Chrome 153, que
+  pode mudar; outros navegadores podem esconder tudo. Não testado com Firefox.
+  O responsável voltou o Chrome ao padrão.
+
+=====================================================================
+## Rodada E — queda e volta do Wi-Fi, com a VPN ligada
+  O S22 está sem serviço de celular (mDataRegState=OUT_OF_SERVICE): a troca
+  para dados móveis não pôde ser testada. Testada a queda e a volta do Wi-Fi.
+  15:59:36.535  upstream_lost                       (Wi-Fi desligado)
+  16:00:04.008  upstream_changed  rede: wifi · 1 servidor de DNS (rede nova, 115)
+  A VPN (114) ficou conectada o tempo todo e voltou a VALIDATED sobre a rede
+  115. 16:00:42: www.example.com detectado, repasse normal. As 14 consultas "sem
+  resposta" da sessão são as que chegaram durante os ~27 s sem rede.
+
+=====================================================================
+## Bateria — janela curta, em andamento
+  16:02  VPN ligada (modo alerta), serviço do limite ligado, bateria em 100%,
+  cabo retirado pelo responsável para 1 a 2 h de uso leve.
+  Retrato antes (estatísticas desde 00:30): UID do protótipo 9,46 mAh
+  (primeiro plano 3,48 · segundo plano 1,11 · serviço em primeiro plano 4,87).
