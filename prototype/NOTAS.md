@@ -7,7 +7,7 @@
 
 ## Estado atual e próximo passo
 
-> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 19/09/2026, 14:10.
+> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 19/09/2026, 14:45.
 
 **Branch:** `prototype/android-vpn`, criado a partir de `prototype/android-usage`
 (que ficou com A1–A5 e A9) para o grupo da VPN: A6, A7 e A8. Tudo commitado.
@@ -17,15 +17,12 @@
 | ID | Resultado |
 |---|---|
 | S1 · S4 · A1 · A2 · A5 | ✅ |
-| A3 · A4 · A6 · A9 | ⚠️ com limitações documentadas |
-| A7 | em andamento: critério da spec cumprido, falta a rodada que mede o tempo |
+| A3 · A4 · A6 · A7 · A9 | ⚠️ com limitações documentadas |
 | A8 · A10 | não iniciados |
 | S2 · S3 · iOS | não iniciados — dependem da conta Apple Developer pessoal |
 
-**Pausa pedida pelo responsável em 19/09/2026.** Retomar exatamente do A7, na
-rodada de 5 minutos descrita abaixo.
-
-**Feito na sessão da noite de 18/09/2026:**
+**Feito na sessão de 18 e 19/09/2026** (pausa pedida pelo responsável na
+madrugada de 19/09, retomada às 14:27):
 - **A4, complemento:** instrumentação corrigida (retorno conferido depois do
   "Continuar", um `interruption_shown` por interrupção, voltar e início na tela
   própria registrados) e botão "Ir para a tela inicial" nas duas abordagens.
@@ -37,31 +34,22 @@ rodada de 5 minutos descrita abaixo.
   não; no fim da pausa vem a notificação e, se o uso continuar, a tela.
 - **A6 ⚠️**, domínio da lista por VPN local de DNS (ver "Achado A6" e D5): alerta
   e bloqueio funcionam no Chrome, com as limitações do próprio DNS.
-- **A7, em andamento** (ver "Achado A7"): acesso a instagram.com pelo Chrome
-  registrado como "via: navegador", separado do uso pelo app. Para o tempo de uso
-  no navegador, o responsável escolheu a **heurística**, e o rastreador de sessão
-  (`BrowserSessionTracker`) está pronto e instalado.
+- **A7 ⚠️** (ver "Achado A7"): o acesso a instagram.com pelo Chrome é detectado
+  e separado do app. O tempo no navegador, pela heurística escolhida pelo
+  responsável, deu 204 s para 180,6 s reais (+13%) numa rodada de 5 min, mas o
+  acerto depende de um corte numa faixa estreita e a resolução é de ~1 minuto.
 
-**Próximo passo: a rodada de 5 minutos do A7**, que mede a heurística:
-1. **Pré-requisito do responsável:** fazer login no Instagram **no Chrome** (hoje
-   ele mostra a tela de login, sem feed para rolar). A senha não é digitada pelo
-   Claude.
-2. Conectar o S22 pelo cabo, seguir o procedimento de início de sessão e ligar a
-   VPN na seção A6 do laboratório (modo alerta; listas já salvas).
-3. Roteiro, com o Claude cuidando do tempo pelo `adb`: abrir instagram.com no
-   Chrome; o responsável rola o feed por 3 min; aos 3 min, abrir
-   pt.wikipedia.org no Chrome, e o responsável lê por 2 min; aos 5 min, tela
-   inicial.
-4. Verdade: 180 s de Instagram. Comparar com o `social_session_ended` e
-   recalcular a estimativa com outros intervalos a partir de "consultas em (s)".
-5. Desligar a VPN no fim.
-
-Depois do A7: **A8** (impacto da VPN: navegação geral, apps de banco, outras VPNs,
-bateria, DNS privado estrito, DNS seguro do Chrome, linha de base sem VPN).
+**Próximo passo: A8**, impacto da VPN local (spec §6.2): navegação geral, apps de
+banco, outras VPNs e bateria. Acrescentados pelos achados do A6 e do A7: DNS
+privado no modo estrito, DNS seguro do Chrome, linha de base de DNS sem VPN,
+troca de Wi-Fi para dados móveis com a VPN ligada e as consultas barradas de apps
+em segundo plano. **Combinar o roteiro com o responsável antes:** vários itens
+mexem em configurações do aparelho ou em apps pessoais (banco), e cabem a ele.
 
 **VPN no aparelho:** consentimento concedido (`appops ... ACTIVATE_VPN: allow`),
 VPN **desligada**, modo salvo **alerta**, listas example.com e example.org (A6) e
-instagram.com e cdninstagram.com (A7).
+instagram.com e cdninstagram.com (A7). O Chrome está logado no Instagram (login
+feito pelo responsável em 19/09).
 
 **Para testar a interrupção de novo:** o limite no aparelho está em **600 min**
 (ver o estado abaixo). Baixar para 2 min na seção A2 e tocar em "Iniciar limite":
@@ -70,14 +58,12 @@ Desde o A5, **cada** abertura do Instagram acima do limite e fora da pausa
 interrompe de novo. Ao terminar, subir o limite outra vez, para não atrapalhar o
 uso normal do aparelho.
 
-**Estado do aparelho no último contato, 19/09/2026 às 00:11:** serviço do limite
-ativo (religado pelo `MY_PACKAGE_REPLACED` na última reinstalação, pouco depois
-da meia-noite), **limite
-de 600 min** no Instagram (acima do uso diário: o serviço segue rodando sem
-interromper), modo **sobreposição**, pausa de 2 min. VPN desligada. Todas as
-permissões concedidas (acesso a dados de uso, notificação, sobreposição, VPN).
-Rotação automática ligada. Às 14:01 o S22 não estava conectado ao PC. Metro
-desligado. O relógio do PC estava ~2 s adiantado em relação ao do aparelho.
+**Estado do aparelho em 19/09/2026, 14:40:** serviço do limite ativo (a mesma
+instância desde a reinstalação de 00:09), **limite de 600 min** no Instagram
+(acima do uso diário: o serviço segue rodando sem interromper), modo
+**sobreposição**, pausa de 2 min. VPN desligada. Todas as permissões concedidas
+(acesso a dados de uso, notificação, sobreposição, VPN). Rotação automática
+ligada. O relógio do PC estava ~2 s adiantado em relação ao do aparelho.
 
 **Atenção ao abrir o laboratório:** o serviço mantém o processo vivo, e com ele o
 JavaScript antigo na memória. Subir o Metro não basta (P6): com o laboratório na
@@ -238,7 +224,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | A4 | ⚠️ Funciona com limitações | As duas abordagens cumprem o critério: a tela aparece sobre o Instagram com o protótipo fechado, mostra a motivação, e "Continuar" registra `continue_tapped` e volta **ao mesmo post**. **Sobreposição:** o voltar é ignorado, ela continua por cima da tela inicial, não cobre as barras, e o sistema publica "Norte Lab exibido sobre outros apps". **Tela própria:** o voltar a fecha sem escolha. Ambas dependem de `SYSTEM_ALERT_WINDOW`. Em 18/09 à noite: instrumentação corrigida e botão "Ir para a tela inicial" nas duas, validados no aparelho. Ver achado abaixo |
 | A5 | ✅ Funciona | Pausa de 2 min depois do "Continuar", na sobreposição: nenhum alerta em 6 verificações, com a pessoa no Instagram e saindo e voltando. No fim, a notificação e, 20 s depois, a tela. O fim da pausa é notado com até 20 s de atraso (medido: 14 s). Tela inicial e emergência não pausam: reabrir o Instagram interrompe de novo em ~7 s. A pausa sobreviveu à recriação do serviço. Ver achado abaixo |
 | A6 | ⚠️ Funciona com limitações | VPN local só de DNS. No Chrome, abrir example.com gerou `adult_domain_detected` e a notificação 15 ms depois, e a página carregou: critério cumprido. Modo bloqueio também funciona (`DNS_PROBE_FINISHED_NXDOMAIN`). Zero consultas sem resposta; ida e volta de 26 ms ao DNS da rede. Limitações: o pré-carregamento dispara o alerta sem visita, página guardada no navegador aparece mesmo bloqueada, só uma VPN por vez, e o sistema diz ao usuário que a VPN "permite monitorar o tráfego da rede". Ver achado abaixo |
-| A7 | Em andamento | Critério da spec cumprido: instagram.com no Chrome gerou `social_domain_detected` "via: navegador", e o app do Instagram saiu separado ("via: outro app"). A consulta de DNS não diz qual app perguntou; a separação vem do app em primeiro plano. Falta medir a estimativa de tempo no navegador (rodada de 5 min, com o Chrome logado). Ver achado abaixo |
+| A7 | ⚠️ Funciona com limitações | Critério da spec cumprido: instagram.com no Chrome gerou `social_domain_detected` "via: navegador", e o app do Instagram saiu separado ("via: outro app"). A consulta de DNS não diz qual app perguntou; a separação vem do app em primeiro plano. Tempo no navegador, por heurística: 204 s estimados para 180,6 s reais (+13%) numa rodada de 5 min, mas com corte fora da faixa de 85–96 s o erro vai de −99% a +67%, e a resolução é de ~1 min. Ver achado abaixo |
 | A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. Faltam "Apps em suspensão" da Samsung (precisa de dias) e o roteiro T6 |
 
 ### Achado A1 — como medir tempo de uso por app, e o que não funciona
@@ -845,10 +831,13 @@ investigada; vale olhar de novo no A8.
 - DNS privado no modo estrito, DNS seguro do Chrome, outras VPNs e bateria (A8).
 - VPN sempre ativa e religamento após reinício (A9).
 
-### Achado A7 (parcial) — instagram.com pelo navegador: o acesso sim, o tempo ainda não medido
+### Achado A7 — instagram.com pelo navegador: o acesso sim; o tempo, só por aproximação
 
-**Situação em 19/09/2026: critério da spec cumprido; a medição de tempo está
-pendente.** Evidência em `docs/relatorios/evidencias/a7-instagram-navegador.txt`.
+**Resultado: ⚠️ funciona com limitações.** O critério da spec foi cumprido em
+19/09/2026: o acesso a instagram.com pelo Chrome é registrado, e separado do uso
+pelo app. O tempo de uso no navegador só se estima, com resolução de cerca de um
+minuto e um acerto que depende de ajuste fino. Evidência em
+`docs/relatorios/evidencias/a7-instagram-navegador.txt`.
 
 #### O acesso é detectado, mas o DNS não diz qual app perguntou
 
@@ -881,17 +870,42 @@ social com um navegador na frente, e a fecha quando o navegador sai da tela
 a última consulta. O instante de cada consulta vai no `social_session_ended`,
 para recalcular com outros intervalos sem repetir o teste.
 
-#### Prévia, e por que a rodada precisa do Chrome logado
+#### A rodada de 5 minutos (19/09/2026, 14:30)
 
-Numa prévia curta (00:10), a sessão abriu e fechou certo: 35 s estimados, fim
-porque o navegador saiu da tela. Mas o Chrome **não estava logado** no Instagram:
-era a página de login, e as 5 consultas saíram todas no carregamento (segundo 0),
-nenhuma depois. É justamente o risco da heurística: página parada não consulta
-DNS. Com o feed rolando, o Instagram deve buscar imagens de vários servidores; se
-isso gera consultas novas com frequência suficiente, ou se o cache de DNS e as
-conexões reaproveitadas escondem a atividade, é o que a rodada vai mostrar.
+Com o Chrome logado no Instagram pelo responsável, ele rolou o feed por 3 minutos
+e leu a Wikipédia por 2, no mesmo Chrome. O `adb` só cuidou do tempo e das trocas,
+registrando a hora do aparelho em cada uma.
 
-**Pendente:** a rodada de 5 minutos descrita em "Estado atual e próximo passo".
+| | Valor |
+|---|---|
+| Verdade: Instagram aberto até a Wikipédia abrir | 180,6 s |
+| Estimativa ao vivo (corte de 90 s) | **204 s: +23 s, +13%** |
+| Instantes das consultas de rede social (s) | 0, 0, 0, 1, 1, 66, 66, 147 (×5), 204 |
+| Maior intervalo entre consultas com o feed rolando | 81 s |
+
+**O que os instantes mostram:**
+
+- **O DNS pulsa por volta de uma vez por minuto**, mesmo com o feed rolando sem
+  parar: o sistema e o Chrome guardam as respostas por cerca de um minuto, e as
+  conexões são reaproveitadas. Essa é a resolução da heurística.
+- **A aba em segundo plano continua consultando.** A última consulta (204 s) veio
+  23 s depois da troca para a Wikipédia. Foi ela que levou a estimativa acima da
+  verdade.
+- **O acerto depende de um corte numa faixa estreita.** Recalculando com os mesmos
+  instantes: com corte até 60 s, o intervalo natural de 66–81 s quebra a sessão
+  (−99% a −68%); com 70–80 s, −32%; com 85–96 s, +13%; com 120 s ou mais, a sessão
+  só fecha quando o navegador sai da tela e conta a Wikipédia (+67%).
+
+Na prévia da madrugada, com o Chrome ainda sem login, a página de login parada
+fez todas as 5 consultas no carregamento e nenhuma nos 35 s seguintes: página
+parada não gera consultas, e a heurística não a distingue do fim do uso.
+
+**Para o relatório (Q4):** detectar o uso de rede social pelo navegador, sim;
+medir o tempo, só de forma grosseira. É uma rodada só, num site e num aparelho:
+indício, não medida robusta. Se o produto precisar contar o navegador no limite,
+a alternativa mais simples é tratar o acesso pelo navegador como gatilho de
+alerta depois que o limite do app estourar, o que só exige a detecção, que
+funciona.
 
 ### Achado A9 (parcial) — sobrevivência em segundo plano e custo
 
@@ -1106,7 +1120,7 @@ decidido fora do Claude Code.
 | I-18 | Só uma VPN funciona por vez: ligar a do app desliga qualquer outra do usuário (corporativa, de privacidade, "Wi-Fi seguro" da Samsung) | Doc 01 §6.5, doc 02 riscos | Decidir o que fazer com quem já usa VPN (a medir no A8) |
 | I-19 | Google Play: toda VPN exige declaração no Play Console, em categoria permitida (ex.: "monitoramento de uso de apps"); ler domínios visitados conta como histórico de navegação e exige declaração em destaque com consentimento dentro do app; a revisão pede vídeos | Doc 02 riscos, fase 9; A10 | Escolher a categoria e desenhar a declaração em destaque antes da publicação |
 | I-20 | A detecção por DNS é um indício, não prova de acesso: pré-carregamento dispara alerta sem visita, página guardada no navegador aparece sem nova consulta, e DNS cifrado (modo estrito, DNS seguro do navegador) esconde o nome | Doc 01 §6.5 ("onde tecnicamente possível"), §6.8 (estatísticas, recaídas) | Não tratar detecção como recaída automática; tratar o alerta de conteúdo como lembrete |
-| I-21 | Redes sociais pelo navegador: o acesso é detectável (DNS + app em primeiro plano), mas o tempo de uso só se estima por heurística, a medir no A7; a API do Chrome para o Bem-estar digital não é pública | Doc 01 §6.2 (limite de vídeos curtos), §6.8 (tempo de uso), risco R5 | Decidir se o limite conta o navegador (e com que precisão), ou se o navegador vira só gatilho de alerta depois que o limite do app estoura |
+| I-21 | Redes sociais pelo navegador: o acesso é detectável (DNS + app em primeiro plano), mas o tempo de uso só se estima por heurística: +13% numa rodada de 5 min, resolução de ~1 min, e erro de −99% a +67% fora de uma faixa estreita de ajuste. A API do Chrome para o Bem-estar digital não é pública | Doc 01 §6.2 (limite de vídeos curtos), §6.8 (tempo de uso), risco R5 | Decidir se o limite conta o navegador (e com que precisão), ou se o navegador vira só gatilho de alerta depois que o limite do app estoura |
 
 ## Comandos
 

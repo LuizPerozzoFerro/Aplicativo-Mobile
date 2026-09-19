@@ -22,7 +22,7 @@ One UI 8.0.
 | `a4-instrumentacao-e-botao-inicio.txt` | A4 | Rodadas O1–O3 e T1–T5: retorno real após "Continuar", dispensa pelo voltar e pelo início registrada, um só `interruption_shown` apesar dos giros, botão "Ir para a tela inicial" nas duas abordagens |
 | `a5-pausa.txt` | A5 | Pausa de 2 min depois do "Continuar": nenhum alerta durante a pausa, notificação e tela no fim; tela inicial e emergência sem pausa; pausa sobrevivendo à recriação do serviço |
 | `a6-vpn-dns.txt` | A6 | VPN local de DNS: consentimento, detecção e notificação no modo alerta, NXDOMAIN no modo bloqueio, cache do navegador, DNS privado automático, consultas vistas pelo sistema |
-| `a7-instagram-navegador.txt` | A7 | (parcial) instagram.com no Chrome detectado "via: navegador", app do Instagram separado, prévia do rastreador de sessão e roteiro da rodada pendente |
+| `a7-instagram-navegador.txt` | A7 | instagram.com no Chrome detectado "via: navegador", app do Instagram separado, e a rodada de 5 min que mede a estimativa de tempo no navegador (204 s para 180,6 s reais), recalculada para outros cortes |
 | `a9-leitura-de-base.txt` | A9 | Estado do aparelho antes do teste de 2 h |
 | `a9-sobrevivencia-e-custo.txt` | A9 | Doze profundo, custo de CPU, reinício do aparelho |
 

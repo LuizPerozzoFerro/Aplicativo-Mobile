@@ -1,5 +1,5 @@
-# A7 — instagram.com pelo navegador (parcial)
-# Galaxy S22, Android 16 / One UI 8, 19/09/2026, 00:04–00:11
+# A7 — instagram.com pelo navegador
+# Galaxy S22, Android 16 / One UI 8, 19/09/2026, 00:04–00:11 e 14:29–14:36
 # Chrome 153 · mesma VPN local de DNS do A6 · Wi-Fi doméstico
 
 ## O que foi acrescentado à VPN do A6
@@ -62,10 +62,52 @@
   parada. O fim da sessão veio do navegador saindo da tela, não do intervalo.
 
 =====================================================================
-## Pendente: rodada de 5 minutos, com o responsável
-  Pré-requisito: o responsável faz o login no Instagram no Chrome (senha não é
-  digitada pelo Claude). Roteiro: VPN ligada; abrir instagram.com no Chrome; o
-  responsável rola o feed por 3 min; aos 3 min, trocar para outro site
-  (pt.wikipedia.org) e ler por 2 min; aos 5 min, tela inicial.
-  Verdade: 180 s de Instagram. Comparar com a sessão estimada, e recalcular com
-  outros intervalos a partir dos instantes das consultas.
+## Rodada 3 (14:30) — 5 minutos com o responsável: a medida da heurística
+  Chrome logado no Instagram pelo responsável. O responsável rolou o feed; o
+  roteiro (adb) só cuidou do tempo e das trocas, sem capturar a tela.
+
+  Trocas, no relógio do aparelho
+  T0  14:30:14.200  abre https://www.instagram.com no Chrome
+  T1  14:33:14.835  abre https://pt.wikipedia.org no Chrome (nova aba)
+  T2  14:35:15.324  tela inicial
+  Verdade: Instagram de T0 a T1 = 180,6 s. Chrome na tela de T0 a T2 = 301,1 s.
+
+  Log compartilhado
+  14:29:14.148  vpn_started              modo: alerta · redes sociais: cdninstagram.com, instagram.com
+  14:30:14.728  social_domain_detected   www.instagram.com (A) · via: navegador · com.android.chrome
+  14:30:14.731  social_session_started   navegador: com.android.chrome · inicio: 14:30:14
+  14:30:15.883  social_domain_detected   static.cdninstagram.com (HTTPS) · via: navegador
+  14:31:21.253  social_domain_detected   www.instagram.com (HTTPS) · via: navegador
+  14:32:42.605  social_domain_detected   i-fallback.instagram.com (A) · via: navegador
+  14:35:12.836  social_session_ended     inicio: 14:30:14 · fim: 14:33:39 · duracao estimada: 204 s ·
+                                         motivo: sem consultas por 90 s · consultas: 13 ·
+                                         maior intervalo: 81 s ·
+                                         consultas em (s): 0,0,0,1,1,66,66,147,147,147,147,147,204
+  14:36:15.230  vpn_stopped              consultas: 77 · repassadas: 77 · sem resposta: 0 ·
+                                         redes sociais: 13 · ida e volta media: 30,1 ms
+
+  Resultado ao vivo (corte de 90 s): 204 s estimados para 180,6 s reais: +23 s, +13%.
+
+  O que os instantes mostram
+  - Com o feed rolando sem parar, as consultas vieram em rajadas espaçadas de 66
+    e 81 s: o sistema e o Chrome guardam as respostas por cerca de um minuto. A
+    resolução da heurística é essa, perto de um minuto.
+  - A última consulta (204 s) chegou 23 s DEPOIS da troca para a Wikipédia,
+    provavelmente da aba do Instagram em segundo plano. Foi ela que fez a
+    estimativa passar da verdade.
+
+  Recalculado para outros cortes, a partir dos mesmos instantes
+  (sessão fecha na última consulta, ou em T2 se o navegador sair antes)
+  corte    sessões   estimado   erro
+  30 s     4           1 s      -99%
+  60 s     3          58 s      -68%
+  70 s     2         123 s      -32%
+  80 s     2         123 s      -32%
+  85 s     1         204 s      +13%
+  90 s     1         204 s      +13%   <- o usado ao vivo
+  96 s     1         204 s      +13%
+  120 s    1         301 s      +67%   (o navegador saiu antes: conta a Wikipédia)
+  180 s    1         301 s      +67%
+  O acerto cai numa faixa estreita (85 a 96 s), presa entre o espaçamento natural
+  das consultas e a consulta atrasada da aba em segundo plano. Uma rodada só: é
+  indício, não medida robusta.
