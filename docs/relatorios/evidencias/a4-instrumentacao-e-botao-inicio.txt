@@ -1,5 +1,5 @@
 # A4 (complemento) — instrumentação corrigida e botão "Ir para a tela inicial"
-# Galaxy S22, Android 16 / One UI 8, 18/09/2026, 17:50–18:03
+# Galaxy S22, Android 16 / One UI 8, 18/09/2026, 17:50–18:03 e 22:07–22:14
 # targetSdk 36 · enableOnBackInvokedCallback=false · navegação por gestos · rotação automática ligada
 
 ## O que mudou no código (antes do A5)
@@ -187,11 +187,52 @@
   O evento sai no onDestroy, ~0,8 s depois do gesto.
 
 =====================================================================
-## T1 — tela própria, giro (item 2): PENDENTE
+## Tela própria com o aparelho bloqueado (primeira tentativa da T1)
   18:02:59.075  interruption_shown     abordagem: activity · voltar para com.instagram.android
-  Aguardando o giro feito pelo responsável. A tela foi apagada pelo botão
-  liga/desliga às 18:09:39 (mLastSleepReason=power_button). Às 19:26 a
-  InterruptionActivity seguia como activity retomada da tarefa #34, atrás da tela
-  de bloqueio (foco em NotificationShade, aparelho em Dozing). É coerente com o
-  código do Android, que não encerra uma activity noHistory enquanto o aparelho
-  dorme. Falta ver o que aparece ao desbloquear.
+  18:09:39.492  screen_toggled 0       tela apagada pelo botão liga/desliga
+                                       (mLastSleepReason=power_button)
+  Às 19:26 a InterruptionActivity seguia como activity retomada da tarefa #34,
+  atrás da tela de bloqueio (foco em NotificationShade, aparelho em Dozing). É
+  coerente com o código do Android, que não encerra uma activity noHistory
+  enquanto o aparelho dorme.
+
+  Desbloqueio, 4 h depois (sistema)
+  22:07:42.425  screen_toggled 1
+  22:07:44.868  keyguardGoingAway
+  22:07:44.879  wm_set_resumed_activity  InterruptionActivity    <- reaparece 11 ms após o desbloqueio
+  22:07:45.978  wm_set_resumed_activity  LauncherActivity
+  22:07:46.966  wm_pause_activity   InterruptionActivity, userLeaving=true
+  22:07:46.976  wm_set_resumed_activity  RecentsActivity         (recentes abertos)
+  22:07:47.145  wm_finish_activity  InterruptionActivity, stop-no-history
+  22:07:48.235  wm_destroy_activity com.norte.lab.dev/.MainActivity, remove-task
+                                       (tarefa do laboratório fechada nos recentes)
+  Log compartilhado
+  22:07:47.150  interruption_dismissed abordagem: activity · motivo: inicio ou recentes
+  O serviço sobreviveu ao fechamento da tarefa (createTime contínuo desde 17:46).
+
+=====================================================================
+## T1 (22:12) — tela própria, dois giros, depois "Continuar" (item 2)
+## Giros feitos à mão pelo responsável; rotação automática ligada
+
+  Log compartilhado
+  22:11:50.317  threshold_reached      17 min de uso para limite de 2 min
+  22:11:50.346  notification_sent
+  22:12:10.512  interruption_shown     abordagem: activity · voltar para com.instagram.android
+  22:14:03.657  continue_tapped        abordagem: activity
+  22:14:05.237  returned_to_app        com.instagram.android · abordagem: activity
+  Um único interruption_shown para três instâncias da activity, e nenhum
+  interruption_dismissed nas recriações (isChangingConfigurations).
+
+  FOCO
+  22:12:18  com.norte.lab.dev/...InterruptionActivity   janela e78698f
+  22:13:55  com.norte.lab.dev/...InterruptionActivity   janela 860bcf3   (paisagem)
+  22:14:02  com.norte.lab.dev/...InterruptionActivity   janela 459e108   (retrato)
+  22:14:06  com.instagram.android/...MainTabActivity    janela 7191a91 — a mesma de antes
+
+  Sistema
+  22:12:10.446  START ... InterruptionActivity ... (BAL_ALLOW_SAW_PERMISSION) result code=0
+  22:13:53.051  wm_relaunch_resume_activity  InterruptionActivity     <- recriação 1
+  22:13:58.384  wm_relaunch_resume_activity  InterruptionActivity     <- recriação 2
+  22:14:03.675  START ... com.instagram.android/.activity.MainTabActivity
+  22:14:03.690  wm_finish_activity  InterruptionActivity, app-request
+  O app de retorno (extra do intent) sobreviveu às recriações.
