@@ -7,7 +7,7 @@
 
 ## Estado atual e próximo passo
 
-> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 19/09/2026, 16:10.
+> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 19/09/2026, 19:45.
 
 **Branch:** `prototype/android-vpn`, criado a partir de `prototype/android-usage`
 (que ficou com A1–A5 e A9) para o grupo da VPN: A6, A7 e A8. Tudo commitado.
@@ -17,8 +17,7 @@
 | ID | Resultado |
 |---|---|
 | S1 · S4 · A1 · A2 · A5 | ✅ |
-| A3 · A4 · A6 · A7 · A9 | ⚠️ com limitações documentadas |
-| A8 | em andamento: rodadas A a E feitas, falta a bateria |
+| A3 · A4 · A6 · A7 · A8 · A9 | ⚠️ com limitações documentadas |
 | A10 | não iniciado |
 | S2 · S3 · iOS | não iniciados — dependem da conta Apple Developer pessoal |
 
@@ -40,15 +39,13 @@ madrugada de 19/09, retomada às 14:27):
   responsável, deu 204 s para 180,6 s reais (+13%) numa rodada de 5 min, mas o
   acerto depende de um corte numa faixa estreita e a resolução é de ~1 minuto.
 
-- **A8, em andamento** (ver "Achado A8"): rodadas A a E feitas com o
-  responsável em 19/09. Um defeito do repasse foi medido e corrigido, e o DNS
-  privado estrito se mostrou incompatível com a VPN (os apps ficam sem DNS).
+- **A8 ⚠️** (ver "Achado A8"): rodadas A a E mais a janela de bateria, feitas com
+  o responsável em 19/09. Um defeito do repasse foi medido e corrigido, o DNS
+  privado estrito se mostrou incompatível com a VPN (os apps ficam sem DNS) e o
+  custo de bateria da VPN ficou na mesma ordem do serviço sozinho.
 
-**Próximo passo: fechar o A8 com a janela de bateria**, em andamento desde
-16:02 (cabo fora, VPN e serviço do limite ligados, uso leve de 1 a 2 h). Na
-volta do cabo: ler o `dumpsys batterystats` só do UID do protótipo e o total
-do aparelho, comparar com o retrato de antes (9,46 mAh desde 00:30) e com o A9,
-parar a VPN e registrar. Depois: A10 (políticas do Google Play, documental).
+**Próximo passo: A10** (políticas do Google Play e da App Store, documental).
+É pesquisa, sem aparelho; combinar o recorte com o responsável antes de começar.
 
 **VPN no aparelho:** consentimento concedido (`appops ... ACTIVATE_VPN: allow`),
 VPN **desligada**, modo salvo **alerta**, listas example.com e example.org (A6) e
@@ -62,12 +59,17 @@ Desde o A5, **cada** abertura do Instagram acima do limite e fora da pausa
 interrompe de novo. Ao terminar, subir o limite outra vez, para não atrapalhar o
 uso normal do aparelho.
 
-**Estado do aparelho em 19/09/2026, 14:40:** serviço do limite ativo (a mesma
+**Estado do aparelho em 19/09/2026, 19:45:** serviço do limite ativo (a mesma
 instância desde a reinstalação de 00:09), **limite de 600 min** no Instagram
 (acima do uso diário: o serviço segue rodando sem interromper), modo
-**sobreposição**, pausa de 2 min. VPN desligada. Todas as permissões concedidas
-(acesso a dados de uso, notificação, sobreposição, VPN). Rotação automática
-ligada. O relógio do PC estava ~2 s adiantado em relação ao do aparelho.
+**sobreposição**, pausa de 2 min. VPN desligada pelo laboratório às 19:30:39.
+Todas as permissões concedidas (acesso a dados de uso, notificação,
+sobreposição, VPN). Rotação automática ligada. **Modo economia de energia
+ligado** (`settings get global low_power` = 1): estava ligado durante toda a
+janela de bateria do A8, e o monitoramento funcionou assim mesmo. O DNS privado
+está em `opportunistic` (o nome `dns.google` ficou guardado, sem uso) e o DNS
+seguro do Chrome voltou ao padrão. O relógio do PC está ~2 s adiantado em
+relação ao do aparelho.
 
 **Atenção ao abrir o laboratório:** o serviço mantém o processo vivo, e com ele o
 JavaScript antigo na memória. Subir o Metro não basta (P6): com o laboratório na
@@ -229,7 +231,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | A5 | ✅ Funciona | Pausa de 2 min depois do "Continuar", na sobreposição: nenhum alerta em 6 verificações, com a pessoa no Instagram e saindo e voltando. No fim, a notificação e, 20 s depois, a tela. O fim da pausa é notado com até 20 s de atraso (medido: 14 s). Tela inicial e emergência não pausam: reabrir o Instagram interrompe de novo em ~7 s. A pausa sobreviveu à recriação do serviço. Ver achado abaixo |
 | A6 | ⚠️ Funciona com limitações | VPN local só de DNS. No Chrome, abrir example.com gerou `adult_domain_detected` e a notificação 15 ms depois, e a página carregou: critério cumprido. Modo bloqueio também funciona (`DNS_PROBE_FINISHED_NXDOMAIN`). Zero consultas sem resposta; ida e volta de 26 ms ao DNS da rede. Limitações: o pré-carregamento dispara o alerta sem visita, página guardada no navegador aparece mesmo bloqueada, só uma VPN por vez, e o sistema diz ao usuário que a VPN "permite monitorar o tráfego da rede". Ver achado abaixo |
 | A7 | ⚠️ Funciona com limitações | Critério da spec cumprido: instagram.com no Chrome gerou `social_domain_detected` "via: navegador", e o app do Instagram saiu separado ("via: outro app"). A consulta de DNS não diz qual app perguntou; a separação vem do app em primeiro plano. Tempo no navegador, por heurística: 204 s estimados para 180,6 s reais (+13%) numa rodada de 5 min, mas com corte fora da faixa de 85–96 s o erro vai de −99% a +67%, e a resolução é de ~1 min. Ver achado abaixo |
-| A8 | Em andamento | Navegação geral ok depois de corrigir o repasse (mediana de 2,6 s → 49 ms); apps de banco ok; outra VPN derruba a nossa, que não volta sozinha; **DNS privado estrito + nossa VPN deixa os apps sem DNS**; DNS seguro do Chrome ainda deixa ver o endereço principal; a VPN sobrevive à queda do Wi-Fi. Falta a bateria. Ver achado abaixo |
+| A8 | ⚠️ | Navegação geral ok depois de corrigir o repasse (mediana de 2,6 s → 49 ms); apps de banco ok; outra VPN derruba a nossa, que não volta sozinha; **DNS privado estrito + nossa VPN deixa os apps sem DNS**; DNS seguro do Chrome ainda deixa ver o endereço principal; a VPN sobrevive à queda do Wi-Fi, ao Doze profundo e ao modo economia; bateria: 0,366% de CPU e ~1 mAh a cada 2 h com o aparelho parado. Ver achado abaixo |
 | A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. Faltam "Apps em suspensão" da Samsung (precisa de dias) e o roteiro T6 |
 
 ### Achado A1 — como medir tempo de uso por app, e o que não funciona
@@ -779,7 +781,8 @@ consultado, não que uma página foi vista. Desenho na decisão D5; evidência e
 | Subdomínio | www.example.org detectado como example.org |
 | Alertas repetidos | um por item da lista por minuto; 21 de 25 detecções foram agrupadas assim |
 
-Os números de latência não têm linha de base sem VPN: fica para o A8.
+Os números de latência não têm linha de base sem VPN: medida no A8 (mediana de
+49 ms com VPN contra 15 a 38 ms sem, na mesma navegação).
 
 #### O que o Android cobra de uma VPN (guia oficial, consultado em 18/09/2026)
 
@@ -831,9 +834,10 @@ investigada; vale olhar de novo no A8.
 
 - Samsung Internet até o fim: a tela de primeiro uso pede concordância com os
   Termos e Condições do navegador, que não foi aceita em nome do responsável.
-- Troca de rede com a VPN ligada (Wi-Fi para dados móveis): o código acompanha,
-  mas não foi exercitado.
-- DNS privado no modo estrito, DNS seguro do Chrome, outras VPNs e bateria (A8).
+- Troca de rede com a VPN ligada: a queda e a volta do Wi-Fi foram exercitadas
+  no A8 (rodada E); Wi-Fi para dados móveis, não (o S22 está sem serviço).
+- DNS privado no modo estrito, DNS seguro do Chrome, outras VPNs e bateria:
+  todos feitos no A8, ver "Achado A8".
 - VPN sempre ativa e religamento após reinício (A9).
 
 ### Achado A7 — instagram.com pelo navegador: o acesso sim; o tempo, só por aproximação
@@ -912,10 +916,10 @@ a alternativa mais simples é tratar o acesso pelo navegador como gatilho de
 alerta depois que o limite do app estourar, o que só exige a detecção, que
 funciona.
 
-### Achado A8 (parcial) — impacto da VPN: um defeito corrigido, um conflito grave
+### Achado A8 ⚠️ — impacto da VPN: um defeito corrigido, um conflito grave e custo baixo
 
-**Situação em 19/09/2026, 16:05:** rodadas A a E feitas; a janela de bateria
-está em andamento. Evidência em `docs/relatorios/evidencias/a8-impacto-vpn.txt`.
+**Feito em 19/09/2026, das 14:41 às 19:31**, com o responsável operando o
+aparelho. Evidência em `docs/relatorios/evidencias/a8-impacto-vpn.txt`.
 
 | Rodada | Resultado |
 |---|---|
@@ -925,7 +929,7 @@ está em andamento. Evidência em `docs/relatorios/evidencias/a8-impacto-vpn.txt
 | D1 — DNS privado estrito | ❌ **Com a nossa VPN ligada, os apps ficaram sem DNS**, e o sistema avisou "Não é possível acessar o servidor DNS privado" |
 | D2 — DNS seguro do Chrome | ⚠️ O endereço principal de cada navegação continuou passando pela VPN (2 de 2 domínios da lista detectados); os domínios secundários da página, não |
 | E — queda e volta do Wi-Fi | ✅ A VPN ficou conectada, percebeu a queda (`upstream_lost`) e pegou a rede nova sozinha 27 s depois |
-| Bateria | em andamento: janela de 1 a 2 h fora do cabo, com uso leve |
+| Bateria — 2h 10 fora do cabo | ✅ 0,366% de CPU e 2,79 mAh de 97,0 do aparelho (1,47 é a tela, cobrada porque o laboratório ficou 1 min na frente). Nenhum wakelock parcial. A VPN atravessou o Doze profundo (91% da janela) e o modo economia de energia (100% da janela) |
 
 #### O defeito do repasse (rodada A)
 
@@ -950,6 +954,51 @@ falso. Voltar ao "Automático" resolveu em menos de um minuto. Para o produto:
 detectar o modo estrito antes de ligar a VPN, e depois dela ligada, é
 obrigatório (I-22).
 
+#### A bateria: barata, mas medida com o aparelho parado
+
+Das 17:15:44 às 19:25:31, fora do cabo, com a VPN em modo alerta e o serviço do
+limite ligados. O `batterystats` se zera sozinho quando o cabo sai, então as
+estatísticas "since last charge" cobrem exatamente a janela.
+
+A janela **não foi de uso leve, foi de aparelho parado**: 6m 58s de tela ligada
+em 2h 09m, 91,4% em Doze profundo e modo economia de energia ligado o tempo
+todo. Mede bem o custo de uma VPN que fica ligada 24 h por dia; não mede o custo
+durante navegação pesada.
+
+| métrica | A9 (só o serviço, 17/09) | A8 (serviço + VPN) |
+|---|---|---|
+| ciclo de CPU | 0,138% | 0,366% |
+| mAh no estado "serviço" | 0,282 | 1,00 |
+| mAh do UID, fora a tela | 0,476 | 1,32 |
+| projeção por dia | ~5,5 mAh | ~11 a 15 mAh (0,3% a 0,4% de 3590 mAh) |
+
+Nenhum wakelock parcial: a VPN não acorda o aparelho, só trabalha quando a CPU
+já está acordada por outro motivo. O serviço em primeiro plano rodou 2h 08m 45s
+sem parar, com detecções espalhadas pela janela inteira.
+
+**Duas ressalvas honestas sobre esse número:**
+
+1. A diferença para o A9 não é toda da VPN. O laboratório foi aberto 3 vezes
+   (1 min em primeiro plano) e, com o cabo fora, o `adb reverse` morre: o dev
+   client passa a tentar reconectar ao Metro a cada 2 s, resolvendo "localhost"
+   a cada tentativa (178 consultas do nosso UID em 58 min, de 0 a 1 ms, que
+   pararam no segundo em que o `adb reverse` voltou). É custo do build de
+   desenvolvimento, não do produto. Se o mesmo valia no A9, não dá para saber
+   depois do fato. O número medido é, portanto, um **teto**.
+2. O volume de DNS foi o de um aparelho parado: nos 58 min que o logcat ainda
+   guardava, 199 consultas de 18 apps em segundo plano pela rede da VPN, 91
+   delas respondidas pelo cache do sistema. As 108 consultas de verdade tiveram
+   mediana de 20 ms e p90 de 74 ms **com a VPN no caminho** — a única acima de
+   1 s foi barrada pelo próprio sistema, não pela VPN.
+
+#### Tráfego de fundo dispara detecção sem ninguém usando o app
+
+Na janela parada, 11 detecções de instagram.com e, em 10 delas, o app do
+Instagram **não estava na tela** (8 com a tela apagada, 2 com o laboratório na
+frente). É o app consultando sozinho em segundo plano. Um detector que olhasse
+só o domínio contaria 11 acessos onde houve 1; o cruzamento com o app em
+primeiro plano, que o protótipo já faz, é o que separa os dois casos (I-20).
+
 #### O que ficou de fora
 
 - Troca de Wi-Fi para **dados móveis**: o S22 está sem serviço de celular.
@@ -958,6 +1007,8 @@ obrigatório (I-22).
 - Outros navegadores com DNS seguro próprio (Firefox), não instalados.
 - A causa das consultas barradas de apps em segundo plano (`isBlocked=true`),
   que aparecem com e sem VPN.
+- **Bateria com uso de verdade**: fica para o roteiro T6 (um dia inteiro de uso
+  normal com o monitoramento ligado).
 
 ### Achado A9 (parcial) — sobrevivência em segundo plano e custo
 
@@ -1171,10 +1222,11 @@ decidido fora do Claude Code.
 | I-17 | A VPN do A6 exige consentimento numa caixa do sistema cujo texto diz que ela "permite monitorar o tráfego da rede", e mostra a chave de VPN na barra de status enquanto estiver ligada | Doc 01 P7 (discrição), §4 (onboarding) | Preparar o usuário para essa caixa no onboarding; aceitar a chave visível o tempo todo |
 | I-18 | Só uma VPN funciona por vez: ligar outra desliga a do app na hora, e ela **não volta sozinha** quando a outra é desligada (A8, com a "Wi-Fi seguro" da Samsung) | Doc 01 §6.5, doc 02 riscos | Decidir o que fazer com quem já usa VPN; o app precisa perceber a queda (`onRevoke`) e avisar o usuário |
 | I-19 | Google Play: toda VPN exige declaração no Play Console, em categoria permitida (ex.: "monitoramento de uso de apps"); ler domínios visitados conta como histórico de navegação e exige declaração em destaque com consentimento dentro do app; a revisão pede vídeos | Doc 02 riscos, fase 9; A10 | Escolher a categoria e desenhar a declaração em destaque antes da publicação |
-| I-20 | A detecção por DNS é um indício, não prova de acesso: pré-carregamento dispara alerta sem visita, e página guardada no navegador aparece sem nova consulta. DNS seguro do Chrome 153 (A8): o endereço principal de cada navegação ainda passou pela VPN, só os domínios secundários sumiram; comportamento interno, que pode mudar | Doc 01 §6.5 ("onde tecnicamente possível"), §6.8 (estatísticas, recaídas) | Não tratar detecção como recaída automática; tratar o alerta de conteúdo como lembrete |
+| I-20 | A detecção por DNS é um indício, não prova de acesso: pré-carregamento dispara alerta sem visita, e página guardada no navegador aparece sem nova consulta. DNS seguro do Chrome 153 (A8): o endereço principal de cada navegação ainda passou pela VPN, só os domínios secundários sumiram; comportamento interno, que pode mudar. E o próprio app da rede social consulta sozinho em segundo plano: em 2h 10 de aparelho parado, 10 das 11 detecções de instagram.com aconteceram sem ninguém no app (A8) | Doc 01 §6.5 ("onde tecnicamente possível"), §6.8 (estatísticas, recaídas) | Não tratar detecção como recaída automática; tratar o alerta de conteúdo como lembrete; cruzar sempre com o app em primeiro plano antes de contar um acesso |
 | I-21 | Redes sociais pelo navegador: o acesso é detectável (DNS + app em primeiro plano), mas o tempo de uso só se estima por heurística: +13% numa rodada de 5 min, resolução de ~1 min, e erro de −99% a +67% fora de uma faixa estreita de ajuste. A API do Chrome para o Bem-estar digital não é pública | Doc 01 §6.2 (limite de vídeos curtos), §6.8 (tempo de uso), risco R5 | Decidir se o limite conta o navegador (e com que precisão), ou se o navegador vira só gatilho de alerta depois que o limite do app estoura |
 | I-22 | **Com "DNS privado" no modo estrito (provedor com nome, comum para bloquear anúncios), ligar a VPN do app deixa os apps sem DNS**: o sistema não alcança o provedor pela rede da VPN, marca a rede como sem internet e avisa "Não é possível acessar o servidor DNS privado". A VPN também não vê nada nesse modo | Doc 01 §6.5, onboarding (§4); doc 02 riscos | O app precisa detectar o modo estrito antes de ligar a VPN (e depois, se mudar) e orientar o usuário, ou não ligar a VPN; nunca deixar o aparelho sem internet |
 | I-23 | O DNS do roteador doméstico perde consultas em rajadas de páginas pesadas, com ou sem VPN; um repasse ingênuo transforma essas perdas em atraso de 2 a 3 s para todas as consultas (medido e corrigido no A8) | Doc 02 riscos (qualidade da conexão com a VPN) | O repasse do app definitivo precisa de concorrência sem fila e nova tentativa curta, e de monitoramento de falhas |
+| I-24 | Custo da VPN somada ao serviço, com o aparelho parado (A8): 0,366% de CPU e ~1 mAh a cada 2 h, contra 0,138% e ~0,5 mAh do serviço sozinho (A9). Sem wakelock; atravessa Doze profundo e modo economia de energia. Projeção de 0,3% a 0,4% de bateria por dia, e o número é um teto (inclui ruído do ambiente de desenvolvimento) | Doc 02 riscos (bateria), roteiro T6 | O risco de bateria segue baixo, mas o número vale para aparelho parado: confirmar com um dia de uso real no T6 |
 
 ## Comandos
 
@@ -1195,7 +1247,8 @@ Rodar dentro de `prototype/`. Os exemplos usam Git Bash; `adb` fica em
 | Ler a configuração do limite | `adb shell run-as com.norte.lab.dev cat shared_prefs/lab-limit.xml` |
 | Estado do serviço | `adb shell dumpsys activity services com.norte.lab.dev` |
 | Histórico de uso do sistema | `adb shell dumpsys usagestats` (dados pessoais — não versionar inteiro) |
-| Consumo por app | `adb shell dumpsys batterystats` (zerar antes com `--reset`) |
+| Consumo por app | `adb shell dumpsys batterystats` (zerar antes com `--reset`; tirar o cabo também zera sozinho) |
+| Consultas de DNS do sistema | `adb logcat -d -s NetdEventListenerService` (só contagens e tempos; o buffer guarda cerca de 1 h) |
 | Estado do Doze | `adb shell dumpsys deviceidle` |
 | Notificações ativas | `adb shell dumpsys notification --noredact` |
 | Bucket de standby | `adb shell am get-standby-bucket com.norte.lab.dev` |
@@ -1339,6 +1392,20 @@ que descarta duas versões disputando a porta.
 adb.exe`), depois `adb start-server`, e refazer o `adb reverse tcp:8081 tcp:8081`
 (P3). Nos scripts, envolver os comandos do adb em `timeout`, e evitar gravadores
 por segundo em sessões longas: preferir leituras pontuais.
+
+### P8 — Com o cabo fora, o dev client fica tentando o Metro a cada 2 s
+**Sintoma:** em medições de bateria com o aparelho desconectado, o UID do
+protótipo aparece resolvendo nomes a cada 2 s, em rajadas de ~30 por minuto
+(178 consultas em 58 min na janela do A8), todas de 0 a 1 ms.
+
+**Causa:** o `adb reverse` morre junto com o cabo (P3), o dev client perde o
+Metro e entra em laço de reconexão, resolvendo `localhost` a cada tentativa. As
+consultas pararam no segundo em que o `adb reverse` voltou, o que confirma a
+origem.
+
+**Solução:** para medir bateria com honestidade, encerrar o Metro antes de tirar
+o cabo, ou tratar o número medido como teto e dizer isso no registro (foi o caso
+do A8). Vale para o roteiro T6.
 
 ## Tentativas malsucedidas
 

@@ -1,5 +1,5 @@
 # A8 — Impacto da VPN local de DNS no aparelho
-# Galaxy S22, Android 16 / One UI 8, 19/09/2026, 14:41–16:02 (e janela de bateria)
+# Galaxy S22, Android 16 / One UI 8, 19/09/2026, 14:41–19:31
 # VPN do A6/A7 em modo alerta · Chrome 153 · Wi-Fi doméstico (DNS do roteador)
 # Fontes: log compartilhado; registro de DNS do sistema (NetdEventListenerService),
 # só contagens e tempos, sem nomes de apps além do Chrome e dos citados.
@@ -116,8 +116,72 @@
   resposta" da sessão são as que chegaram durante os ~27 s sem rede.
 
 =====================================================================
-## Bateria — janela curta, em andamento
-  16:02  VPN ligada (modo alerta), serviço do limite ligado, bateria em 100%,
-  cabo retirado pelo responsável para 1 a 2 h de uso leve.
-  Retrato antes (estatísticas desde 00:30): UID do protótipo 9,46 mAh
-  (primeiro plano 3,48 · segundo plano 1,11 · serviço em primeiro plano 4,87).
+## Bateria — janela fora do cabo (17:15:44 às 19:25:31)
+  Cabo retirado pelo responsável às 17:15:43 e reconectado às 19:25:31. O
+  batterystats zerou sozinho na retirada (RESET:TIME 2026-09-19-17-15-43-988,
+  Start clock time 2026-09-19-17-15-43), então as estatísticas "since last
+  charge" cobrem exatamente a janela. VPN em modo alerta e serviço do limite
+  ligados o tempo todo.
+
+  Como a janela foi de verdade — quase toda parada, e não "uso leve"
+  tempo na bateria           2h 9m 47s
+  tela ligada                6m 58s (5,4%), 3 vezes
+  Doze profundo              1h 58m 37s (91,4%), 2 vezes
+  modo economia de energia   2h 9m 47s (100%)  <- ligado a janela inteira
+  bateria                    100% -> 96%; descarga 115 mAh (drain computado 97,0)
+
+  Custo atribuído ao protótipo (UID u0a162)
+  total                      2,79 mAh de 97,0 = 2,9% do aparelho
+    tela                     1,47 mAh  (cobrada porque o laboratório ficou 1m01s
+                                        na frente; não é trabalho do serviço)
+    CPU                      1,31 mAh  (primeiro plano 0,122 · segundo plano
+                                        0,187 · serviço em primeiro plano 1,00)
+    sensores / Wi-Fi         0,000715 / 0,000064 mAh
+  tempo de CPU               u=20s 470ms + s=8s 35ms = 28,5 s em 7787 s = 0,366%
+  wakelock parcial           nenhum. Só o *full* da janela do app (51 s, com a
+                             tela ligada): a VPN não acorda o aparelho
+
+  Comparação com o A9 (17/09, só o serviço do limite, sem VPN, 2h05)
+  métrica                          A9 (sem VPN)   A8 (com VPN)
+  ciclo de CPU                     0,138%         0,366%
+  mAh no estado "serviço"          0,282          1,00
+  mAh do UID, fora a tela          0,476          1,32
+  projeção por dia                 ~5,5 mAh       ~11 a 15 mAh
+  (0,3% a 0,4% de uma bateria de 3590 mAh por dia)
+
+  Ressalva: a diferença NÃO é toda da VPN. Duas outras coisas entraram na janela
+  e não existiriam no produto:
+  - o laboratório foi aberto 3 vezes (1m 02s em primeiro plano);
+  - com o cabo fora o `adb reverse` morre, e o dev client fica tentando
+    reconectar ao Metro a cada 2 s, resolvendo "localhost" a cada tentativa:
+    178 consultas do nosso UID em 58 min, todas de 0 a 1 ms, em rajadas de
+    ~30/min. Pararam no segundo em que o `adb reverse` voltou (19:33), o que
+    confirma a origem. É custo do build de desenvolvimento. Se o mesmo valia no
+    A9, não dá para saber depois do fato.
+  De todo modo o teto está medido: cerca de 1 mAh a cada 2 h numa bateria de
+  3590 mAh, sem nenhum wakelock.
+
+  Quanto DNS passou pela VPN nessa janela parada
+  O logcat só guardou de 18:27:29 em diante. Nesses 58 min, pela rede da VPN:
+    199 consultas de 18 apps diferentes, todos em segundo plano
+     91 respondidas pelo cache do sistema (0 a 1 ms) e 108 de verdade
+    mediana 20 ms · p90 74 ms
+    a única acima de 1 s foi barrada pelo próprio sistema (isBlocked=true,
+    3008 ms), o mesmo padrão da rodada B
+  Contadores da sessão inteira da VPN (14:56:17 a 19:30:39, 4h34), do
+  `vpn_stopped` ao ser desligada pelo laboratório:
+    448 consultas · 434 repassadas (2 na segunda tentativa) · 14 sem resposta
+    (as da queda do Wi-Fi da rodada E) · 2 da lista · 35 de rede social ·
+    30 outros pacotes descartados · ida e volta média ao DNS da rede: 23,0 ms
+
+  A VPN atravessou o Doze profundo e o modo economia
+  O serviço em primeiro plano rodou 2h 8m 45s sem parar e houve detecção
+  espalhada pela janela inteira: 17:16, 17:17, 17:56, 18:36, 18:39, 18:49,
+  19:14, 19:16, 19:24 (duas) e 19:25.
+
+  Efeito colateral que interessa ao A7
+  Foram 11 detecções de instagram.com na janela e, em 10 delas, o app do
+  Instagram NÃO estava na tela: 8 com a tela apagada ("em primeiro plano:
+  desconhecido") e 2 com o próprio laboratório na frente. Só uma coincidiu com
+  o Instagram aberto (19:24:30). É tráfego de fundo do app — um detector que
+  olhasse só o domínio contaria 11 acessos onde houve 1.
