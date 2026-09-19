@@ -46,6 +46,9 @@ export default function LabScreen() {
   const [overlay, setOverlay] = useState<PermissionState | null>(null);
   const [interruptionMode, setInterruptionMode] = useState<InterruptionMode>('overlay');
 
+  // A5
+  const [pauseMinutes, setPauseMinutes] = useState('2');
+
   const refreshLog = useCallback(async () => {
     setLog(await monitoring.getLog());
   }, []);
@@ -70,6 +73,7 @@ export default function LabScreen() {
       hydrated.current = true;
       if (status.packages.length) setTargets(status.packages);
       setInterruptionMode(status.interruptionMode);
+      if (status.pauseMinutes) setPauseMinutes(String(status.pauseMinutes));
     }
   }, []);
 
@@ -268,6 +272,7 @@ export default function LabScreen() {
                     packages: targets,
                     message,
                     interruptionMode,
+                    pauseMinutes: Number(pauseMinutes) || 1,
                   });
                 })
               }
@@ -393,10 +398,40 @@ export default function LabScreen() {
 
           {limit?.escalatedAt ? (
             <Row
-              label="Interrupção mostrada"
+              label="Última interrupção"
               value={new Date(limit.escalatedAt).toLocaleTimeString('pt-BR')}
             />
           ) : null}
+        </Section>
+
+        <Section title="A5 — Pausa depois de continuar">
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Pausa (minutos)</Text>
+            <TextInput
+              style={styles.input}
+              value={pauseMinutes}
+              onChangeText={setPauseMinutes}
+              keyboardType="number-pad"
+              placeholder="2"
+              placeholderTextColor="#475569"
+            />
+          </View>
+
+          <Text style={styles.note}>
+            Salva ao tocar em &quot;Iniciar limite&quot;. Só &quot;Continuar mesmo assim&quot; pausa
+            os alertas. &quot;Ir para a tela inicial&quot; e &quot;Emergência&quot; não pausam: reabrir o
+            app monitorado interrompe de novo. No fim da pausa vem a notificação e, se o uso
+            continuar, a tela de interrupção.
+          </Text>
+
+          <Row
+            label="Pausa em curso"
+            value={
+              limit?.pausedUntil
+                ? `até ${new Date(limit.pausedUntil).toLocaleTimeString('pt-BR')}`
+                : 'não'
+            }
+          />
         </Section>
 
         <Section title={`S4 — Log compartilhado (${log.length})`}>

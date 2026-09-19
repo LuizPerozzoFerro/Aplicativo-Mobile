@@ -67,10 +67,14 @@ export type UsageLimitStatus = {
   /** Texto neutro do alerta (experimento C2). */
   message: string;
   interruptionMode: InterruptionMode;
-  /** Epoch em ms do alerta de nivel 2; 0 se ainda nao houve. */
+  /** Epoch em ms do ultimo alerta de nivel 2; 0 se ainda nao houve. */
   escalatedAt: number;
   /** Epoch em ms de quando o limite foi atingido; 0 se ainda nao foi. */
   firedAt: number;
+  /** A5: duracao da pausa depois do "Continuar mesmo assim", em minutos. */
+  pauseMinutes: number;
+  /** A5: epoch em ms do fim da pausa pendente; 0 se nao ha pausa. */
+  pausedUntil: number;
 };
 
 /** Abordagem da tela de interrupcao do A4. */

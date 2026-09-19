@@ -48,7 +48,8 @@ const monitoring: MonitoringModule = {
       config.minutes,
       config.packages,
       config.message,
-      config.interruptionMode
+      config.interruptionMode,
+      config.pauseMinutes
     );
   },
 

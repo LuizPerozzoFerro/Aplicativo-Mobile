@@ -41,7 +41,8 @@ public class LabMonitoringModule: Module {
 
     // O equivalente no iOS e o DeviceActivityMonitor do Screen Time, agendado via
     // Family Controls. Chega no experimento I3.
-    AsyncFunction("startUsageLimit") { (_: Int, _: [String], _: String, _: String) in
+    // O ultimo parametro e a pausa do A5; no iOS ela vira o I6.
+    AsyncFunction("startUsageLimit") { (_: Int, _: [String], _: String, _: String, _: Int) in
       throw UnsupportedOnIOSException()
     }
 
@@ -70,6 +71,7 @@ public class LabMonitoringModule: Module {
       return [
         "active": false, "minutes": 0, "packages": [String](), "message": "",
         "interruptionMode": "overlay", "escalatedAt": 0, "firedAt": 0,
+        "pauseMinutes": 0, "pausedUntil": 0,
       ]
     }
 

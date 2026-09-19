@@ -174,7 +174,7 @@ class LabMonitoringModule : Module() {
       apps
     }
 
-    AsyncFunction("startUsageLimit") { minutes: Int, packages: List<String>, message: String, interruptionMode: String ->
+    AsyncFunction("startUsageLimit") { minutes: Int, packages: List<String>, message: String, interruptionMode: String, pauseMinutes: Int ->
       if (!UsageReader.hasUsageAccess(context)) {
         throw PermissionDeniedException()
       }
@@ -182,7 +182,7 @@ class LabMonitoringModule : Module() {
         throw NoTargetsException()
       }
 
-      LimitConfig.save(context, minutes, packages, message, interruptionMode)
+      LimitConfig.save(context, minutes, packages, message, interruptionMode, pauseMinutes)
 
       val intent = Intent(context, UsageLimitService::class.java)
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -196,7 +196,8 @@ class LabMonitoringModule : Module() {
         source = "app",
         experiment = "A2",
         event = "limit_configured",
-        details = "$minutes min para ${packages.size} app(s)"
+        details = "$minutes min para ${packages.size} app(s) · pausa de $pauseMinutes min · " +
+          "abordagem: $interruptionMode"
       )
     }
 
@@ -213,7 +214,9 @@ class LabMonitoringModule : Module() {
         "firedAt" to LimitConfig.firedAt(context),
         "message" to LimitConfig.message(context),
         "interruptionMode" to LimitConfig.interruptionMode(context),
-        "escalatedAt" to LimitConfig.escalatedAt(context)
+        "escalatedAt" to LimitConfig.escalatedAt(context),
+        "pauseMinutes" to LimitConfig.pauseMinutes(context),
+        "pausedUntil" to LimitConfig.pausedUntil(context)
       )
     }
 

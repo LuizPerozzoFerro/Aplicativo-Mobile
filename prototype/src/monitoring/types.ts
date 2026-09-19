@@ -44,6 +44,8 @@ export type UsageLimitConfig = {
   interruptionMode: InterruptionMode;
   /** Texto neutro do alerta (A3). Configuravel para atender o C2. */
   message: string;
+  /** A5: minutos sem alerta depois do "Continuar mesmo assim". */
+  pauseMinutes: number;
 };
 
 export type AdultContentWatchConfig = {

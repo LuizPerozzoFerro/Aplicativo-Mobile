@@ -67,6 +67,8 @@ class LabMonitoringModule extends NativeModule<{}> {
       interruptionMode: 'overlay',
       escalatedAt: 0,
       firedAt: 0,
+      pauseMinutes: 0,
+      pausedUntil: 0,
     };
   }
 

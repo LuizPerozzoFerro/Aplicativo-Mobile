@@ -23,7 +23,8 @@ declare class LabMonitoringModule extends NativeModule<{}> {
     minutes: number,
     packages: string[],
     message: string,
-    interruptionMode: InterruptionMode
+    interruptionMode: InterruptionMode,
+    pauseMinutes: number
   ): Promise<void>;
   requestOverlayPermission(): Promise<OverlayPermissionResult>;
   hideInterruption(): Promise<void>;

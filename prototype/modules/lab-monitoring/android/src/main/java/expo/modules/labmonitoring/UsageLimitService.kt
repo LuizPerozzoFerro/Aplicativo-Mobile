@@ -101,18 +101,9 @@ class UsageLimitService : Service() {
     val targets = LimitConfig.packages(this)
     if (targets.isEmpty()) return
 
-    // Alerta de nivel 2 (A4): se o limite ja estourou e o usuario CONTINUA no app
-    // monitorado, escalamos para a tela de interrupcao. Isso e o "se o uso
-    // continuar" do documento 01, secao 6.5.
     if (LimitConfig.firedAt(this) > 0L) {
-      if (LimitConfig.escalatedAt(this) == 0L) {
-        val foreground = UsageReader.currentForegroundPackage(this)
-        if (foreground != null && foreground in targets) {
-          LimitConfig.markEscalated(this, System.currentTimeMillis())
-          showInterruption(foreground)
-        }
-      }
-      return // A5 vai tratar a pausa depois do "continuar mesmo assim"
+      checkAfterLimit(targets)
+      return
     }
 
     val limitMs = LimitConfig.minutes(this) * 60_000L
@@ -133,17 +124,86 @@ class UsageLimitService : Service() {
       )
 
       // A3: alerta de nivel 1, disparado daqui mesmo -- o app pode estar fechado.
-      val message = LimitConfig.message(this)
-      val sent = runCatching { Notifier.sendLimitAlert(this, message) }
+      sendLimitAlert(experiment = "A3", details = null)
+    }
+  }
 
+  /**
+   * Verificacoes feitas durante a pausa em curso, identificada pelo seu fim. So
+   * vive na memoria: prova, no pause_ended, que o servico seguiu rodando enquanto
+   * os alertas estavam silenciados. Se o servico for recriado no meio da pausa, a
+   * conta recomeca dali.
+   */
+  private var countedPauseUntil = 0L
+  private var checksDuringPause = 0
+
+  /**
+   * Depois do limite. Alerta de nivel 2 (A4) sempre que a pessoa estiver no app
+   * monitorado -- o "se o uso continuar" do documento 01, secao 6.5 --, exceto
+   * durante a pausa do A5. Ate o A4, a tela de interrupcao aparecia uma unica vez
+   * por limite; agora ela volta a cada reabertura do app, porque so o "Continuar"
+   * pausa (decisao do responsavel em 18/09/2026).
+   */
+  private fun checkAfterLimit(targets: List<String>) {
+    val now = System.currentTimeMillis()
+    val pausedUntil = LimitConfig.pausedUntil(this)
+
+    // A5: durante a pausa, nenhum alerta, de nenhum nivel.
+    if (pausedUntil > now) {
+      if (pausedUntil != countedPauseUntil) {
+        countedPauseUntil = pausedUntil
+        checksDuringPause = 0
+      }
+      checksDuringPause++
+      return
+    }
+
+    val foreground = UsageReader.currentForegroundPackage(this)
+    val target = foreground?.takeIf { it in targets }
+
+    if (pausedUntil > 0L) {
+      // A5: a pausa acabou. O fim so e notado na verificacao seguinte, entao o
+      // atraso vai de zero a um intervalo inteiro.
+      LimitConfig.clearPause(this)
+      val checks = if (countedPauseUntil == pausedUntil) checksDuringPause else 0
       EventLog.append(
         context = this,
         source = "UsageLimitService",
-        experiment = "A3",
-        event = if (sent.isSuccess) "notification_sent" else "notification_failed",
-        details = sent.exceptionOrNull()?.let { "${it.javaClass.simpleName}: ${it.message}" }
+        experiment = "A5",
+        event = "pause_ended",
+        details = "atraso ${(now - pausedUntil) / 1000} s · " +
+          "$checks verificacoes durante a pausa · " +
+          "em primeiro plano: ${foreground ?: "desconhecido"}"
       )
+
+      // Decisao do responsavel: primeiro a notificacao. A tela de interrupcao vem
+      // no ciclo seguinte, se a pessoa continuar no app.
+      if (target != null) {
+        sendLimitAlert(experiment = "A5", details = "fim da pausa")
+        return
+      }
     }
+
+    if (target == null) return
+    if (InterruptionOverlay.isShowing || InterruptionActivity.isShowing) return
+    if (InterruptionExits.exitedRecently(now)) return
+
+    LimitConfig.markEscalated(this, now)
+    showInterruption(target)
+  }
+
+  /** Alerta de nivel 1: a notificacao do A3. */
+  private fun sendLimitAlert(experiment: String, details: String?) {
+    val sent = runCatching { Notifier.sendLimitAlert(this, LimitConfig.message(this)) }
+
+    EventLog.append(
+      context = this,
+      source = "UsageLimitService",
+      experiment = experiment,
+      event = if (sent.isSuccess) "notification_sent" else "notification_failed",
+      details = sent.exceptionOrNull()?.let { "${it.javaClass.simpleName}: ${it.message}" }
+        ?: details
+    )
   }
 
   /** A4: mostra a tela de interrupcao, pela abordagem configurada. */

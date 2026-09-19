@@ -2,10 +2,14 @@ package expo.modules.labmonitoring
 
 import android.content.Context
 import android.content.Intent
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
- * Saidas da tela de interrupcao comuns as duas abordagens do A4: ir para a tela
- * inicial e conferir onde o usuario realmente foi parar.
+ * Saidas da tela de interrupcao comuns as duas abordagens do A4 (tela inicial,
+ * emergencia, conferencia do retorno) e a pausa do A5 que vem depois do
+ * "Continuar".
  */
 object InterruptionExits {
 
@@ -15,6 +19,25 @@ object InterruptionExits {
    * para voltar; sem a espera, a leitura pegaria a transicao pela metade.
    */
   private const val LANDING_CHECK_DELAY_MS = 1_500L
+
+  /**
+   * Carencia depois de qualquer saida da interrupcao, durante a qual o servico nao
+   * interrompe de novo. O servico decide pelo historico de uso, que chega dezenas
+   * de milissegundos atrasado em relacao a tela: na rodada O3, o Instagram so
+   * pausou 25 ms depois do toque em "Ir para a tela inicial", e o lancador so
+   * voltou 65 ms depois. Uma verificacao que caisse nessa janela veria o
+   * Instagram ainda na frente e reabriria a sobreposicao sobre a tela inicial.
+   */
+  private const val EXIT_GRACE_MS = 3_000L
+
+  @Volatile private var lastExitAt = 0L
+
+  /** Marca a saida da interrupcao, por botao ou por dispensa. */
+  fun markExit() {
+    lastExitAt = System.currentTimeMillis()
+  }
+
+  fun exitedRecently(now: Long): Boolean = now - lastExitAt < EXIT_GRACE_MS
 
   /**
    * "Ir para a tela inicial" (I-15). Abre o lancador do aparelho pelo intent de
@@ -30,6 +53,38 @@ object InterruptionExits {
       .addCategory(Intent.CATEGORY_HOME)
       .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     return runCatching { context.startActivity(intent) }
+  }
+
+  /**
+   * "Emergencia": abre o laboratorio, que faz as vezes do fluxo de emergencia do
+   * app definitivo (documento 01, secao 6.7). E o mesmo destino do botao da
+   * notificacao (A3). Decisao do responsavel em 18/09/2026: sem pausa.
+   */
+  fun openLab(context: Context): Result<Unit> = runCatching {
+    val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+      ?: error("sem intent de abertura para ${context.packageName}")
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    context.startActivity(intent)
+  }
+
+  /**
+   * A5: o "Continuar mesmo assim" silencia os dois niveis de alerta por alguns
+   * minutos. So o "Continuar" pausa: a tela inicial e a emergencia nao (decisao
+   * do responsavel em 18/09/2026), e reabrir o app monitorado depois delas
+   * interrompe de novo.
+   */
+  fun startPause(context: Context, source: String) {
+    val minutes = LimitConfig.pauseMinutes(context)
+    val until = System.currentTimeMillis() + minutes * 60_000L
+    LimitConfig.setPausedUntil(context, until)
+
+    EventLog.append(
+      context = context,
+      source = source,
+      experiment = "A5",
+      event = "pause_started",
+      details = "$minutes min, ate ${SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(until))}"
+    )
   }
 
   /**

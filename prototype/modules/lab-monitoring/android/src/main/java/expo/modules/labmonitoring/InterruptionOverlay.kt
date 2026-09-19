@@ -27,7 +27,8 @@ import android.widget.TextView
  * (basta remover a view) e evita o risco de o usuario voltar para o lugar errado.
  */
 object InterruptionOverlay {
-  private var view: View? = null
+  // Lida tambem pela thread do servico (A5), para nao empilhar interrupcoes.
+  @Volatile private var view: View? = null
 
   fun canDraw(context: Context): Boolean =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) Settings.canDrawOverlays(context) else true
@@ -86,6 +87,10 @@ object InterruptionOverlay {
           event = "continue_tapped",
           details = "abordagem: sobreposicao"
         )
+        // A pausa comeca ANTES de a janela sair: o servico roda em outra thread e,
+        // sem ela, poderia ver o Instagram na tela e interromper de novo.
+        InterruptionExits.startPause(context, source = "InterruptionOverlay")
+        InterruptionExits.markExit()
         hide(context)
         InterruptionExits.logReturn(
           context = context,
@@ -106,6 +111,17 @@ object InterruptionOverlay {
           event = "emergency_tapped",
           details = "abordagem: sobreposicao"
         )
+        // Como na tela inicial: abre o destino antes de a janela sair.
+        InterruptionExits.openLab(context).onFailure {
+          EventLog.append(
+            context = context,
+            source = "InterruptionOverlay",
+            experiment = "A4",
+            event = "emergency_failed",
+            details = "${it.javaClass.simpleName}: ${it.message}"
+          )
+        }
+        InterruptionExits.markExit()
         hide(context)
       }
     })
@@ -132,6 +148,7 @@ object InterruptionOverlay {
             details = "${it.javaClass.simpleName}: ${it.message}"
           )
         }
+        InterruptionExits.markExit()
         hide(context)
       }
     })

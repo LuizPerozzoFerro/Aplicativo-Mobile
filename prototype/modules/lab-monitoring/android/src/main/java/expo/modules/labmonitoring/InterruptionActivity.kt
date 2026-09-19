@@ -29,6 +29,13 @@ class InterruptionActivity : Activity() {
   companion object {
     const val EXTRA_MOTIVATION = "motivation"
     const val EXTRA_RETURN_TO = "returnTo"
+
+    /**
+     * Se ha uma instancia viva, inclusive durante a recriacao por giro. Lido pela
+     * thread do servico (A5), para nao abrir uma segunda interrupcao por cima.
+     */
+    @Volatile var isShowing = false
+      private set
   }
 
   /** Verdadeiro depois do toque num dos botoes, que registram o proprio evento. */
@@ -42,6 +49,7 @@ class InterruptionActivity : Activity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    isShowing = true
 
     val motivation = intent.getStringExtra(EXTRA_MOTIVATION) ?: Notifier.DEFAULT_MESSAGE
     val returnTo = intent.getStringExtra(EXTRA_RETURN_TO)
@@ -79,6 +87,8 @@ class InterruptionActivity : Activity() {
           event = "continue_tapped",
           details = "abordagem: activity"
         )
+        InterruptionExits.startPause(this@InterruptionActivity, source = "InterruptionActivity")
+        InterruptionExits.markExit()
 
         // Devolver o usuario ao app de onde ele veio. Numa sobreposicao isso seria
         // automatico; aqui precisa ser explicito.
@@ -106,6 +116,16 @@ class InterruptionActivity : Activity() {
           event = "emergency_tapped",
           details = "abordagem: activity"
         )
+        InterruptionExits.openLab(this@InterruptionActivity).onFailure {
+          EventLog.append(
+            context = this@InterruptionActivity,
+            source = "InterruptionActivity",
+            experiment = "A4",
+            event = "emergency_failed",
+            details = "${it.javaClass.simpleName}: ${it.message}"
+          )
+        }
+        InterruptionExits.markExit()
         finish()
       }
     })
@@ -131,6 +151,7 @@ class InterruptionActivity : Activity() {
             details = "${it.javaClass.simpleName}: ${it.message}"
           )
         }
+        InterruptionExits.markExit()
         finish()
       }
     })
@@ -173,14 +194,18 @@ class InterruptionActivity : Activity() {
    * recriacao por giro tambem passa por aqui, e nao conta como saida.
    */
   override fun onDestroy() {
-    if (!resolved && !isChangingConfigurations) {
-      EventLog.append(
-        context = this,
-        source = "InterruptionActivity",
-        experiment = "A4",
-        event = "interruption_dismissed",
-        details = "abordagem: activity · motivo: ${leaveReason ?: "outro"}"
-      )
+    if (!isChangingConfigurations) {
+      isShowing = false
+      if (!resolved) {
+        EventLog.append(
+          context = this,
+          source = "InterruptionActivity",
+          experiment = "A4",
+          event = "interruption_dismissed",
+          details = "abordagem: activity · motivo: ${leaveReason ?: "outro"}"
+        )
+        InterruptionExits.markExit()
+      }
     }
     super.onDestroy()
   }

@@ -18,6 +18,8 @@ object LimitConfig {
   private const val KEY_MESSAGE = "message"
   private const val KEY_MODE = "interruptionMode"
   private const val KEY_ESCALATED_AT = "escalatedAt"
+  private const val KEY_PAUSE_MINUTES = "pauseMinutes"
+  private const val KEY_PAUSED_UNTIL = "pausedUntil"
 
   private fun prefs(context: Context) =
     context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -27,7 +29,8 @@ object LimitConfig {
     minutes: Int,
     packages: List<String>,
     message: String,
-    interruptionMode: String
+    interruptionMode: String,
+    pauseMinutes: Int
   ) {
     prefs(context).edit()
       .putBoolean(KEY_ACTIVE, true)
@@ -35,8 +38,10 @@ object LimitConfig {
       .putStringSet(KEY_PACKAGES, packages.toSet())
       .putString(KEY_MESSAGE, message)
       .putString(KEY_MODE, interruptionMode)
+      .putInt(KEY_PAUSE_MINUTES, pauseMinutes)
       .remove(KEY_FIRED_AT)
       .remove(KEY_ESCALATED_AT)
+      .remove(KEY_PAUSED_UNTIL)
       .apply()
   }
 
@@ -67,10 +72,27 @@ object LimitConfig {
   fun interruptionMode(context: Context): String =
     prefs(context).getString(KEY_MODE, null) ?: "overlay"
 
-  /** Epoch em ms do alerta de nivel 2, ou 0 se ainda nao houve. */
+  /** Epoch em ms do ultimo alerta de nivel 2, ou 0 se ainda nao houve. */
   fun escalatedAt(context: Context) = prefs(context).getLong(KEY_ESCALATED_AT, 0L)
 
   fun markEscalated(context: Context, at: Long) {
     prefs(context).edit().putLong(KEY_ESCALATED_AT, at).apply()
+  }
+
+  /** A5: duracao da pausa depois do "Continuar mesmo assim", em minutos. */
+  fun pauseMinutes(context: Context) = prefs(context).getInt(KEY_PAUSE_MINUTES, 2)
+
+  /**
+   * A5: epoch em ms do fim da pausa, ou 0 se nao ha pausa pendente. Fica em disco,
+   * como o resto: a pausa precisa sobreviver a uma recriacao do servico.
+   */
+  fun pausedUntil(context: Context) = prefs(context).getLong(KEY_PAUSED_UNTIL, 0L)
+
+  fun setPausedUntil(context: Context, at: Long) {
+    prefs(context).edit().putLong(KEY_PAUSED_UNTIL, at).apply()
+  }
+
+  fun clearPause(context: Context) {
+    prefs(context).edit().remove(KEY_PAUSED_UNTIL).apply()
   }
 }
