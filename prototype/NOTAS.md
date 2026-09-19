@@ -7,17 +7,18 @@
 
 ## Estado atual e próximo passo
 
-> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 18/09/2026, 22:45.
+> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 19/09/2026, 00:00.
 
-**Branch:** `prototype/android-usage`. Tudo commitado.
+**Branch:** `prototype/android-vpn`, criado a partir de `prototype/android-usage`
+(que ficou com A1–A5 e A9) para o grupo da VPN: A6, A7 e A8. Tudo commitado.
 
 **Placar do Android:**
 
 | ID | Resultado |
 |---|---|
 | S1 · S4 · A1 · A2 · A5 | ✅ |
-| A3 · A4 · A9 | ⚠️ com limitações documentadas |
-| A6 · A7 · A8 · A10 | não iniciados |
+| A3 · A4 · A6 · A9 | ⚠️ com limitações documentadas |
+| A7 · A8 · A10 | não iniciados |
 | S2 · S3 · iOS | não iniciados — dependem da conta Apple Developer pessoal |
 
 **Feito na sessão da noite de 18/09/2026:**
@@ -30,12 +31,17 @@
 - **A5 ✅**, pausa depois do "Continuar", na sobreposição (ver "Achado A5"). Regras
   decididas pelo responsável: só o "Continuar" pausa; a tela inicial e a emergência
   não; no fim da pausa vem a notificação e, se o uso continuar, a tela.
+- **A6 ⚠️**, domínio da lista por VPN local de DNS (ver "Achado A6" e D5): alerta
+  e bloqueio funcionam no Chrome, com as limitações do próprio DNS.
 
-**Próximo passo: A6**, detecção de domínio adulto em modo alerta por VPN local,
-sem bloquear (spec §6.2). Antes de implementar: consultar a documentação oficial
-atual de `VpnService` e a política do Google Play para VPN (`CLAUDE.md` §8.1),
-explicar as opções ao responsável (é o primeiro serviço novo no manifesto desde o
-A2) e usar a lista configurável de domínios de teste inofensivos (§9).
+**Próximo passo: A7**, acesso a instagram.com pelo navegador (spec §6.2), com a
+mesma VPN. O mínimo é pôr o domínio numa lista e registrar o evento. A pergunta
+de fundo (Q4) é contar **tempo de uso** pelo navegador, e o DNS só marca o momento
+do acesso, não a duração: conversar com o responsável antes de ir além do evento.
+
+**VPN no aparelho:** consentimento concedido (`appops ... ACTIVATE_VPN: allow`),
+VPN **desligada**, lista example.com e example.org, e o último modo salvo é
+**bloqueio**. Trocar para "Alerta" na seção A6 antes de "Iniciar", se for o caso.
 
 **Para testar a interrupção de novo:** o limite no aparelho está em **600 min**
 (ver o estado abaixo). Baixar para 2 min na seção A2 e tocar em "Iniciar limite":
@@ -44,12 +50,13 @@ Desde o A5, **cada** abertura do Instagram acima do limite e fora da pausa
 interrompe de novo. Ao terminar, subir o limite outra vez, para não atrapalhar o
 uso normal do aparelho.
 
-**Estado do aparelho em 18/09/2026, 22:40:** serviço em primeiro plano ativo
-(religado pelo `MY_PACKAGE_REPLACED` na reinstalação das 22:34), **limite de 600
-min** no Instagram (acima do uso diário: o serviço segue rodando sem interromper),
-modo **sobreposição**, pausa de 2 min. Todas as permissões concedidas (acesso a
-dados de uso, notificação, sobreposição). Rotação automática ligada. Metro
-desligado. O relógio do PC estava ~2 s adiantado em relação ao do aparelho.
+**Estado do aparelho em 19/09/2026, 00:00:** serviço do limite ativo (religado
+pelo `MY_PACKAGE_REPLACED` na reinstalação das 23:26), **limite de 600 min** no
+Instagram (acima do uso diário: o serviço segue rodando sem interromper), modo
+**sobreposição**, pausa de 2 min. VPN desligada. Todas as permissões concedidas
+(acesso a dados de uso, notificação, sobreposição, VPN). Rotação automática
+ligada. Metro desligado. O relógio do PC estava ~2 s adiantado em relação ao do
+aparelho.
 
 **Atenção ao abrir o laboratório:** o serviço mantém o processo vivo, e com ele o
 JavaScript antigo na memória. Subir o Metro não basta (P6): com o laboratório na
@@ -144,6 +151,22 @@ erros, de 63 e de 15 minutos).
 O método agregado continua no código apenas como termo de comparação e evidência
 para o relatório.
 
+### D5 — A6: VPN local só de DNS, repassando ao DNS da própria rede
+Decidido com o responsável em 18/09/2026, antes da implementação.
+
+- **Só DNS passa pela VPN.** A interface tem uma única rota, para um servidor de
+  DNS falso; o resto do tráfego segue direto. Ler o tráfego inteiro exigiria uma
+  pilha TCP/IP no app (custo, bateria, risco), e a spec pede exatamente "consultas
+  DNS contra lista local".
+- **Repasse ao DNS da própria rede**, e não a um DNS público fixo: nenhum terceiro
+  novo passa a ver as consultas. O repasse acompanha a troca de rede (Wi-Fi e
+  dados móveis), senão o servidor do roteador de casa deixaria de responder na rua.
+- **Modo bloqueio também**, além do alerta pedido pelo A6: responde "domínio
+  inexistente" aos itens da lista. Mostra no relatório que o Android consegue os
+  dois.
+- **Sem biblioteca** (§8.2): o mínimo de IPv4, UDP e DNS foi escrito à mão.
+- **Domínios de teste:** example.com e example.org, reservados pela IANA.
+
 ---
 
 ## Estrutura
@@ -167,6 +190,9 @@ prototype/
     android/.../InterruptionOverlay.kt     # tela de interrupção por sobreposição (A4a)
     android/.../InterruptionActivity.kt    # tela de interrupção como activity (A4b)
     android/.../InterruptionExits.kt       # saídas comuns (tela inicial, emergência, retorno) e pausa (A4, A5)
+    android/.../LabVpnService.kt           # VPN local que só enxerga DNS (A6)
+    android/.../DnsPacket.kt               # IPv4/UDP/DNS lidos e montados à mão (A6)
+    android/.../DomainWatchConfig.kt       # lista de domínios e modo, em disco (A6)
     android/.../LabMonitoringModule.kt     # fachada Expo Modules
     ios/LabMonitoringModule.swift          # esqueleto: tudo 'unsupported'
 ```
@@ -188,6 +214,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | A3 | ⚠️ Funciona com limitações | Notificação disparada pelo Kotlin com o app fechado, **14 ms** após a detecção (~6 s do limite real até o alerta). Apareceu **flutuando por cima do Instagram**, texto neutro e configurável. **Mas o botão "Emergência" só aparece se a notificação for expandida** — dois toques até a emergência |
 | A4 | ⚠️ Funciona com limitações | As duas abordagens cumprem o critério: a tela aparece sobre o Instagram com o protótipo fechado, mostra a motivação, e "Continuar" registra `continue_tapped` e volta **ao mesmo post**. **Sobreposição:** o voltar é ignorado, ela continua por cima da tela inicial, não cobre as barras, e o sistema publica "Norte Lab exibido sobre outros apps". **Tela própria:** o voltar a fecha sem escolha. Ambas dependem de `SYSTEM_ALERT_WINDOW`. Em 18/09 à noite: instrumentação corrigida e botão "Ir para a tela inicial" nas duas, validados no aparelho. Ver achado abaixo |
 | A5 | ✅ Funciona | Pausa de 2 min depois do "Continuar", na sobreposição: nenhum alerta em 6 verificações, com a pessoa no Instagram e saindo e voltando. No fim, a notificação e, 20 s depois, a tela. O fim da pausa é notado com até 20 s de atraso (medido: 14 s). Tela inicial e emergência não pausam: reabrir o Instagram interrompe de novo em ~7 s. A pausa sobreviveu à recriação do serviço. Ver achado abaixo |
+| A6 | ⚠️ Funciona com limitações | VPN local só de DNS. No Chrome, abrir example.com gerou `adult_domain_detected` e a notificação 15 ms depois, e a página carregou: critério cumprido. Modo bloqueio também funciona (`DNS_PROBE_FINISHED_NXDOMAIN`). Zero consultas sem resposta; ida e volta de 26 ms ao DNS da rede. Limitações: o pré-carregamento dispara o alerta sem visita, página guardada no navegador aparece mesmo bloqueada, só uma VPN por vez, e o sistema diz ao usuário que a VPN "permite monitorar o tráfego da rede". Ver achado abaixo |
 | A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. Faltam "Apps em suspensão" da Samsung (precisa de dias) e o roteiro T6 |
 
 ### Achado A1 — como medir tempo de uso por app, e o que não funciona
@@ -715,6 +742,85 @@ pausa.
 - O roteiro T2 da spec pede 5 min de uso depois do "Continuar"; aqui foram ~2,5
   min, com pausa de 2. Executar o T2 completo na bateria final de roteiros.
 
+### Achado A6 — detectar domínio por VPN local de DNS: funciona, mas o DNS é só um indício de acesso
+
+**Resultado: ⚠️ funciona com limitações.** O critério da spec foi cumprido em
+18/09/2026 às 23:35: no Chrome, abrir https://example.com gerou
+`adult_domain_detected` e a notificação 15 ms depois, e a página carregou
+normalmente. As limitações vêm do próprio DNS, que avisa que um nome foi
+consultado, não que uma página foi vista. Desenho na decisão D5; evidência em
+`docs/relatorios/evidencias/a6-vpn-dns.txt`.
+
+#### O que foi medido
+
+| Medida | Valor |
+|---|---|
+| Da consulta ao alerta | 15 ms (log: `adult_domain_detected` → `notification_sent`) |
+| Consultas repassadas sem resposta | 0 de 95 repassadas, em duas sessões |
+| Ida e volta ao DNS da rede (roteador) | 26,5 ms em média, pela VPN |
+| Latência de DNS vista pelo sistema, na VPN | mediana 26 ms, p90 55 ms, máxima 164 ms (49 consultas) |
+| Rede VPN segundo o sistema | `VALIDATED`, `NOT_METERED`, rede de baixo = Wi-Fi |
+| Modo bloqueio | example.org no Chrome: `DNS_PROBE_FINISHED_NXDOMAIN`; sites fora da lista abrem |
+| Subdomínio | www.example.org detectado como example.org |
+| Alertas repetidos | um por item da lista por minuto; 21 de 25 detecções foram agrupadas assim |
+
+Os números de latência não têm linha de base sem VPN: fica para o A8.
+
+#### O que o Android cobra de uma VPN (guia oficial, consultado em 18/09/2026)
+
+- **Consentimento numa caixa do sistema**, com um texto que o app não controla:
+  *"O Norte Lab quer configurar uma conexão VPN que permite monitorar o tráfego da
+  rede. Aceite somente se confiar na origem."* É o que o usuário do app definitivo
+  vai ler no onboarding.
+- **Chave de VPN na barra de status** enquanto ela existir, e o nome do app nas
+  telas de VPN do sistema.
+- **Uma só VPN por usuário.** Ligar a do app desliga qualquer outra (corporativa,
+  de privacidade, a "Wi-Fi seguro" da Samsung). A testar no A8.
+- **Notificação permanente** e, no Android 14+, o tipo de serviço
+  `systemExempted`, permitido a apps de VPN configurados nos Ajustes.
+- **Dois comportamentos padrão que quebrariam o aparelho**, tratados no código: sem
+  `allowFamily(AF_INET6)`, uma VPN que só declara IPv4 bloqueia todo o IPv6; sem
+  `setMetered(false)`, o Wi-Fi passaria a parecer rede tarifada para todos os apps.
+
+#### O que o DNS não conta
+
+- **Pré-carregamento dispara o alerta sem visita.** O Samsung Internet consultou
+  www.example.org antes de mostrar a página, parado na tela de primeiro uso. Links
+  pré-carregados, sugestões de busca e pré-visualizações podem gerar alerta sem o
+  usuário ver o site.
+- **Página guardada no navegador aparece mesmo com bloqueio.** example.com,
+  aberto 2 minutos antes, voltou a aparecer no modo bloqueio: a cópia do cache HTTP
+  do Chrome dispensou a rede. A consulta daquela vez foi especulativa; nada garante
+  que ela aconteça numa revisita.
+- **O cache de DNS do sistema** faz o alerta sair no primeiro acesso depois que a
+  resposta anterior expira, não a cada acesso.
+- **DNS cifrado esconde o nome.** O "DNS privado" do aparelho está no automático: o
+  sistema tentou DNS sobre TLS contra o servidor falso da VPN, falhou e seguiu em
+  texto claro (visível). No modo estrito, ou com o DNS seguro do navegador ligado
+  com um provedor próprio, as consultas iriam cifradas direto ao provedor. Não
+  testado; é do A8.
+- **Só nomes, nunca URLs nem conteúdo.** É o que a privacidade exige (§9), e é
+  também um limite: um domínio que mistura conteúdo comum e adulto não se separa
+  por DNS.
+
+#### Observação: consultas barradas pelo sistema
+
+O registro de DNS do sistema (`NetdEventListenerService`) mostrou 105 consultas
+com `isBlocked=true`, de Instagram, Chrome e Samsung Internet, todos em segundo
+plano. Elas começaram na rede Wi-Fi **antes** de a VPN existir, e nenhuma chegou
+à VPN (zero "sem resposta"). O padrão é de restrição de rede a apps em segundo
+plano, do próprio Android, e não de falha do repasse. A causa exata não foi
+investigada; vale olhar de novo no A8.
+
+#### Ainda não testado
+
+- Samsung Internet até o fim: a tela de primeiro uso pede concordância com os
+  Termos e Condições do navegador, que não foi aceita em nome do responsável.
+- Troca de rede com a VPN ligada (Wi-Fi para dados móveis): o código acompanha,
+  mas não foi exercitado.
+- DNS privado no modo estrito, DNS seguro do Chrome, outras VPNs e bateria (A8).
+- VPN sempre ativa e religamento após reinício (A9).
+
 ### Achado A9 (parcial) — sobrevivência em segundo plano e custo
 
 **Resultado: sobrevive, e o custo é baixo.** Teste em 17/09/2026: aparelho
@@ -924,6 +1030,10 @@ decidido fora do Claude Code.
 | I-14 | Todo o comportamento de voltar medido depende de uma desativação que o Android 16 chama de temporária (`enableOnBackInvokedCallback="false"`) | Doc 02 riscos | Tratar o voltar de forma explícita no app definitivo e testar com o voltar preditivo ligado |
 | I-15 | Sugestão do responsável: um terceiro botão na tela de interrupção, "Ir para a tela inicial", como saída que respeita o limite sem passar pela emergência | Doc 01 §6.5, que prevê só "Emergência" e "Continuar mesmo assim" | Incluir a opção no documento 01; definir se ela conta como vitória nas estatísticas (§6.8). No protótipo (decisão de 18/09) ela não pausa: reabrir o app monitorado interrompe de novo |
 | I-16 | Só o "Continuar" pausa (A5). Acima do limite e fora da pausa, **cada reabertura** do app monitorado gera uma nova interrupção, em até 20 s | Doc 01 §6.5, que não fala de pausa nem de reinterrupção; risco R7 (excesso de alertas) | Definir no documento 01 a duração da pausa, quais saídas pausam, o que volta no fim dela (no protótipo: notificação e, se o uso continuar, a tela) e se há teto diário de interrupções |
+| I-17 | A VPN do A6 exige consentimento numa caixa do sistema cujo texto diz que ela "permite monitorar o tráfego da rede", e mostra a chave de VPN na barra de status enquanto estiver ligada | Doc 01 P7 (discrição), §4 (onboarding) | Preparar o usuário para essa caixa no onboarding; aceitar a chave visível o tempo todo |
+| I-18 | Só uma VPN funciona por vez: ligar a do app desliga qualquer outra do usuário (corporativa, de privacidade, "Wi-Fi seguro" da Samsung) | Doc 01 §6.5, doc 02 riscos | Decidir o que fazer com quem já usa VPN (a medir no A8) |
+| I-19 | Google Play: toda VPN exige declaração no Play Console, em categoria permitida (ex.: "monitoramento de uso de apps"); ler domínios visitados conta como histórico de navegação e exige declaração em destaque com consentimento dentro do app; a revisão pede vídeos | Doc 02 riscos, fase 9; A10 | Escolher a categoria e desenhar a declaração em destaque antes da publicação |
+| I-20 | A detecção por DNS é um indício, não prova de acesso: pré-carregamento dispara alerta sem visita, página guardada no navegador aparece sem nova consulta, e DNS cifrado (modo estrito, DNS seguro do navegador) esconde o nome | Doc 01 §6.5 ("onde tecnicamente possível"), §6.8 (estatísticas, recaídas) | Não tratar detecção como recaída automática; tratar o alerta de conteúdo como lembrete |
 
 ## Comandos
 
@@ -958,6 +1068,9 @@ Rodar dentro de `prototype/`. Os exemplos usam Git Bash; `adb` fica em
 | Gesto de voltar | `adb shell input swipe 3 1200 500 1200 180` (passa por `startBackNavigation` como o dedo) |
 | Log do sistema desde uma hora | `adb logcat -d -b system,events -v time -T "09-18 17:54:40.000"` |
 | Por que a tela apagou | `adb shell dumpsys power \| grep mLastSleepReason` |
+| Consentimento de VPN (A6) | `adb shell appops get com.norte.lab.dev ACTIVATE_VPN` |
+| VPN no ar? | `adb shell dumpsys connectivity \| grep "VPN CONNECTED"` |
+| Consultas de DNS vistas pelo sistema | `adb logcat -d \| grep "DNS Requested"` — mostra rede, app e resultado; tem nomes de todos os apps, então só versionar contagens |
 | Diferença de relógio PC × aparelho | `date +%s%3N; adb shell date +%s%3N` — em 18/09 o PC estava ~2 s adiantado; horários lidos no PC (como o foco) não se comparam ao milissegundo com os do log |
 | Porta 8081 ocupada? | `netstat -ano \| grep :8081` e `taskkill //PID <pid> //F` |
 | Emulador (bloqueado por P2) | `emulator -avd lab_android16` |
@@ -1067,6 +1180,17 @@ o Metro também não se refaz.
 **Solução:** com o laboratório na frente, `adb shell input keyevent 46 46`, o
 "R R" do React Native. Conferir o `Android Bundled` no `metro.log`. Consta no
 procedimento de início de sessão.
+
+### P7 — Servidor do adb travado: o aparelho aparece, mas nada responde
+**Sintoma:** `adb devices` lista o aparelho como `device`, mas `adb shell`
+qualquer coisa fica parado até estourar o tempo. Nem `adb kill-server` responde.
+Aconteceu em 18/09/2026 às 22:45, depois de horas de sessão.
+
+**Causa:** não identificada. Havia dois processos `adb.exe` ao mesmo tempo.
+
+**Solução:** `taskkill //F //IM adb.exe` e `adb start-server`. Depois, refazer o
+`adb reverse tcp:8081 tcp:8081` (P3). Nos scripts, envolver os comandos do adb em
+`timeout`, para uma trava não segurar a sessão.
 
 ## Tentativas malsucedidas
 

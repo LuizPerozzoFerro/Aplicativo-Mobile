@@ -1,0 +1,117 @@
+# A6 — Domínio da lista em modo alerta, por VPN local de DNS
+# Galaxy S22, Android 16 / One UI 8, 18/09/2026, 23:27–23:40
+# Chrome 153 (navegador padrão) · Samsung Internet 30 · Wi-Fi doméstico
+
+## Desenho (decidido com o responsável antes da implementação)
+  - VPN local que só enxerga DNS: a interface TUN tem uma única rota, para um
+    servidor de DNS falso (10.111.222.2), que o sistema passa a usar para todos
+    os apps. O resto do tráfego não tem rota na VPN e segue direto.
+  - Cada consulta é lida (só o nome), comparada com a lista e repassada ao DNS da
+    própria rede (decisão do responsável), acompanhando trocas de rede.
+  - Modo alerta (critério do A6) e modo bloqueio, que responde "domínio
+    inexistente" (NXDOMAIN) para os itens da lista (decisão do responsável).
+  - Lista de teste: example.com e example.org (domínios reservados pela IANA).
+  - Sem biblioteca: IPv4, UDP e DNS lidos e montados à mão (DnsPacket.kt).
+  - allowFamily(AF_INET6) e setMetered(false): sem eles, a VPN bloquearia todo o
+    IPv6 do aparelho e faria o Wi-Fi parecer rede tarifada (referência oficial de
+    VpnService.Builder, consultada em 18/09/2026).
+
+## Consentimento (caixa do sistema, tocada pelo responsável)
+  23:27:36.146  vpn_permission_requested
+  Título:  "Solicitação de conexão"
+  Texto:   "O Norte Lab quer configurar uma conexão VPN que permite monitorar o
+            tráfego da rede. Aceite somente se confiar na origem. [chave] é exibido
+            na parte superior da tela quando a rede VPN estiver ativa."
+  Botões:  Cancelar · OK
+  appops depois do OK: ACTIVATE_VPN: allow
+
+=====================================================================
+## Rodada 1 — modo alerta
+
+  Log compartilhado
+  23:34:54.899  app            domain_watch_configured  modo: alert · 2 dominio(s)
+  23:34:54.939  LabVpnService  vpn_started              modo: alerta · dominios: example.com, example.org
+  23:34:54.947  LabVpnService  upstream_changed         rede: wifi · 1 servidor(es) de DNS: 192.168.1.1 (roteador)
+  23:35:21.007  LabVpnService  adult_domain_detected    dominio: example.com · consulta: example.com (A) · modo: alerta
+  23:35:21.022  LabVpnService  notification_sent        (15 ms depois)
+  23:36:24.533  LabVpnService  adult_domain_detected    dominio: example.org · consulta: www.example.org (A) · modo: alerta
+  23:36:24.579  LabVpnService  notification_sent
+
+  Como o sistema viu a VPN (dumpsys connectivity)
+  ni{VPN CONNECTED extra: VPN:com.norte.lab.dev}
+  Transports: WIFI|VPN · Capabilities: NOT_METERED&INTERNET&...&VALIDATED
+  Policies: IS_UNMETERED&IS_VPN&IS_VALIDATED · UnderlyingNetworks: [101] (o Wi-Fi)
+  -> setMetered(false) funcionou: a VPN herdou "não tarifada" do Wi-Fi.
+
+  Chrome, https://example.com (23:35:21): página "Example Domain" carregada, com a
+  chave de VPN na barra de status. Navegação seguiu. Critério do A6 cumprido.
+  Chrome, https://www.wikipedia.org: carregou, sem evento (fora da lista).
+  Samsung Internet, https://www.example.org (23:36:24): detectado como subdomínio
+  de example.org. O navegador abriu a tela de primeiro uso, que pede concordância
+  com os Termos e Condições dele; não foi aceita em nome do responsável. A
+  consulta de DNS saiu mesmo assim, antes de a página ser exibida.
+
+  Notificação (dumpsys notification, só os registros do protótipo)
+  id=1003 channel=lab-alerts importance=4 · "Momento de pausa" /
+          "Lembre-se do objetivo que você definiu."          (alerta de domínio)
+  id=1004 channel=lab-monitoring importance=2 · "Acompanhamento ativo" /
+          "Nenhum dado sai do aparelho."                      (VPN, permanente)
+
+  Fim da sessão (reconfiguração para o modo bloqueio)
+  23:37:27.232  vpn_stopped  motivo: nova configuracao · consultas: 79 · repassadas: 79 ·
+                sem resposta: 0 · na lista: 5 (alertas suprimidos: 3, bloqueadas: 0) ·
+                outros pacotes descartados: 17 · ida e volta media ao DNS da rede: 26,5 ms
+
+=====================================================================
+## Rodada 2 — modo bloqueio
+
+  23:37:27.244  vpn_started              modo: bloqueio
+  23:37:31.437  adult_domain_detected    dominio: example.com · consulta: example.com (A) · modo: bloqueio
+  23:38:37.754  adult_domain_detected    dominio: example.org · consulta: example.org (A) · modo: bloqueio
+  23:39:35.005  vpn_stopped              motivo: laboratorio · consultas: 36 · repassadas: 16 ·
+                sem resposta: 0 · na lista: 20 (alertas suprimidos: 18, bloqueadas: 20) ·
+                outros pacotes descartados: 15 · ida e volta media ao DNS da rede: 26,6 ms
+
+  Chrome, https://example.org (nunca aberto antes nesse navegador):
+    "Não é possível acessar esse site" · DNS_PROBE_FINISHED_NXDOMAIN
+  Chrome, https://www.wikipedia.org: carregou normalmente com o bloqueio ligado.
+
+  Chrome, https://example.com (aberto 2 min antes no modo alerta): a página
+  "Example Domain" APARECEU, embora a consulta tenha sido respondida com NXDOMAIN.
+  example.com não manda Cache-Control, mas manda Last-Modified de 3 dias antes,
+  o que permite ao navegador tratar a cópia guardada como válida por horas (cache
+  heurístico). A consulta de 23:37:31 foi especulativa (pré-conexão). Conclusão:
+  bloquear por DNS não impede exibir uma página já guardada no navegador.
+
+=====================================================================
+## O que o sistema registrou das consultas (NetdEventListenerService)
+  Janela de 23:34:50 a 23:40. Contagens agregadas; os nomes de outros apps do
+  aparelho foram omitidos.
+
+  Nas redes da VPN (102 na rodada 1, 103 na rodada 2), consultas não barradas:
+    49 SUCCESS · 8 NODATA · nenhuma falha
+    latência das 49 com sucesso: mínima 0 ms · mediana 26 ms · p90 55 ms · máxima 164 ms
+  A ida e volta ao DNS do roteador, medida pela VPN, foi 26,5 ms em média: o
+  repasse em si acrescenta pouco. (Linha de base sem VPN não medida; fica para o A8.)
+
+  Consultas barradas pelo próprio sistema (isBlocked=true, 0 ms): 105
+    Instagram 28 · Chrome 75 · Samsung Internet 2, todos em segundo plano no momento.
+    Começaram às 23:34:54 na rede Wi-Fi (101), ANTES de a VPN existir, e o maior
+    bloco (Chrome, 71) caiu em 23:37:27–28, com o Chrome atrás do laboratório e a
+    VPN sendo reconfigurada. A VPN nunca as recebeu (sem resposta: 0 nas duas
+    sessões). O padrão é de restrição de rede a apps em segundo plano do Android,
+    não de falha do repasse. Causa exata não investigada.
+
+## DNS privado (DoT) do Android
+  23:34:55.051  DnsManager: updatePrivateDns(102, PrivateDnsConfig{opportunistic:...})
+  23:34:55.059  resolv: Validating DnsTlsServer {10.111.222.2/}
+  O aparelho está no modo automático (oportunista). O sistema tentou DNS
+  criptografado contra o servidor falso da VPN (TCP 853); a VPN descarta esses
+  pacotes ("outros pacotes descartados": 17 e 15), a validação falha e as
+  consultas seguem em texto claro, legíveis pela VPN. No modo estrito (provedor
+  com nome de host) as consultas iriam cifradas direto ao provedor: não testado.
+
+## Parada
+  Depois de "Parar": nenhuma rede "VPN CONNECTED" no dumpsys connectivity; só o
+  serviço do limite (A2) segue no ar. A leitura da interface para via poll() com
+  um pipe de interrupção: fechar só a interface não acordaria uma leitura presa.
