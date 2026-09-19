@@ -1,0 +1,128 @@
+# A5 — Pausa depois do "continuar mesmo assim"
+# Galaxy S22, Android 16 / One UI 8, 18/09/2026, 22:26–22:35
+# Abordagem: sobreposição (recomendação preliminar do A4)
+
+## Regras testadas (decididas pelo responsável antes da implementação)
+  - só "Continuar mesmo assim" pausa os alertas, pelos minutos configurados;
+  - "Ir para a tela inicial" não pausa: reabrir o app monitorado interrompe de novo;
+  - "Emergência" abre o laboratório (no lugar do fluxo de emergência) e não pausa;
+  - no fim da pausa, com a pessoa no app: primeiro a notificação; a tela de
+    interrupção vem no ciclo seguinte, se ela continuar.
+
+## Implementação, em uma frase por peça
+  - LimitConfig guarda pauseMinutes e pausedUntil em disco (SharedPreferences).
+  - O toque em "Continuar" grava pausedUntil ANTES de a sobreposição sair (o
+    serviço roda em outra thread e veria o Instagram na tela).
+  - O serviço, a cada 20 s, depois do limite: se pausedUntil está no futuro, não
+    alerta; se já passou, grava pause_ended e manda a notificação; senão, abre a
+    interrupção sempre que o app monitorado estiver na frente e nenhuma estiver aberta.
+  - Carência de 3 s depois de qualquer saída: a troca de app só entra no histórico
+    de uso quando o sistema conclui a transição (na rodada O3 do A4, o Instagram
+    pausou 25 ms e o lançador voltou 65 ms depois do toque). Uma verificação nessa
+    janela veria o Instagram ainda na frente.
+
+## Configuração
+  alvo: com.instagram.android · limite: 2 min (o Instagram já passava de 20 min no
+  dia, então o limite estoura no primeiro ciclo) · pausa: 2 min · intervalo do
+  serviço: 20 s. Toques e gestos injetados pelo adb (roteiro automático); cada passo
+  espera o evento correspondente no log do app.
+
+  Relógios: os eventos do app e do sistema usam o relógio do aparelho. As linhas
+  FOCO usam o do PC, que estava 2,1 s adiantado (medido às 22:27: pc − aparelho =
+  2127 a 2142 ms, ida e volta do adb 167 a 200 ms). A ordem vale; os milissegundos
+  das linhas FOCO, não.
+
+=====================================================================
+## Rodada P1 — log compartilhado (relógio do aparelho)
+
+  22:26:34.375  A2  limit_configured    2 min para 1 app(s) · pausa de 2 min · abordagem: overlay
+  22:26:52.722  A2  threshold_reached   21 min de uso para limite de 2 min
+  22:26:52.740  A3  notification_sent
+  22:27:12.857  A4  interruption_shown  abordagem: sobreposicao
+  22:27:18.888  A4  continue_tapped     abordagem: sobreposicao
+  22:27:18.891  A5  pause_started       2 min, ate 22:29:18
+  22:27:20.434  A4  returned_to_app     com.instagram.android · abordagem: sobreposicao
+                    (nenhum alerta até o fim da pausa, ver abaixo)
+  22:29:32.987  A5  pause_ended         atraso 14 s · 6 verificacoes durante a pausa ·
+                                        em primeiro plano: com.instagram.android
+  22:29:33.005  A5  notification_sent   fim da pausa
+  22:29:53.124  A4  interruption_shown  abordagem: sobreposicao          (+20,1 s: ciclo seguinte)
+  22:29:59.787  A4  home_tapped         abordagem: sobreposicao
+                    (46 s na tela inicial: nenhum alerta)
+  22:30:53.319  A4  interruption_shown  abordagem: sobreposicao          (Instagram reaberto 6,9 s antes)
+  22:30:59.927  A4  emergency_tapped    abordagem: sobreposicao
+                    (46 s no laboratório: nenhum alerta)
+  22:31:53.462  A4  interruption_shown  abordagem: sobreposicao          (Instagram reaberto 7,0 s antes)
+  22:31:59.898  A4  continue_tapped     abordagem: sobreposicao
+  22:31:59.900  A5  pause_started       2 min, ate 22:33:59
+  22:32:01.427  A4  returned_to_app     com.instagram.android · abordagem: sobreposicao
+
+## Sistema (logcat, relógio do aparelho)
+  22:26:35.979  wm_set_resumed_activity  Instagram
+  22:26:52.732  notify(1002) canal lab-alerts                  (nível 1)
+  22:27:12.964  notify AlertWindowNotification - com.norte.lab.dev   (sobreposição na tela)
+  22:27:18.908  notification_cancel AlertWindowNotification           (sobreposição saiu)
+  --- durante a pausa: tela inicial e volta ao Instagram ---
+  22:28:11.769  wm_set_resumed_activity  LauncherActivity
+  22:28:12.671  wm_pause_activity  Instagram, userLeaving=true
+  22:28:18.522  wm_set_resumed_activity  Instagram                    (reaberto; nenhum alerta)
+  --- fim da pausa ---
+  22:29:32.998  notify(1002) canal lab-alerts                  (nível 1 de novo)
+  22:29:53.209  notify AlertWindowNotification                 (nível 2 de novo)
+  --- "Ir para a tela inicial" ---
+  22:29:59.800  START ... cat=[HOME] ... from uid 10162 (BAL_ALLOW_NON_APP_VISIBLE_WINDOW) result code=2
+  22:29:59.824  wm_set_resumed_activity  LauncherActivity
+  22:30:46.418  wm_set_resumed_activity  Instagram                    (reaberto)
+  22:30:53.393  notify AlertWindowNotification                 (interrompe de novo)
+  --- "Emergência" ---
+  22:30:59.940  START ... com.norte.lab.dev/.MainActivity from uid 10162
+                (BAL_ALLOW_NON_APP_VISIBLE_WINDOW) result code=2
+  22:30:59.968  wm_set_resumed_activity  com.norte.lab.dev/.MainActivity
+  22:31:46.492  wm_set_resumed_activity  Instagram                    (reaberto)
+  22:31:53.571  notify AlertWindowNotification                 (interrompe de novo)
+
+## FOCO (relógio do PC, ~2 s adiantado)
+  22:26:39  Instagram                  e06efa8
+  22:27:16  sobreposição               af80b26
+  22:27:22  Instagram                  e06efa8 — a mesma janela
+  22:28:15  LauncherActivity           (durante a pausa)
+  22:28:21  Instagram                  e06efa8
+  22:29:56  sobreposição               642d53e   (fim da pausa)
+  22:30:03  LauncherActivity           ("Ir para a tela inicial")
+  22:30:48  Instagram                  e06efa8
+  22:30:56  sobreposição               f79555c
+  22:31:02  com.norte.lab.dev/.MainActivity   ("Emergência")
+  22:31:49  Instagram                  e06efa8
+  22:31:55  sobreposição               c9a8093
+  22:32:03  Instagram                  e06efa8
+
+## Medidas
+  Pausa pedida                   2 min (22:27:18.891 → 22:29:18.891)
+  Fim da pausa notado            22:29:32.987 · atraso 14 s (vai de 0 a 20 s, o intervalo)
+  Verificações durante a pausa   6 (120 s / 20 s): o serviço seguiu rodando, calado
+  Notificação após o fim         18 ms depois do pause_ended
+  Interrupção após a notificação 20,1 s (um ciclo)
+  Reinterrupção ao reabrir       6,9 s e 7,0 s depois de reabrir (vai de 0 a 20 s)
+
+=====================================================================
+## A pausa sobrevive à recriação do serviço (22:34)
+  Com a segunda pausa em curso (até 22:33:59.900), o app foi reinstalado para
+  aplicar uma correção no contador de verificações. O serviço novo leu a pausa do
+  disco e a encerrou sozinho:
+
+  22:34:03.092  A9  service_restarted   acao: MY_PACKAGE_REPLACED
+  22:34:03.104  A2  service_started     limite 2 min, intervalo 20s
+  22:34:03.121  A5  pause_ended         atraso 3 s · 0 verificacoes durante a pausa ·
+                                        em primeiro plano: com.instagram.android
+  22:34:03.129  A5  notification_sent   fim da pausa
+  22:34:23.359  A4  interruption_shown  abordagem: sobreposicao
+  22:35:18.426  A4  home_tapped         abordagem: sobreposicao
+
+  "0 verificações" está certo: a instância nova não viu a pausa em curso. A
+  correção faz a contagem recomeçar a cada pausa (identificada pelo seu fim); antes
+  dela, uma pausa interrompida por um rearme deixaria a conta para a seguinte.
+
+## Estado deixado no aparelho
+  22:36:41  limit_configured  600 min para 1 app(s) · pausa de 2 min · abordagem: overlay
+  Limite acima do uso diário, para o serviço continuar rodando (A9, T6) sem
+  interromper o uso normal do responsável.

@@ -7,7 +7,7 @@
 
 ## Estado atual e próximo passo
 
-> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 18/09/2026, 19:30.
+> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 18/09/2026, 22:45.
 
 **Branch:** `prototype/android-usage`. Tudo commitado.
 
@@ -15,46 +15,41 @@
 
 | ID | Resultado |
 |---|---|
-| S1 · S4 · A1 · A2 | ✅ |
+| S1 · S4 · A1 · A2 · A5 | ✅ |
 | A3 · A4 · A9 | ⚠️ com limitações documentadas |
-| A5 · A6 · A7 · A8 · A10 | não iniciados |
+| A6 · A7 · A8 · A10 | não iniciados |
 | S2 · S3 · iOS | não iniciados — dependem da conta Apple Developer pessoal |
 
-**Feito em 18/09 à noite, antes do A5** (detalhes em "Achado A4 → Instrumentação"
-e no terceiro botão, em "Recomendação preliminar"):
-- Instrumentação corrigida: o retorno depois do "Continuar" é conferido
-  (`returned_to_app` ou `not_returned_to_app`), `interruption_shown` sai uma vez
-  por interrupção, e o voltar e o início na tela própria geram
-  `interruption_dismissed`. Validado nas rodadas O1–O3 e T1–T5.
-- Botão "Ir para a tela inicial" nas duas abordagens, com `home_tapped`.
-  Validado nas rodadas O3 e T3.
+**Feito na sessão da noite de 18/09/2026:**
+- **A4, complemento:** instrumentação corrigida (retorno conferido depois do
+  "Continuar", um `interruption_shown` por interrupção, voltar e início na tela
+  própria registrados) e botão "Ir para a tela inicial" nas duas abordagens.
+  Validado nas rodadas O1–O3 e T1–T5 (ver "Achado A4 → Instrumentação").
 - Achado no caminho: a detecção do app em primeiro plano só olhava 5 minutos para
   trás. Corrigido para 24 h; afetaria a escalada do A4 e o retorno do alerta no A5.
+- **A5 ✅**, pausa depois do "Continuar", na sobreposição (ver "Achado A5"). Regras
+  decididas pelo responsável: só o "Continuar" pausa; a tela inicial e a emergência
+  não; no fim da pausa vem a notificação e, se o uso continuar, a tela.
 
-**Próximo passo: A5**, pausa depois do "continuar mesmo assim", na abordagem
-**sobreposição** (recomendação preliminar do A4). Regras decididas pelo
-responsável em 18/09/2026, antes da implementação:
-- só o **"Continuar mesmo assim"** pausa os alertas;
-- **"Ir para a tela inicial"** não pausa: reabrir o app monitorado interrompe de novo;
-- **"Emergência"** abre o laboratório (no lugar do fluxo de emergência) e não pausa;
-- no **fim da pausa**, com a pessoa ainda no app: primeiro a notificação, e a tela
-  de interrupção no ciclo seguinte se ela continuar.
+**Próximo passo: A6**, detecção de domínio adulto em modo alerta por VPN local,
+sem bloquear (spec §6.2). Antes de implementar: consultar a documentação oficial
+atual de `VpnService` e a política do Google Play para VPN (`CLAUDE.md` §8.1),
+explicar as opções ao responsável (é o primeiro serviço novo no manifesto desde o
+A2) e usar a lista configurável de domínios de teste inofensivos (§9).
 
-O modo salvo no aparelho está em **tela própria** (rodada T1): trocar na seção A4
-antes de "Iniciar limite".
+**Para testar a interrupção de novo:** o limite no aparelho está em **600 min**
+(ver o estado abaixo). Baixar para 2 min na seção A2 e tocar em "Iniciar limite":
+o Instagram já passa de 20 min em 18/09, então o limite estoura no ciclo seguinte.
+Desde o A5, **cada** abertura do Instagram acima do limite e fora da pausa
+interrompe de novo. Ao terminar, subir o limite outra vez, para não atrapalhar o
+uso normal do aparelho.
 
-**Para rearmar o teste:** "Iniciar limite" limpa `firedAt` e `escalatedAt`, e a
-tela agora reaproveita o app e o modo salvos no nativo. O Instagram já passa de
-10 min em 18/09. Com o limite **abaixo** do uso do dia, ele estoura no ciclo
-seguinte do serviço e a interrupção vem assim que o Instagram é aberto: rodadas de
-menos de um minuto. Para medir a latência real, usar limite **acima** do uso do dia.
-
-**Estado do aparelho em 18/09/2026, 19:30:** serviço em primeiro plano ativo
-(instância nova, religada pelo `MY_PACKAGE_REPLACED` na reinstalação das 17:46),
-limite de 2 min no Instagram já disparado, modo **tela própria**, com a
-`InterruptionActivity` da rodada T1 aberta atrás da tela de bloqueio. Todas as
-permissões concedidas (acesso a dados de uso, notificação, sobreposição). Rotação
-automática ligada. Metro desligado.
+**Estado do aparelho em 18/09/2026, 22:40:** serviço em primeiro plano ativo
+(religado pelo `MY_PACKAGE_REPLACED` na reinstalação das 22:34), **limite de 600
+min** no Instagram (acima do uso diário: o serviço segue rodando sem interromper),
+modo **sobreposição**, pausa de 2 min. Todas as permissões concedidas (acesso a
+dados de uso, notificação, sobreposição). Rotação automática ligada. Metro
+desligado. O relógio do PC estava ~2 s adiantado em relação ao do aparelho.
 
 **Atenção ao abrir o laboratório:** o serviço mantém o processo vivo, e com ele o
 JavaScript antigo na memória. Subir o Metro não basta (P6): com o laboratório na
@@ -171,7 +166,7 @@ prototype/
     android/.../NotificationActionReceiver.kt  # botão "Emergência" (A3)
     android/.../InterruptionOverlay.kt     # tela de interrupção por sobreposição (A4a)
     android/.../InterruptionActivity.kt    # tela de interrupção como activity (A4b)
-    android/.../InterruptionExits.kt       # saídas comuns: tela inicial e conferência do retorno (A4)
+    android/.../InterruptionExits.kt       # saídas comuns (tela inicial, emergência, retorno) e pausa (A4, A5)
     android/.../LabMonitoringModule.kt     # fachada Expo Modules
     ios/LabMonitoringModule.swift          # esqueleto: tudo 'unsupported'
 ```
@@ -192,6 +187,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | A2 | ✅ Funciona | `threshold_reached` registrado às 16:36:44 com o protótipo fechado, 9 s após o Instagram cruzar o limite de 2 min. Serviço em primeiro plano `specialUse` sobreviveu ao app ser arrastado para fora dos recentes. Segunda rodada após 2 h de Doze: latência de 3 s |
 | A3 | ⚠️ Funciona com limitações | Notificação disparada pelo Kotlin com o app fechado, **14 ms** após a detecção (~6 s do limite real até o alerta). Apareceu **flutuando por cima do Instagram**, texto neutro e configurável. **Mas o botão "Emergência" só aparece se a notificação for expandida** — dois toques até a emergência |
 | A4 | ⚠️ Funciona com limitações | As duas abordagens cumprem o critério: a tela aparece sobre o Instagram com o protótipo fechado, mostra a motivação, e "Continuar" registra `continue_tapped` e volta **ao mesmo post**. **Sobreposição:** o voltar é ignorado, ela continua por cima da tela inicial, não cobre as barras, e o sistema publica "Norte Lab exibido sobre outros apps". **Tela própria:** o voltar a fecha sem escolha. Ambas dependem de `SYSTEM_ALERT_WINDOW`. Em 18/09 à noite: instrumentação corrigida e botão "Ir para a tela inicial" nas duas, validados no aparelho. Ver achado abaixo |
+| A5 | ✅ Funciona | Pausa de 2 min depois do "Continuar", na sobreposição: nenhum alerta em 6 verificações, com a pessoa no Instagram e saindo e voltando. No fim, a notificação e, 20 s depois, a tela. O fim da pausa é notado com até 20 s de atraso (medido: 14 s). Tela inicial e emergência não pausam: reabrir o Instagram interrompe de novo em ~7 s. A pausa sobreviveu à recriação do serviço. Ver achado abaixo |
 | A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. Faltam "Apps em suspensão" da Samsung (precisa de dias) e o roteiro T6 |
 
 ### Achado A1 — como medir tempo de uso por app, e o que não funciona
@@ -659,6 +655,66 @@ abuso "um app em segundo plano inicia uma atividade sobre o app com que o usuár
 está interagindo". Tecnicamente é o que fazemos na abordagem (b), e o
 `BAL_ALLOW_SAW_PERMISSION` do log confirma. Risco a levar para o A10.
 
+### Achado A5 — pausa depois do "continuar mesmo assim"
+
+**Resultado: ✅ funciona.** Teste em 18/09/2026, das 22:26 às 22:35, na
+abordagem sobreposição, com pausa de 2 minutos. Durante a pausa não saiu alerta
+nenhum, nem com a pessoa parada no Instagram, nem saindo e voltando. No fim veio a
+notificação e, 20 s depois, a tela de interrupção. Evidência:
+`docs/relatorios/evidencias/a5-pausa.txt`.
+
+#### Regras, decididas pelo responsável antes da implementação
+
+| Saída da interrupção | Pausa? | Depois |
+|---|---|---|
+| "Continuar mesmo assim" | sim, pelos minutos configurados (2 no teste) | no fim, a notificação; se o uso continuar, a tela no ciclo seguinte |
+| "Ir para a tela inicial" | não | reabrir o app monitorado interrompe de novo |
+| "Emergência" | não | abre o laboratório, no lugar do fluxo de emergência (§6.7); reabrir o app interrompe de novo |
+
+Com isso, a tela de interrupção deixou de aparecer uma única vez por limite: ela
+volta sempre que o app monitorado estiver na frente, acima do limite e fora da
+pausa.
+
+#### Medidas
+
+| Medida | Valor |
+|---|---|
+| Alertas durante a pausa | nenhum, em 6 verificações (uma a cada 20 s), com a pessoa no Instagram e depois de sair e voltar |
+| Atraso para notar o fim da pausa | 14 s (vai de 0 a 20 s: o fim só é notado na verificação seguinte) |
+| Da notificação à tela | 20,1 s (um ciclo) |
+| Reinterrupção ao reabrir o app, sem pausa | 6,9 s e 7,0 s (vai de 0 a 20 s) |
+| Tela inicial e laboratório, depois das saídas sem pausa | 46 s em cada, nenhum alerta |
+
+#### Como foi feito
+
+- A pausa fica em disco (`pausedUntil`), como o resto da configuração. Uma
+  reinstalação a 3 s do fim da pausa recriou o serviço, e a instância nova a
+  encerrou sozinha, com a notificação e a tela em seguida.
+- O "Continuar" grava a pausa **antes** de a sobreposição sair. O serviço roda em
+  outra thread e, sem essa ordem, poderia ver o Instagram na tela e interromper
+  de novo.
+- **Carência de 3 s depois de qualquer saída.** A troca de app só entra no
+  histórico de uso quando o sistema conclui a transição (25 a 65 ms na rodada O3
+  do A4). Uma verificação nessa janela veria o Instagram ainda na frente e
+  reabriria a sobreposição sobre a tela inicial. Não foi observado; é prevenção.
+- "Ir para a tela inicial" e "Emergência" abrem o destino antes de a sobreposição
+  sair. Os dois inícios foram liberados por `BAL_ALLOW_NON_APP_VISIBLE_WINDOW`, a
+  própria sobreposição visível.
+- O `pause_ended` informa o atraso e quantas verificações rodaram durante a pausa:
+  é a prova de que o serviço seguiu vivo enquanto estava calado.
+
+#### Limitações e o que não foi testado
+
+- O fim da pausa atrasa até um intervalo do serviço (20 s). Se a precisão
+  importar, agendar uma verificação para o instante exato do fim.
+- Só na sobreposição. A tela própria usa o mesmo código de pausa, mas não entrou
+  no teste.
+- Pausa com a tela apagada ou em Doze: o agendamento por `Handler` não acorda o
+  aparelho (A9), então o fim seria notado só na primeira verificação depois de
+  acordar. Não testado.
+- O roteiro T2 da spec pede 5 min de uso depois do "Continuar"; aqui foram ~2,5
+  min, com pausa de 2. Executar o T2 completo na bateria final de roteiros.
+
 ### Achado A9 (parcial) — sobrevivência em segundo plano e custo
 
 **Resultado: sobrevive, e o custo é baixo.** Teste em 17/09/2026: aparelho
@@ -866,7 +922,8 @@ decidido fora do Claude Code.
 | I-12 | A sobreposição pede uma escolha antes de qualquer outro uso do aparelho: o voltar é ignorado, e ela continua por cima da tela inicial e de qualquer app | Doc 01 §6.5 | Não fere o princípio P4 ("Continuar" está sempre a um toque; leitura confirmada pelo responsável em 18/09/2026). Falta testar uma chamada recebida com a sobreposição na tela |
 | I-13 | Na tela própria, o voltar fecha a interrupção sem escolha, e com o app fechado devolve o usuário direto ao app monitorado. (Desde 18/09 o protótipo ao menos registra a saída, como `interruption_dismissed`) | Doc 01 §6.5 | Se a tela própria for usada, interceptar o voltar ou tratá-lo como "continuar" e registrá-lo |
 | I-14 | Todo o comportamento de voltar medido depende de uma desativação que o Android 16 chama de temporária (`enableOnBackInvokedCallback="false"`) | Doc 02 riscos | Tratar o voltar de forma explícita no app definitivo e testar com o voltar preditivo ligado |
-| I-15 | Sugestão do responsável: um terceiro botão na tela de interrupção, "Ir para a tela inicial", como saída que respeita o limite sem passar pela emergência | Doc 01 §6.5, que prevê só "Emergência" e "Continuar mesmo assim" | Incluir a opção no documento 01; definir se ela conta como vitória nas estatísticas (§6.8) e se reabrir o app monitorado interrompe de novo, sem pausa |
+| I-15 | Sugestão do responsável: um terceiro botão na tela de interrupção, "Ir para a tela inicial", como saída que respeita o limite sem passar pela emergência | Doc 01 §6.5, que prevê só "Emergência" e "Continuar mesmo assim" | Incluir a opção no documento 01; definir se ela conta como vitória nas estatísticas (§6.8). No protótipo (decisão de 18/09) ela não pausa: reabrir o app monitorado interrompe de novo |
+| I-16 | Só o "Continuar" pausa (A5). Acima do limite e fora da pausa, **cada reabertura** do app monitorado gera uma nova interrupção, em até 20 s | Doc 01 §6.5, que não fala de pausa nem de reinterrupção; risco R7 (excesso de alertas) | Definir no documento 01 a duração da pausa, quais saídas pausam, o que volta no fim dela (no protótipo: notificação e, se o uso continuar, a tela) e se há teto diário de interrupções |
 
 ## Comandos
 
@@ -901,6 +958,7 @@ Rodar dentro de `prototype/`. Os exemplos usam Git Bash; `adb` fica em
 | Gesto de voltar | `adb shell input swipe 3 1200 500 1200 180` (passa por `startBackNavigation` como o dedo) |
 | Log do sistema desde uma hora | `adb logcat -d -b system,events -v time -T "09-18 17:54:40.000"` |
 | Por que a tela apagou | `adb shell dumpsys power \| grep mLastSleepReason` |
+| Diferença de relógio PC × aparelho | `date +%s%3N; adb shell date +%s%3N` — em 18/09 o PC estava ~2 s adiantado; horários lidos no PC (como o foco) não se comparam ao milissegundo com os do log |
 | Porta 8081 ocupada? | `netstat -ano \| grep :8081` e `taskkill //PID <pid> //F` |
 | Emulador (bloqueado por P2) | `emulator -avd lab_android16` |
 

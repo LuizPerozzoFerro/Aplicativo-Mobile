@@ -39,6 +39,9 @@
 
   Fontes: log compartilhado; FOCO = janela com foco (dumpsys window, mCurrentFocus),
   lida a cada ~1 s; logcat do sistema (buffers system e events), filtrado.
+  O log e o logcat usam o relógio do aparelho; as linhas FOCO, o do PC, que chegou
+  a estar 2,1 s adiantado (medido às 22:27). A ordem vale; os segundos do FOCO são
+  aproximados.
   Capturas de tela NÃO versionadas: mostram o feed do responsável.
 
   Botões na tela (uiautomator dump), de cima para baixo:
