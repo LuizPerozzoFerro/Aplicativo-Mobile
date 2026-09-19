@@ -88,7 +88,11 @@ const monitoring: MonitoringModule = {
   },
 
   async startAdultContentWatch(config: AdultContentWatchConfig): Promise<void> {
-    return LabMonitoring.startAdultContentWatch(config.mode, config.domains);
+    return LabMonitoring.startAdultContentWatch(
+      config.mode,
+      config.domains,
+      config.socialDomains
+    );
   },
 
   async stopAdultContentWatch(): Promise<void> {

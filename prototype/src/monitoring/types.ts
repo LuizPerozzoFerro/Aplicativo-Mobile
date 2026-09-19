@@ -63,6 +63,11 @@ export type AdultContentWatchConfig = {
    * previa o modo.
    */
   domains: string[];
+  /**
+   * A7: dominios de rede social (ex.: instagram.com) cujo acesso so e registrado,
+   * com o app que estava em primeiro plano. Nunca alertam nem bloqueiam.
+   */
+  socialDomains: string[];
 };
 
 export interface MonitoringModule {

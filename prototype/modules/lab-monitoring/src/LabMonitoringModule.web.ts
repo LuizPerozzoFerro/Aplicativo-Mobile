@@ -40,7 +40,14 @@ class LabMonitoringModule extends NativeModule<{}> {
   async stopAdultContentWatch(): Promise<void> {}
 
   getDomainWatchStatus(): DomainWatchStatus {
-    return { permission: UNSUPPORTED, running: false, mode: 'alert', domains: [], stats: null };
+    return {
+      permission: UNSUPPORTED,
+      running: false,
+      mode: 'alert',
+      domains: [],
+      socialDomains: [],
+      stats: null,
+    };
   }
 
   async requestUsageAccess(): Promise<UsageAccessRequestResult> {

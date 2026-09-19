@@ -54,17 +54,21 @@ class LabMonitoringModule : Module() {
       mapOf("requested" to true, "vpn" to "denied")
     }.runOnQueue(Queues.MAIN)
 
-    /** A6: liga a VPN local com a lista e o modo informados. */
-    AsyncFunction("startAdultContentWatch") { mode: String, domains: List<String> ->
+    /**
+     * A6: liga a VPN local com a lista e o modo informados. A7: a segunda lista,
+     * de redes sociais, so registra o acesso.
+     */
+    AsyncFunction("startAdultContentWatch") { mode: String, domains: List<String>, socialDomains: List<String> ->
       if (VpnService.prepare(context) != null) {
         throw VpnNotAuthorizedException()
       }
       val normalized = DomainWatchConfig.normalize(domains)
-      if (normalized.isEmpty()) {
+      val social = DomainWatchConfig.normalize(socialDomains)
+      if (normalized.isEmpty() && social.isEmpty()) {
         throw NoDomainsException()
       }
 
-      DomainWatchConfig.save(context, mode, normalized)
+      DomainWatchConfig.save(context, mode, normalized, social)
       // startService, e nao startForegroundService: o servico so pode passar para
       // o primeiro plano (tipo systemExempted) depois de conferir o consentimento.
       context.startService(
@@ -76,7 +80,8 @@ class LabMonitoringModule : Module() {
         source = "app",
         experiment = "A6",
         event = "domain_watch_configured",
-        details = "modo: ${DomainWatchConfig.mode(context)} · ${normalized.size} dominio(s)"
+        details = "modo: ${DomainWatchConfig.mode(context)} · ${normalized.size} dominio(s) · " +
+          "${social.size} de rede social"
       )
     }
 
@@ -95,6 +100,7 @@ class LabMonitoringModule : Module() {
         "running" to LabVpnService.isRunning,
         "mode" to DomainWatchConfig.mode(context),
         "domains" to DomainWatchConfig.domains(context),
+        "socialDomains" to DomainWatchConfig.socialDomains(context),
         "stats" to LabVpnService.stats.toMap()
       )
     }

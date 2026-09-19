@@ -28,7 +28,8 @@ public class LabMonitoringModule: Module {
       return ["requested": false, "vpn": "unsupported"]
     }
 
-    AsyncFunction("startAdultContentWatch") { (_: String, _: [String]) in
+    // A7 no iOS e o I7: dominio web incluido na selecao do Screen Time.
+    AsyncFunction("startAdultContentWatch") { (_: String, _: [String], _: [String]) in
       throw UnsupportedOnIOSException()
     }
 
@@ -38,7 +39,7 @@ public class LabMonitoringModule: Module {
     Function("getDomainWatchStatus") { () -> [String: Any?] in
       return [
         "permission": "unsupported", "running": false, "mode": "alert",
-        "domains": [String](), "stats": nil,
+        "domains": [String](), "socialDomains": [String](), "stats": nil,
       ]
     }
 

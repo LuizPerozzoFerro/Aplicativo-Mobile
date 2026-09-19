@@ -36,7 +36,11 @@ declare class LabMonitoringModule extends NativeModule<{}> {
   stopUsageLimit(): Promise<void>;
   getUsageLimitStatus(): UsageLimitStatus;
   requestVpnPermission(): Promise<VpnPermissionResult>;
-  startAdultContentWatch(mode: DomainWatchMode, domains: string[]): Promise<void>;
+  startAdultContentWatch(
+    mode: DomainWatchMode,
+    domains: string[],
+    socialDomains: string[]
+  ): Promise<void>;
   stopAdultContentWatch(): Promise<void>;
   getDomainWatchStatus(): DomainWatchStatus;
   openNotificationSettings(): Promise<boolean>;

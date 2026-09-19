@@ -16,6 +16,7 @@ object DomainWatchConfig {
   private const val KEY_ACTIVE = "active"
   private const val KEY_MODE = "mode"
   private const val KEY_DOMAINS = "domains"
+  private const val KEY_SOCIAL = "socialDomains"
 
   /** 'alert': detecta e deixa passar. 'block': detecta e responde "dominio inexistente". */
   const val MODE_ALERT = "alert"
@@ -24,11 +25,12 @@ object DomainWatchConfig {
   private fun prefs(context: Context) =
     context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-  fun save(context: Context, mode: String, domains: List<String>) {
+  fun save(context: Context, mode: String, domains: List<String>, socialDomains: List<String>) {
     prefs(context).edit()
       .putBoolean(KEY_ACTIVE, true)
       .putString(KEY_MODE, if (mode == MODE_BLOCK) MODE_BLOCK else MODE_ALERT)
       .putStringSet(KEY_DOMAINS, normalize(domains).toSet())
+      .putStringSet(KEY_SOCIAL, normalize(socialDomains).toSet())
       .apply()
   }
 
@@ -42,6 +44,13 @@ object DomainWatchConfig {
 
   fun domains(context: Context): List<String> =
     prefs(context).getStringSet(KEY_DOMAINS, emptySet())?.sorted() ?: emptyList()
+
+  /**
+   * A7: dominios de rede social vigiados no navegador. So registram o acesso:
+   * nunca alertam nem bloqueiam, em nenhum modo.
+   */
+  fun socialDomains(context: Context): List<String> =
+    prefs(context).getStringSet(KEY_SOCIAL, emptySet())?.sorted() ?: emptyList()
 
   /**
    * Dominios em minusculas, sem espacos, sem "http://", sem caminho e sem o ponto

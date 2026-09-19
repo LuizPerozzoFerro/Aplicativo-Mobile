@@ -54,6 +54,8 @@ export default function LabScreen() {
   // A6
   const [vpn, setVpn] = useState<PermissionState | null>(null);
   const [domainsText, setDomainsText] = useState('example.com, example.org');
+  // A7
+  const [socialText, setSocialText] = useState('instagram.com, cdninstagram.com');
   const [watchMode, setWatchMode] = useState<DomainWatchMode>('alert');
   const [watch, setWatch] = useState<DomainWatchStatus | null>(null);
 
@@ -79,6 +81,7 @@ export default function LabScreen() {
     if (!watchHydrated.current) {
       watchHydrated.current = true;
       if (status.domains.length) setDomainsText(status.domains.join(', '));
+      if (status.socialDomains.length) setSocialText(status.socialDomains.join(', '));
       setWatchMode(status.mode);
     }
   }, []);
@@ -488,6 +491,22 @@ export default function LabScreen() {
             />
           </View>
 
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>
+              A7 — Redes sociais: só registra o acesso e o app na tela
+            </Text>
+            <TextInput
+              style={styles.input}
+              value={socialText}
+              onChangeText={setSocialText}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+              placeholder="instagram.com, cdninstagram.com"
+              placeholderTextColor="#475569"
+            />
+          </View>
+
           <Text style={styles.fieldLabel}>Modo</Text>
           <View style={styles.rowButtons}>
             <Button
@@ -512,6 +531,7 @@ export default function LabScreen() {
                   monitoring.startAdultContentWatch({
                     mode: watchMode,
                     domains: domainsText.split(/[\s,;]+/).filter(Boolean),
+                    socialDomains: socialText.split(/[\s,;]+/).filter(Boolean),
                   })
                 )
               }
@@ -542,7 +562,7 @@ export default function LabScreen() {
           {watch?.stats ? (
             <Row
               label="Consultas de DNS"
-              value={`${watch.stats.queries} · na lista ${watch.stats.detected}`}
+              value={`${watch.stats.queries} · lista ${watch.stats.detected} · social ${watch.stats.social}`}
               hint={
                 `repassadas ${watch.stats.forwarded} · sem resposta ${watch.stats.failed} · ` +
                 `bloqueadas ${watch.stats.blocked} · outros pacotes ${watch.stats.otherPackets} · ` +

@@ -104,6 +104,8 @@ export type DomainWatchStats = {
   blocked: number;
   suppressed: number;
   otherPackets: number;
+  /** A7: consultas a dominios de rede social, de qualquer app. */
+  social: number;
   averageUpstreamMs: number;
 };
 
@@ -112,5 +114,7 @@ export type DomainWatchStatus = {
   running: boolean;
   mode: DomainWatchMode;
   domains: string[];
+  /** A7: dominios de rede social cujo acesso so e registrado. */
+  socialDomains: string[];
   stats: DomainWatchStats | null;
 };

@@ -1,12 +1,14 @@
 package expo.modules.labmonitoring
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.net.ConnectivityManager
 import android.net.LinkProperties
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.net.Uri
 import android.net.VpnService
 import android.os.Build
 import android.os.Handler
@@ -74,6 +76,8 @@ class LabVpnService : VpnService() {
     val blocked = AtomicInteger()
     val suppressed = AtomicInteger()
     val otherPackets = AtomicInteger()
+    /** A7: consultas a dominios de rede social, de qualquer app. */
+    val social = AtomicInteger()
     private val upstreamMicros = AtomicLong()
 
     fun addLatency(micros: Long) {
@@ -87,7 +91,7 @@ class LabVpnService : VpnService() {
     }
 
     fun reset() {
-      listOf(queries, forwarded, failed, detected, blocked, suppressed, otherPackets)
+      listOf(queries, forwarded, failed, detected, blocked, suppressed, otherPackets, social)
         .forEach { it.set(0) }
       upstreamMicros.set(0)
     }
@@ -96,6 +100,7 @@ class LabVpnService : VpnService() {
       "consultas: ${queries.get()} · repassadas: ${forwarded.get()} · " +
         "sem resposta: ${failed.get()} · na lista: ${detected.get()} " +
         "(alertas suprimidos: ${suppressed.get()}, bloqueadas: ${blocked.get()}) · " +
+        "redes sociais: ${social.get()} · " +
         "outros pacotes descartados: ${otherPackets.get()} · " +
         "ida e volta media ao DNS da rede: ${"%.1f".format(averageMillis())} ms"
 
@@ -107,6 +112,7 @@ class LabVpnService : VpnService() {
       "blocked" to blocked.get(),
       "suppressed" to suppressed.get(),
       "otherPackets" to otherPackets.get(),
+      "social" to social.get(),
       "averageUpstreamMs" to averageMillis()
     )
   }
@@ -122,6 +128,20 @@ class LabVpnService : VpnService() {
 
   @Volatile private var mode = DomainWatchConfig.MODE_ALERT
   @Volatile private var domains: List<String> = emptyList()
+
+  /**
+   * A7: a consulta de DNS nao diz qual app perguntou, e o proprio app do Instagram
+   * consulta os mesmos dominios que o site. O que separa navegador de app e o app
+   * em primeiro plano no momento da consulta (leitura do A1).
+   */
+  @Volatile private var socialDomains: List<String> = emptyList()
+  @Volatile private var browsers: Set<String> = emptySet()
+  private val lastSocial = HashMap<String, Long>()
+  @Volatile private var foregroundAt = 0L
+  @Volatile private var foregroundCached: String? = null
+
+  /** A7: sessoes de rede social no navegador, para estimar o tempo de uso. */
+  @Volatile private var tracker: BrowserSessionTracker? = null
 
   /** Rede de verdade (nao VPN) e os servidores de DNS dela, trocados a cada mudanca. */
   @Volatile private var upstreamNetwork: Network? = null
@@ -163,7 +183,11 @@ class LabVpnService : VpnService() {
 
     mode = DomainWatchConfig.mode(this)
     domains = DomainWatchConfig.domains(this)
+    socialDomains = DomainWatchConfig.socialDomains(this)
+    browsers = findBrowsers()
+    tracker = BrowserSessionTracker(this, { browsers }, { currentForeground() })
     synchronized(lastAlert) { lastAlert.clear() }
+    synchronized(lastSocial) { lastSocial.clear() }
     stats.reset()
     if (callback == null) registerUpstream()
 
@@ -203,7 +227,9 @@ class LabVpnService : VpnService() {
 
     EventLog.append(
       this, "LabVpnService", "A6", "vpn_started",
-      "modo: ${modeLabel()} · dominios: ${domains.joinToString(", ")} · iniciada por: $startedBy"
+      "modo: ${modeLabel()} · dominios: ${domains.joinToString(", ")} · " +
+        "redes sociais: ${socialDomains.joinToString(", ")} · " +
+        "navegadores: ${browsers.size} · iniciada por: $startedBy"
     )
   }
 
@@ -261,6 +287,9 @@ class LabVpnService : VpnService() {
     val match = query.name?.let { DomainWatchConfig.match(it, domains) }
     val block = match != null && mode == DomainWatchConfig.MODE_BLOCK
     if (match != null) onMatch(query, match, block)
+
+    // A7: rede social so e registrada; a consulta segue normalmente em qualquer modo.
+    query.name?.let { DomainWatchConfig.match(it, socialDomains) }?.let { onSocial(query, it) }
 
     val reply = if (block) {
       stats.blocked.incrementAndGet()
@@ -326,6 +355,69 @@ class LabVpnService : VpnService() {
   }
 
   /**
+   * A7: registra a consulta a um dominio de rede social e quem estava na tela. Um
+   * registro por dominio e por app em primeiro plano a cada minuto: o app do
+   * Instagram consulta esses dominios o tempo todo.
+   */
+  private fun onSocial(query: DnsPacket.Query, match: String) {
+    stats.social.incrementAndGet()
+    val now = System.currentTimeMillis()
+    val foreground = currentForeground()
+    // Toda consulta entra na estimativa de tempo; o registro abaixo e que e espacado.
+    tracker?.onQuery(match, now, foreground)
+
+    val key = "$match|$foreground"
+    synchronized(lastSocial) {
+      if (now - (lastSocial[key] ?: 0L) < ALERT_COOLDOWN_MS) return
+      lastSocial[key] = now
+    }
+
+    val via = when {
+      foreground == null -> "desconhecido"
+      foreground in browsers -> "navegador"
+      else -> "outro app"
+    }
+    EventLog.append(
+      this, "LabVpnService", "A7", "social_domain_detected",
+      "dominio: $match · consulta: ${query.name} (${typeName(query.type)}) · " +
+        "via: $via · em primeiro plano: ${foreground ?: "desconhecido"}"
+    )
+  }
+
+  /**
+   * App em primeiro plano, lido no maximo a cada 2 s: a leitura percorre eventos de
+   * uso (A1) e uma pagina dispara dezenas de consultas quase juntas.
+   */
+  private fun currentForeground(): String? {
+    val now = System.currentTimeMillis()
+    if (now - foregroundAt < 2_000L) return foregroundCached
+    val fresh = runCatching { UsageReader.currentForegroundPackage(this) }.getOrNull()
+    foregroundCached = fresh
+    foregroundAt = now
+    return fresh
+  }
+
+  /**
+   * Apps que abrem links https: e a definicao pratica de navegador. A consulta
+   * funciona porque o manifesto do app declara essa intencao em <queries> (vem do
+   * template do Expo).
+   */
+  private fun findBrowsers(): Set<String> {
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://example.com"))
+      .addCategory(Intent.CATEGORY_BROWSABLE)
+    val resolved = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      packageManager.queryIntentActivities(
+        intent,
+        PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong())
+      )
+    } else {
+      @Suppress("DEPRECATION")
+      packageManager.queryIntentActivities(intent, PackageManager.MATCH_ALL)
+    }
+    return resolved.mapNotNull { it.activityInfo?.packageName }.toSet()
+  }
+
+  /**
    * Acompanha a melhor rede de verdade (nao VPN) e os servidores de DNS dela. E
    * isto que mantem o repasse funcionando quando o aparelho troca de Wi-Fi para
    * dados moveis: o servidor do roteador de casa deixa de responder na rua.
@@ -383,6 +475,8 @@ class LabVpnService : VpnService() {
   }
 
   private fun closeTunnel() {
+    tracker?.stop()
+    tracker = null
     interruptWrite?.let { runCatching { Os.close(it) } }
     interruptWrite = null
     runCatching { reader?.join(1_000) }
