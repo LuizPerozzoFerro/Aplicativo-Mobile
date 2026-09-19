@@ -55,7 +55,14 @@ class LabVpnService : VpnService() {
     private const val TUN_ADDRESS = "10.111.222.1"
     private const val FAKE_DNS = "10.111.222.2"
 
-    private const val UPSTREAM_TIMEOUT_MS = 4_000
+    /**
+     * Espera por resposta do DNS da rede, e quantas vezes tentar. Medido no A8: o
+     * roteador perde consultas nas rajadas de paginas pesadas (tambem sem VPN).
+     * Com uma espera longa e poucas threads, as consultas que travavam seguravam as
+     * outras na fila (2,4 a 3,2 s de atraso); tentar de novo cedo recupera a perda.
+     */
+    private const val UPSTREAM_TIMEOUT_MS = 1_500
+    private const val UPSTREAM_ATTEMPTS = 2
     private const val MAX_PACKET = 32_767
 
     /** Um alerta por item da lista a cada minuto: uma pagina gera varias consultas. */
@@ -78,6 +85,8 @@ class LabVpnService : VpnService() {
     val otherPackets = AtomicInteger()
     /** A7: consultas a dominios de rede social, de qualquer app. */
     val social = AtomicInteger()
+    /** A8: consultas que so tiveram resposta na segunda tentativa ao DNS da rede. */
+    val retried = AtomicInteger()
     private val upstreamMicros = AtomicLong()
 
     fun addLatency(micros: Long) {
@@ -91,13 +100,14 @@ class LabVpnService : VpnService() {
     }
 
     fun reset() {
-      listOf(queries, forwarded, failed, detected, blocked, suppressed, otherPackets, social)
+      listOf(queries, forwarded, failed, detected, blocked, suppressed, otherPackets, social, retried)
         .forEach { it.set(0) }
       upstreamMicros.set(0)
     }
 
     fun summary(): String =
-      "consultas: ${queries.get()} · repassadas: ${forwarded.get()} · " +
+      "consultas: ${queries.get()} · repassadas: ${forwarded.get()} " +
+        "(na segunda tentativa: ${retried.get()}) · " +
         "sem resposta: ${failed.get()} · na lista: ${detected.get()} " +
         "(alertas suprimidos: ${suppressed.get()}, bloqueadas: ${blocked.get()}) · " +
         "redes sociais: ${social.get()} · " +
@@ -113,6 +123,7 @@ class LabVpnService : VpnService() {
       "suppressed" to suppressed.get(),
       "otherPackets" to otherPackets.get(),
       "social" to social.get(),
+      "retried" to retried.get(),
       "averageUpstreamMs" to averageMillis()
     )
   }
@@ -219,7 +230,9 @@ class LabVpnService : VpnService() {
 
     tun = fd
     output = FileOutputStream(fd.fileDescriptor)
-    workers = Executors.newFixedThreadPool(4)
+    // Uma thread por consulta em andamento (reaproveitadas): uma consulta presa
+    // no DNS da rede nao pode segurar as outras numa fila (achado do A8).
+    workers = Executors.newCachedThreadPool()
     val pipe = Os.pipe()
     interruptWrite = pipe[1]
     reader = Thread({ readLoop(fd.fileDescriptor, pipe[0]) }, "lab-vpn-reader").also { it.start() }
@@ -306,24 +319,27 @@ class LabVpnService : VpnService() {
   private fun forward(dns: ByteArray): ByteArray? {
     val network = upstreamNetwork ?: return null
     for (server in upstreamServers.take(2)) {
-      val result = runCatching {
-        DatagramSocket().use { socket ->
-          protect(socket)
-          network.bindSocket(socket)
-          socket.soTimeout = UPSTREAM_TIMEOUT_MS
-          val started = System.nanoTime()
-          socket.send(DatagramPacket(dns, dns.size, InetSocketAddress(server, 53)))
-          val buffer = ByteArray(4096)
-          val packet = DatagramPacket(buffer, buffer.size)
-          socket.receive(packet)
-          stats.addLatency((System.nanoTime() - started) / 1000)
-          buffer.copyOf(packet.length)
+      for (attempt in 1..UPSTREAM_ATTEMPTS) {
+        val result = runCatching {
+          DatagramSocket().use { socket ->
+            protect(socket)
+            network.bindSocket(socket)
+            socket.soTimeout = UPSTREAM_TIMEOUT_MS
+            val started = System.nanoTime()
+            socket.send(DatagramPacket(dns, dns.size, InetSocketAddress(server, 53)))
+            val buffer = ByteArray(4096)
+            val packet = DatagramPacket(buffer, buffer.size)
+            socket.receive(packet)
+            stats.addLatency((System.nanoTime() - started) / 1000)
+            buffer.copyOf(packet.length)
+          }
+        }.getOrNull()
+        // A resposta tem de ter o mesmo identificador da pergunta.
+        if (result != null && result.size >= 2 && result[0] == dns[0] && result[1] == dns[1]) {
+          stats.forwarded.incrementAndGet()
+          if (attempt > 1) stats.retried.incrementAndGet()
+          return result
         }
-      }.getOrNull()
-      // A resposta tem de ter o mesmo identificador da pergunta.
-      if (result != null && result.size >= 2 && result[0] == dns[0] && result[1] == dns[1]) {
-        stats.forwarded.incrementAndGet()
-        return result
       }
     }
     return null

@@ -106,6 +106,8 @@ export type DomainWatchStats = {
   otherPackets: number;
   /** A7: consultas a dominios de rede social, de qualquer app. */
   social: number;
+  /** A8: consultas respondidas so na segunda tentativa ao DNS da rede. */
+  retried: number;
   averageUpstreamMs: number;
 };
 
