@@ -16,7 +16,30 @@ public class LabMonitoringModule: Module {
     Name("LabMonitoring")
 
     Function("getPermissionStatus") { () -> [String: Any] in
-      return ["usageAccess": "unsupported", "notifications": "unsupported", "overlay": "unsupported"]
+      return [
+        "usageAccess": "unsupported", "notifications": "unsupported", "overlay": "unsupported",
+        "vpn": "unsupported",
+      ]
+    }
+
+    // A6 no Android e uma VPN local de DNS. No iOS o equivalente e o filtro de
+    // conteudo do sistema e as alternativas dos experimentos I8 e I9.
+    AsyncFunction("requestVpnPermission") { () -> [String: Any] in
+      return ["requested": false, "vpn": "unsupported"]
+    }
+
+    AsyncFunction("startAdultContentWatch") { (_: String, _: [String]) in
+      throw UnsupportedOnIOSException()
+    }
+
+    AsyncFunction("stopAdultContentWatch") {
+    }
+
+    Function("getDomainWatchStatus") { () -> [String: Any?] in
+      return [
+        "permission": "unsupported", "running": false, "mode": "alert",
+        "domains": [String](), "stats": nil,
+      ]
     }
 
     AsyncFunction("requestUsageAccess") { () -> [String: Any] in

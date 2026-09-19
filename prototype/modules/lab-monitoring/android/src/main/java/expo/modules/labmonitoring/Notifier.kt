@@ -23,11 +23,19 @@ object Notifier {
 
   const val ONGOING_NOTIFICATION_ID = 1001
   const val ALERT_NOTIFICATION_ID = 1002
+  const val DOMAIN_ALERT_NOTIFICATION_ID = 1003
+  const val VPN_NOTIFICATION_ID = 1004
 
   const val ACTION_EMERGENCY = "expo.modules.labmonitoring.EMERGENCY"
 
   /** Texto padrao, usado quando o responsavel nao configura outro na tela. */
   const val DEFAULT_MESSAGE = "Você atingiu o tempo que definiu para hoje."
+
+  /**
+   * Texto do alerta de dominio (A6). Tao neutro quanto o do limite: nao cita
+   * site, dominio nem tema, porque aparece na tela bloqueada (CLAUDE.md secao 9).
+   */
+  const val DOMAIN_MESSAGE = "Lembre-se do objetivo que você definiu."
 
   fun ensureChannels(context: Context) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -63,7 +71,32 @@ object Notifier {
       .setOngoing(true)
       .build()
 
+  /**
+   * Notificacao permanente da VPN do A6. O guia oficial de VPN pede uma que nao
+   * possa ser dispensada enquanto o servico estiver ativo; o sistema ainda poe a
+   * chave de VPN na barra de status, por conta propria. O texto evita "navegacao":
+   * mesmo sem citar o tema, ele diria a quem olha o que esta sendo acompanhado.
+   */
+  fun vpnNotification(context: Context): Notification {
+    ensureChannels(context)
+    return Notification.Builder(context, ONGOING_CHANNEL_ID)
+      .setContentTitle("Acompanhamento ativo")
+      .setContentText("Nenhum dado sai do aparelho.")
+      .setSmallIcon(android.R.drawable.ic_menu_recent_history)
+      .setOngoing(true)
+      .build()
+  }
+
   fun sendLimitAlert(context: Context, message: String) {
+    sendAlert(context, ALERT_NOTIFICATION_ID, message)
+  }
+
+  /** A6: alerta de nivel 1 para dominio da lista, com o mesmo botao de emergencia. */
+  fun sendDomainAlert(context: Context) {
+    sendAlert(context, DOMAIN_ALERT_NOTIFICATION_ID, DOMAIN_MESSAGE)
+  }
+
+  private fun sendAlert(context: Context, id: Int, message: String) {
     ensureChannels(context)
 
     val openApp = context.packageManager.getLaunchIntentForPackage(context.packageName)
@@ -96,6 +129,6 @@ object Notifier {
     }
 
     val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    manager.notify(ALERT_NOTIFICATION_ID, builder.build())
+    manager.notify(id, builder.build())
   }
 }

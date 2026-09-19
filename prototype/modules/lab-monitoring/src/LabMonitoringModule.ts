@@ -1,6 +1,9 @@
 import { NativeModule, requireNativeModule } from 'expo';
 
 import type {
+  DomainWatchMode,
+  DomainWatchStatus,
+  VpnPermissionResult,
   InstalledApp,
   LogEvent,
   PermissionStatus,
@@ -32,6 +35,10 @@ declare class LabMonitoringModule extends NativeModule<{}> {
   sendTestAlert(): Promise<void>;
   stopUsageLimit(): Promise<void>;
   getUsageLimitStatus(): UsageLimitStatus;
+  requestVpnPermission(): Promise<VpnPermissionResult>;
+  startAdultContentWatch(mode: DomainWatchMode, domains: string[]): Promise<void>;
+  stopAdultContentWatch(): Promise<void>;
+  getDomainWatchStatus(): DomainWatchStatus;
   openNotificationSettings(): Promise<boolean>;
   logEvent(
     source: string,

@@ -8,6 +8,9 @@
  */
 
 import type {
+  DomainWatchMode,
+  DomainWatchStatus,
+  VpnPermissionResult,
   InstalledApp,
   LogEvent,
   PermissionStatus,
@@ -20,6 +23,10 @@ import type {
 } from '../../modules/lab-monitoring/src/LabMonitoring.types';
 
 export type {
+  DomainWatchMode,
+  DomainWatchStats,
+  DomainWatchStatus,
+  VpnPermissionResult,
   InstalledApp,
   LogEvent,
   PermissionState,
@@ -49,7 +56,13 @@ export type UsageLimitConfig = {
 };
 
 export type AdultContentWatchConfig = {
-  mode: 'alert' | 'block';
+  mode: DomainWatchMode;
+  /**
+   * Lista de dominios vigiados. Nos testes, dominios inofensivos fazendo as vezes
+   * de "adultos" (CLAUDE.md secao 9). Acrescentada ao esboco da spec, que so
+   * previa o modo.
+   */
+  domains: string[];
 };
 
 export interface MonitoringModule {
@@ -77,8 +90,11 @@ export interface MonitoringModule {
   /** Dispara o alerta do A3 imediatamente, sem esperar o limite. */
   sendTestAlert(): Promise<void>;
 
+  /** A6: caixa de consentimento de VPN do sistema. */
+  requestVpnPermission(): Promise<VpnPermissionResult>;
   startAdultContentWatch(config: AdultContentWatchConfig): Promise<void>;
   stopAdultContentWatch(): Promise<void>;
+  getDomainWatchStatus(): Promise<DomainWatchStatus>;
 
   getUsageToday(): Promise<UsageEntry[] | Unsupported>;
 

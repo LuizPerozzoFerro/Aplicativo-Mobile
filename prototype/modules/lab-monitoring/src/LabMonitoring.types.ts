@@ -24,6 +24,8 @@ export type PermissionStatus = {
   usageAccess: PermissionState;
   notifications: PermissionState;
   overlay: PermissionState;
+  /** A6: consentimento de VPN do sistema (VpnService.prepare). */
+  vpn: PermissionState;
 };
 
 export type NotificationPermissionResult = {
@@ -82,4 +84,33 @@ export type InterruptionMode = 'overlay' | 'activity';
 
 export type OverlayPermissionResult = {
   settingsOpened: boolean;
+};
+
+/** A6: 'alert' detecta e deixa passar; 'block' responde "dominio inexistente". */
+export type DomainWatchMode = 'alert' | 'block';
+
+export type VpnPermissionResult = {
+  /** Se a caixa de consentimento do sistema chegou a ser aberta. */
+  requested: boolean;
+  vpn: PermissionState;
+};
+
+/** Contadores da sessao atual da VPN local (A6), zerados a cada inicio. */
+export type DomainWatchStats = {
+  queries: number;
+  forwarded: number;
+  failed: number;
+  detected: number;
+  blocked: number;
+  suppressed: number;
+  otherPackets: number;
+  averageUpstreamMs: number;
+};
+
+export type DomainWatchStatus = {
+  permission: PermissionState;
+  running: boolean;
+  mode: DomainWatchMode;
+  domains: string[];
+  stats: DomainWatchStats | null;
 };

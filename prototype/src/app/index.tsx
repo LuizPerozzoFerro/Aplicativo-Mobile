@@ -14,6 +14,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import monitoring, {
+  type DomainWatchMode,
+  type DomainWatchStatus,
   type InstalledApp,
   type LogEvent,
   type InterruptionMode,
@@ -49,6 +51,12 @@ export default function LabScreen() {
   // A5
   const [pauseMinutes, setPauseMinutes] = useState('2');
 
+  // A6
+  const [vpn, setVpn] = useState<PermissionState | null>(null);
+  const [domainsText, setDomainsText] = useState('example.com, example.org');
+  const [watchMode, setWatchMode] = useState<DomainWatchMode>('alert');
+  const [watch, setWatch] = useState<DomainWatchStatus | null>(null);
+
   const refreshLog = useCallback(async () => {
     setLog(await monitoring.getLog());
   }, []);
@@ -58,6 +66,21 @@ export default function LabScreen() {
     setPermission(status.usageAccess);
     setNotifications(status.notifications);
     setOverlay(status.overlay);
+    setVpn(status.vpn);
+  }, []);
+
+  // Como no A2: a lista e o modo do A6 vêm do nativo na primeira leitura.
+  const watchHydrated = useRef(false);
+
+  const refreshWatch = useCallback(async () => {
+    const status = await monitoring.getDomainWatchStatus();
+    setWatch(status);
+    setVpn(status.permission);
+    if (!watchHydrated.current) {
+      watchHydrated.current = true;
+      if (status.domains.length) setDomainsText(status.domains.join(', '));
+      setWatchMode(status.mode);
+    }
   }, []);
 
   // A seleção de apps e o modo do A4 vivem só no estado do React, e se perdem
@@ -90,9 +113,10 @@ export default function LabScreen() {
         setBusy(null);
         await refreshLog();
         await refreshLimit();
+        await refreshWatch();
       }
     },
-    [refreshLog, refreshLimit]
+    [refreshLog, refreshLimit, refreshWatch]
   );
 
   // O acesso a dados de uso é concedido fora do app, nos Ajustes do sistema, e o
@@ -103,13 +127,14 @@ export default function LabScreen() {
       void refreshPermission();
       void refreshLog();
       void refreshLimit();
+      void refreshWatch();
     };
     sync();
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') sync();
     });
     return () => subscription.remove();
-  }, [refreshPermission, refreshLog, refreshLimit]);
+  }, [refreshPermission, refreshLog, refreshLimit, refreshWatch]);
 
   const toggleTarget = (packageName: string) => {
     setTargets((current) =>
@@ -432,6 +457,105 @@ export default function LabScreen() {
                 : 'não'
             }
           />
+        </Section>
+
+        <Section title="A6 — Domínios da lista (VPN local)">
+          <Row label="Autorização da VPN" value={permissionLabel(vpn)} />
+
+          <Button
+            label="Autorizar VPN"
+            busy={busy === 'askVpn'}
+            onPress={() =>
+              run('askVpn', async () => {
+                await monitoring.requestVpnPermission();
+              })
+            }
+          />
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>
+              Domínios de teste, separados por vírgula (inofensivos, CLAUDE.md §9)
+            </Text>
+            <TextInput
+              style={styles.input}
+              value={domainsText}
+              onChangeText={setDomainsText}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+              placeholder="example.com, example.org"
+              placeholderTextColor="#475569"
+            />
+          </View>
+
+          <Text style={styles.fieldLabel}>Modo</Text>
+          <View style={styles.rowButtons}>
+            <Button
+              label={watchMode === 'alert' ? '✓ Alerta' : 'Alerta'}
+              compact
+              onPress={() => setWatchMode('alert')}
+            />
+            <Button
+              label={watchMode === 'block' ? '✓ Bloqueio' : 'Bloqueio'}
+              compact
+              onPress={() => setWatchMode('block')}
+            />
+          </View>
+
+          <View style={styles.rowButtons}>
+            <Button
+              label="Iniciar"
+              compact
+              busy={busy === 'startVpn'}
+              onPress={() =>
+                run('startVpn', () =>
+                  monitoring.startAdultContentWatch({
+                    mode: watchMode,
+                    domains: domainsText.split(/[\s,;]+/).filter(Boolean),
+                  })
+                )
+              }
+            />
+            <Button
+              label="Parar"
+              compact
+              busy={busy === 'stopVpn'}
+              onPress={() => run('stopVpn', () => monitoring.stopAdultContentWatch())}
+            />
+            <Button
+              label="Atualizar"
+              compact
+              busy={busy === 'watchStatus'}
+              onPress={() => run('watchStatus', refreshWatch)}
+            />
+          </View>
+
+          {watch ? (
+            <Row
+              label="VPN"
+              value={
+                watch.running ? `ativa · ${watch.mode === 'block' ? 'bloqueio' : 'alerta'}` : 'parada'
+              }
+              hint={watch.domains.length ? watch.domains.join(', ') : undefined}
+            />
+          ) : null}
+          {watch?.stats ? (
+            <Row
+              label="Consultas de DNS"
+              value={`${watch.stats.queries} · na lista ${watch.stats.detected}`}
+              hint={
+                `repassadas ${watch.stats.forwarded} · sem resposta ${watch.stats.failed} · ` +
+                `bloqueadas ${watch.stats.blocked} · outros pacotes ${watch.stats.otherPackets} · ` +
+                `ida e volta ${watch.stats.averageUpstreamMs.toFixed(1)} ms`
+              }
+            />
+          ) : null}
+
+          <Text style={styles.note}>
+            Só as consultas de DNS passam pela VPN; o resto do tráfego segue direto. Para
+            testar, abra no navegador um domínio da lista. O modo é salvo ao tocar em
+            &quot;Iniciar&quot;.
+          </Text>
         </Section>
 
         <Section title={`S4 — Log compartilhado (${log.length})`}>

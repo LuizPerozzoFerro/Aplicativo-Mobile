@@ -1,7 +1,8 @@
 import LabMonitoring from '../../modules/lab-monitoring';
 import {
-  NotImplementedYetError,
   type AdultContentWatchConfig,
+  type DomainWatchStatus,
+  type VpnPermissionResult,
   type LogEvent,
   type MonitoringModule,
   type PermissionStatus,
@@ -32,6 +33,7 @@ const monitoring: MonitoringModule = {
       usageAccess: result.usageAccess,
       notifications: current.notifications,
       overlay: current.overlay,
+      vpn: current.vpn,
     };
   },
 
@@ -81,12 +83,20 @@ const monitoring: MonitoringModule = {
     return LabMonitoring.sendTestAlert();
   },
 
-  async startAdultContentWatch(_config: AdultContentWatchConfig): Promise<void> {
-    throw new NotImplementedYetError('A6', 'startAdultContentWatch');
+  async requestVpnPermission(): Promise<VpnPermissionResult> {
+    return LabMonitoring.requestVpnPermission();
+  },
+
+  async startAdultContentWatch(config: AdultContentWatchConfig): Promise<void> {
+    return LabMonitoring.startAdultContentWatch(config.mode, config.domains);
   },
 
   async stopAdultContentWatch(): Promise<void> {
-    throw new NotImplementedYetError('A6', 'stopAdultContentWatch');
+    return LabMonitoring.stopAdultContentWatch();
+  },
+
+  async getDomainWatchStatus(): Promise<DomainWatchStatus> {
+    return LabMonitoring.getDomainWatchStatus();
   },
 
   async getUsageToday(): Promise<UsageEntry[] | Unsupported> {

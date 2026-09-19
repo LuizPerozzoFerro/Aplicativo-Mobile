@@ -2,6 +2,8 @@ import { registerWebModule, NativeModule } from 'expo';
 
 import {
   UNSUPPORTED,
+  type DomainWatchStatus,
+  type VpnPermissionResult,
   type InstalledApp,
   type LogEvent,
   type PermissionStatus,
@@ -19,7 +21,26 @@ import {
  */
 class LabMonitoringModule extends NativeModule<{}> {
   getPermissionStatus(): PermissionStatus {
-    return { usageAccess: UNSUPPORTED, notifications: UNSUPPORTED, overlay: UNSUPPORTED };
+    return {
+      usageAccess: UNSUPPORTED,
+      notifications: UNSUPPORTED,
+      overlay: UNSUPPORTED,
+      vpn: UNSUPPORTED,
+    };
+  }
+
+  async requestVpnPermission(): Promise<VpnPermissionResult> {
+    return { requested: false, vpn: UNSUPPORTED };
+  }
+
+  async startAdultContentWatch(): Promise<void> {
+    throw new Error('unsupported: sem VPN local na web');
+  }
+
+  async stopAdultContentWatch(): Promise<void> {}
+
+  getDomainWatchStatus(): DomainWatchStatus {
+    return { permission: UNSUPPORTED, running: false, mode: 'alert', domains: [], stats: null };
   }
 
   async requestUsageAccess(): Promise<UsageAccessRequestResult> {

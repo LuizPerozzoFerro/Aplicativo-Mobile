@@ -2,6 +2,7 @@ package expo.modules.labmonitoring
 
 import android.content.Context
 import android.content.Intent
+import android.net.VpnService
 import android.os.Build
 import android.net.Uri
 import android.provider.Settings
@@ -9,6 +10,9 @@ import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.functions.Queues
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+
+/** Codigo do pedido de consentimento de VPN (A6); o resultado nao e lido. */
+private const val VPN_CONSENT_REQUEST = 0x4136
 
 /**
  * Fachada exposta ao JavaScript. A logica fica em UsageReader e EventLog.
@@ -28,7 +32,70 @@ class LabMonitoringModule : Module() {
       mapOf(
         "usageAccess" to if (UsageReader.hasUsageAccess(context)) "granted" else "denied",
         "notifications" to if (Notifications.isAllowed(context)) "granted" else "denied",
-        "overlay" to if (InterruptionOverlay.canDraw(context)) "granted" else "denied"
+        "overlay" to if (InterruptionOverlay.canDraw(context)) "granted" else "denied",
+        // A6: prepare() devolve null quando o usuario ja consentiu com a VPN.
+        "vpn" to if (VpnService.prepare(context) == null) "granted" else "denied"
+      )
+    }
+
+    /**
+     * A6: mostra a caixa de consentimento de VPN do sistema. Ela precisa ser aberta
+     * com startActivityForResult: e assim que o sistema sabe qual app esta pedindo.
+     * O resultado nao e usado; a tela confere o status de novo ao voltar.
+     */
+    AsyncFunction("requestVpnPermission") {
+      val intent = VpnService.prepare(context)
+        ?: return@AsyncFunction mapOf("requested" to false, "vpn" to "granted")
+      val activity = appContext.currentActivity
+        ?: throw Exceptions.MissingActivity()
+      activity.startActivityForResult(intent, VPN_CONSENT_REQUEST)
+
+      EventLog.append(context, "app", "A6", "vpn_permission_requested")
+      mapOf("requested" to true, "vpn" to "denied")
+    }.runOnQueue(Queues.MAIN)
+
+    /** A6: liga a VPN local com a lista e o modo informados. */
+    AsyncFunction("startAdultContentWatch") { mode: String, domains: List<String> ->
+      if (VpnService.prepare(context) != null) {
+        throw VpnNotAuthorizedException()
+      }
+      val normalized = DomainWatchConfig.normalize(domains)
+      if (normalized.isEmpty()) {
+        throw NoDomainsException()
+      }
+
+      DomainWatchConfig.save(context, mode, normalized)
+      // startService, e nao startForegroundService: o servico so pode passar para
+      // o primeiro plano (tipo systemExempted) depois de conferir o consentimento.
+      context.startService(
+        Intent(context, LabVpnService::class.java).setAction(LabVpnService.ACTION_START)
+      )
+
+      EventLog.append(
+        context = context,
+        source = "app",
+        experiment = "A6",
+        event = "domain_watch_configured",
+        details = "modo: ${DomainWatchConfig.mode(context)} · ${normalized.size} dominio(s)"
+      )
+    }
+
+    AsyncFunction("stopAdultContentWatch") {
+      DomainWatchConfig.setActive(context, false)
+      if (LabVpnService.isRunning) {
+        context.startService(
+          Intent(context, LabVpnService::class.java).setAction(LabVpnService.ACTION_STOP)
+        )
+      }
+    }
+
+    Function("getDomainWatchStatus") {
+      mapOf(
+        "permission" to if (VpnService.prepare(context) == null) "granted" else "denied",
+        "running" to LabVpnService.isRunning,
+        "mode" to DomainWatchConfig.mode(context),
+        "domains" to DomainWatchConfig.domains(context),
+        "stats" to LabVpnService.stats.toMap()
       )
     }
 

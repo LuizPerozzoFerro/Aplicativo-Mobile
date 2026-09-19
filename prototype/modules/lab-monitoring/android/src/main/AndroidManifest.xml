@@ -47,6 +47,17 @@
   <!-- A9: religar o monitoramento depois de reiniciar o aparelho. -->
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+  <!--
+    Experimento A6: VPN local que so enxerga DNS.
+    - ACCESS_NETWORK_STATE: acompanhar a rede de verdade e os servidores de DNS
+      dela, para onde as consultas sao repassadas. Ja chegava por outra biblioteca,
+      mas o codigo da VPN depende dela.
+    - FOREGROUND_SERVICE_SYSTEM_EXEMPTED: o tipo de servico em primeiro plano que o
+      Android 14+ reserva, entre outros, para apps de VPN configurados nos Ajustes.
+  -->
+  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
+
   <application>
     <receiver
       android:name=".BootReceiver"
@@ -74,6 +85,23 @@
       android:noHistory="true"
       android:launchMode="singleTask"
       android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+
+    <!--
+      A6: servico de VPN. BIND_VPN_SERVICE garante que so o sistema se liga a ele,
+      e o filtro com a acao android.net.VpnService e como o sistema o encontra
+      (guia oficial de VPN). Nao exportado, porque so o sistema precisa chegar a
+      ele; se o sistema recusar a ligacao, trocar para exportado (a permissao ja
+      restringe o acesso ao sistema).
+    -->
+    <service
+      android:name=".LabVpnService"
+      android:exported="false"
+      android:permission="android.permission.BIND_VPN_SERVICE"
+      android:foregroundServiceType="systemExempted">
+      <intent-filter>
+        <action android:name="android.net.VpnService" />
+      </intent-filter>
+    </service>
 
     <service
       android:name=".UsageLimitService"
