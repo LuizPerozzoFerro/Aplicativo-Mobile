@@ -7,7 +7,7 @@
 
 ## Estado atual e próximo passo
 
-> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 18/09/2026, 23:45.
+> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 19/09/2026, 14:10.
 
 **Branch:** `prototype/android-vpn`, criado a partir de `prototype/android-usage`
 (que ficou com A1–A5 e A9) para o grupo da VPN: A6, A7 e A8. Tudo commitado.
@@ -18,8 +18,12 @@
 |---|---|
 | S1 · S4 · A1 · A2 · A5 | ✅ |
 | A3 · A4 · A6 · A9 | ⚠️ com limitações documentadas |
-| A7 · A8 · A10 | não iniciados |
+| A7 | em andamento: critério da spec cumprido, falta a rodada que mede o tempo |
+| A8 · A10 | não iniciados |
 | S2 · S3 · iOS | não iniciados — dependem da conta Apple Developer pessoal |
+
+**Pausa pedida pelo responsável em 19/09/2026.** Retomar exatamente do A7, na
+rodada de 5 minutos descrita abaixo.
 
 **Feito na sessão da noite de 18/09/2026:**
 - **A4, complemento:** instrumentação corrigida (retorno conferido depois do
@@ -33,15 +37,31 @@
   não; no fim da pausa vem a notificação e, se o uso continuar, a tela.
 - **A6 ⚠️**, domínio da lista por VPN local de DNS (ver "Achado A6" e D5): alerta
   e bloqueio funcionam no Chrome, com as limitações do próprio DNS.
+- **A7, em andamento** (ver "Achado A7"): acesso a instagram.com pelo Chrome
+  registrado como "via: navegador", separado do uso pelo app. Para o tempo de uso
+  no navegador, o responsável escolheu a **heurística**, e o rastreador de sessão
+  (`BrowserSessionTracker`) está pronto e instalado.
 
-**Próximo passo: A7**, acesso a instagram.com pelo navegador (spec §6.2), com a
-mesma VPN. O mínimo é pôr o domínio numa lista e registrar o evento. A pergunta
-de fundo (Q4) é contar **tempo de uso** pelo navegador, e o DNS só marca o momento
-do acesso, não a duração: conversar com o responsável antes de ir além do evento.
+**Próximo passo: a rodada de 5 minutos do A7**, que mede a heurística:
+1. **Pré-requisito do responsável:** fazer login no Instagram **no Chrome** (hoje
+   ele mostra a tela de login, sem feed para rolar). A senha não é digitada pelo
+   Claude.
+2. Conectar o S22 pelo cabo, seguir o procedimento de início de sessão e ligar a
+   VPN na seção A6 do laboratório (modo alerta; listas já salvas).
+3. Roteiro, com o Claude cuidando do tempo pelo `adb`: abrir instagram.com no
+   Chrome; o responsável rola o feed por 3 min; aos 3 min, abrir
+   pt.wikipedia.org no Chrome, e o responsável lê por 2 min; aos 5 min, tela
+   inicial.
+4. Verdade: 180 s de Instagram. Comparar com o `social_session_ended` e
+   recalcular a estimativa com outros intervalos a partir de "consultas em (s)".
+5. Desligar a VPN no fim.
+
+Depois do A7: **A8** (impacto da VPN: navegação geral, apps de banco, outras VPNs,
+bateria, DNS privado estrito, DNS seguro do Chrome, linha de base sem VPN).
 
 **VPN no aparelho:** consentimento concedido (`appops ... ACTIVATE_VPN: allow`),
-VPN **desligada**, lista example.com e example.org, e o último modo salvo é
-**bloqueio**. Trocar para "Alerta" na seção A6 antes de "Iniciar", se for o caso.
+VPN **desligada**, modo salvo **alerta**, listas example.com e example.org (A6) e
+instagram.com e cdninstagram.com (A7).
 
 **Para testar a interrupção de novo:** o limite no aparelho está em **600 min**
 (ver o estado abaixo). Baixar para 2 min na seção A2 e tocar em "Iniciar limite":
@@ -50,20 +70,22 @@ Desde o A5, **cada** abertura do Instagram acima do limite e fora da pausa
 interrompe de novo. Ao terminar, subir o limite outra vez, para não atrapalhar o
 uso normal do aparelho.
 
-**Estado do aparelho em 18/09/2026, 23:45:** serviço do limite ativo (religado
-pelo `MY_PACKAGE_REPLACED` na reinstalação das 23:26), **limite de 600 min** no
-Instagram (acima do uso diário: o serviço segue rodando sem interromper), modo
-**sobreposição**, pausa de 2 min. VPN desligada. Todas as permissões concedidas
-(acesso a dados de uso, notificação, sobreposição, VPN). Rotação automática
-ligada. Metro desligado. O relógio do PC estava ~2 s adiantado em relação ao do
-aparelho.
+**Estado do aparelho no último contato, 19/09/2026 às 00:11:** serviço do limite
+ativo (religado pelo `MY_PACKAGE_REPLACED` na última reinstalação, pouco depois
+da meia-noite), **limite
+de 600 min** no Instagram (acima do uso diário: o serviço segue rodando sem
+interromper), modo **sobreposição**, pausa de 2 min. VPN desligada. Todas as
+permissões concedidas (acesso a dados de uso, notificação, sobreposição, VPN).
+Rotação automática ligada. Às 14:01 o S22 não estava conectado ao PC. Metro
+desligado. O relógio do PC estava ~2 s adiantado em relação ao do aparelho.
 
 **Atenção ao abrir o laboratório:** o serviço mantém o processo vivo, e com ele o
 JavaScript antigo na memória. Subir o Metro não basta (P6): com o laboratório na
 frente, `adb shell input keyevent 46 46` recarrega.
 
-**Recomendação de trabalho:** abrir uma sessão nova do Claude Code a partir
-daqui, em vez de continuar a anterior — este arquivo é a passagem.
+**Recomendação de trabalho:** o responsável quer retomar **nesta mesma sessão**
+do Claude Code (aberta em 18/09). Se ela não estiver disponível, uma sessão nova
+parte daqui: este arquivo é a passagem.
 
 **Pendências que dependem de tempo, e podem correr em paralelo:**
 - A9: "Apps em suspensão" da Samsung — dias sem abrir o protótipo.
@@ -192,7 +214,8 @@ prototype/
     android/.../InterruptionExits.kt       # saídas comuns (tela inicial, emergência, retorno) e pausa (A4, A5)
     android/.../LabVpnService.kt           # VPN local que só enxerga DNS (A6)
     android/.../DnsPacket.kt               # IPv4/UDP/DNS lidos e montados à mão (A6)
-    android/.../DomainWatchConfig.kt       # lista de domínios e modo, em disco (A6)
+    android/.../DomainWatchConfig.kt       # listas de domínios (A6, A7) e modo, em disco
+    android/.../BrowserSessionTracker.kt   # estimativa de tempo de rede social no navegador (A7)
     android/.../LabMonitoringModule.kt     # fachada Expo Modules
     ios/LabMonitoringModule.swift          # esqueleto: tudo 'unsupported'
 ```
@@ -215,6 +238,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | A4 | ⚠️ Funciona com limitações | As duas abordagens cumprem o critério: a tela aparece sobre o Instagram com o protótipo fechado, mostra a motivação, e "Continuar" registra `continue_tapped` e volta **ao mesmo post**. **Sobreposição:** o voltar é ignorado, ela continua por cima da tela inicial, não cobre as barras, e o sistema publica "Norte Lab exibido sobre outros apps". **Tela própria:** o voltar a fecha sem escolha. Ambas dependem de `SYSTEM_ALERT_WINDOW`. Em 18/09 à noite: instrumentação corrigida e botão "Ir para a tela inicial" nas duas, validados no aparelho. Ver achado abaixo |
 | A5 | ✅ Funciona | Pausa de 2 min depois do "Continuar", na sobreposição: nenhum alerta em 6 verificações, com a pessoa no Instagram e saindo e voltando. No fim, a notificação e, 20 s depois, a tela. O fim da pausa é notado com até 20 s de atraso (medido: 14 s). Tela inicial e emergência não pausam: reabrir o Instagram interrompe de novo em ~7 s. A pausa sobreviveu à recriação do serviço. Ver achado abaixo |
 | A6 | ⚠️ Funciona com limitações | VPN local só de DNS. No Chrome, abrir example.com gerou `adult_domain_detected` e a notificação 15 ms depois, e a página carregou: critério cumprido. Modo bloqueio também funciona (`DNS_PROBE_FINISHED_NXDOMAIN`). Zero consultas sem resposta; ida e volta de 26 ms ao DNS da rede. Limitações: o pré-carregamento dispara o alerta sem visita, página guardada no navegador aparece mesmo bloqueada, só uma VPN por vez, e o sistema diz ao usuário que a VPN "permite monitorar o tráfego da rede". Ver achado abaixo |
+| A7 | Em andamento | Critério da spec cumprido: instagram.com no Chrome gerou `social_domain_detected` "via: navegador", e o app do Instagram saiu separado ("via: outro app"). A consulta de DNS não diz qual app perguntou; a separação vem do app em primeiro plano. Falta medir a estimativa de tempo no navegador (rodada de 5 min, com o Chrome logado). Ver achado abaixo |
 | A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. Faltam "Apps em suspensão" da Samsung (precisa de dias) e o roteiro T6 |
 
 ### Achado A1 — como medir tempo de uso por app, e o que não funciona
@@ -821,6 +845,54 @@ investigada; vale olhar de novo no A8.
 - DNS privado no modo estrito, DNS seguro do Chrome, outras VPNs e bateria (A8).
 - VPN sempre ativa e religamento após reinício (A9).
 
+### Achado A7 (parcial) — instagram.com pelo navegador: o acesso sim, o tempo ainda não medido
+
+**Situação em 19/09/2026: critério da spec cumprido; a medição de tempo está
+pendente.** Evidência em `docs/relatorios/evidencias/a7-instagram-navegador.txt`.
+
+#### O acesso é detectado, mas o DNS não diz qual app perguntou
+
+Com a mesma VPN do A6 e uma segunda lista (instagram.com, cdninstagram.com), abrir
+instagram.com no Chrome gerou `social_domain_detected` às 00:04:18, "via:
+navegador". O problema de fundo é que **a consulta de DNS não carrega o app de
+origem**, e o próprio app do Instagram consulta os mesmos domínios que o site. A
+separação vem do app em primeiro plano no instante da consulta (leitura do A1):
+com o app do Instagram na frente, a consulta dele (test-gateway.instagram.com) saiu
+como "via: outro app". Navegador, aqui, é qualquer app que abre links https.
+
+Limite dessa separação: uma consulta feita em segundo plano por outro app, com o
+navegador na frente, seria atribuída ao navegador.
+
+#### O tempo de uso no navegador: opções e a escolha
+
+O DNS marca o momento do acesso, não a duração. As opções levadas ao responsável
+em 19/09/2026:
+
+| Opção | Situação |
+|---|---|
+| Tempo por site que o Chrome informa ao Bem-estar digital | Fora: não está na API pública do `UsageStatsManager` (referência consultada em 19/09/2026) |
+| Serviço de acessibilidade lendo a barra de endereço | Descartada: lê conteúdo da tela (§9) e o Google Play restringe esse uso |
+| VPN que lê o tráfego inteiro | Descartada por ora: pilha de rede nativa, bateria, risco de derrubar a internet; contraria a D5 |
+| **Heurística: navegador na frente + consultas do Instagram chegando** | **Escolhida pelo responsável** |
+
+O rastreador (`BrowserSessionTracker`) abre uma sessão na primeira consulta de rede
+social com um navegador na frente, e a fecha quando o navegador sai da tela
+(conferido a cada 5 s) ou quando as consultas param por 90 s, caso em que o fim é
+a última consulta. O instante de cada consulta vai no `social_session_ended`,
+para recalcular com outros intervalos sem repetir o teste.
+
+#### Prévia, e por que a rodada precisa do Chrome logado
+
+Numa prévia curta (00:10), a sessão abriu e fechou certo: 35 s estimados, fim
+porque o navegador saiu da tela. Mas o Chrome **não estava logado** no Instagram:
+era a página de login, e as 5 consultas saíram todas no carregamento (segundo 0),
+nenhuma depois. É justamente o risco da heurística: página parada não consulta
+DNS. Com o feed rolando, o Instagram deve buscar imagens de vários servidores; se
+isso gera consultas novas com frequência suficiente, ou se o cache de DNS e as
+conexões reaproveitadas escondem a atividade, é o que a rodada vai mostrar.
+
+**Pendente:** a rodada de 5 minutos descrita em "Estado atual e próximo passo".
+
 ### Achado A9 (parcial) — sobrevivência em segundo plano e custo
 
 **Resultado: sobrevive, e o custo é baixo.** Teste em 17/09/2026: aparelho
@@ -970,7 +1042,7 @@ pela BIOS (P2).
 
 | # | Passo | Comando / ação |
 |---|---|---|
-| 1 | Conectar o S22 e confirmar | `adb devices` deve listar `RQCT305RZ3Y device` |
+| 1 | Conectar o S22 e confirmar | `adb devices` deve listar `RQCT305RZ3Y device`, e `adb shell echo ok` responder; se travar, P7 |
 | 2 | Conferir o JDK | `JAVA_HOME` precisa apontar para o Temurin 17 (P1) |
 | 3 | Subir o Metro desacoplado | ver "Comandos" abaixo — **não** usar `npm run android` em segundo plano (P4) |
 | 4 | Redirecionar a porta pelo cabo | `adb reverse tcp:8081 tcp:8081` — refazer após **toda** reinstalação e reinício (P3) |
@@ -1034,6 +1106,7 @@ decidido fora do Claude Code.
 | I-18 | Só uma VPN funciona por vez: ligar a do app desliga qualquer outra do usuário (corporativa, de privacidade, "Wi-Fi seguro" da Samsung) | Doc 01 §6.5, doc 02 riscos | Decidir o que fazer com quem já usa VPN (a medir no A8) |
 | I-19 | Google Play: toda VPN exige declaração no Play Console, em categoria permitida (ex.: "monitoramento de uso de apps"); ler domínios visitados conta como histórico de navegação e exige declaração em destaque com consentimento dentro do app; a revisão pede vídeos | Doc 02 riscos, fase 9; A10 | Escolher a categoria e desenhar a declaração em destaque antes da publicação |
 | I-20 | A detecção por DNS é um indício, não prova de acesso: pré-carregamento dispara alerta sem visita, página guardada no navegador aparece sem nova consulta, e DNS cifrado (modo estrito, DNS seguro do navegador) esconde o nome | Doc 01 §6.5 ("onde tecnicamente possível"), §6.8 (estatísticas, recaídas) | Não tratar detecção como recaída automática; tratar o alerta de conteúdo como lembrete |
+| I-21 | Redes sociais pelo navegador: o acesso é detectável (DNS + app em primeiro plano), mas o tempo de uso só se estima por heurística, a medir no A7; a API do Chrome para o Bem-estar digital não é pública | Doc 01 §6.2 (limite de vídeos curtos), §6.8 (tempo de uso), risco R5 | Decidir se o limite conta o navegador (e com que precisão), ou se o navegador vira só gatilho de alerta depois que o limite do app estoura |
 
 ## Comandos
 
@@ -1184,13 +1257,20 @@ procedimento de início de sessão.
 ### P7 — Servidor do adb travado: o aparelho aparece, mas nada responde
 **Sintoma:** `adb devices` lista o aparelho como `device`, mas `adb shell`
 qualquer coisa fica parado até estourar o tempo. Nem `adb kill-server` responde.
-Aconteceu em 18/09/2026 às 22:45, depois de horas de sessão.
+Aconteceu duas vezes em 18/09/2026: às 22:45 e às 23:50. Na segunda, o
+`installDebug` do Gradle ficou 11 min parado e falhou com "Could not create ADB
+Bridge", e até `adb devices` travou.
 
-**Causa:** não identificada. Havia dois processos `adb.exe` ao mesmo tempo.
+**Causa:** não identificada. As duas vezes foram depois de longos períodos com um
+gravador que chamava `adb shell dumpsys window` a cada segundo; na segunda, o
+próprio gravador estava preso numa dessas chamadas. Os três processos `adb.exe`
+eram do mesmo SDK (servidor, o gravador preso e um `start-server` do Gradle), o
+que descarta duas versões disputando a porta.
 
-**Solução:** `taskkill //F //IM adb.exe` e `adb start-server`. Depois, refazer o
-`adb reverse tcp:8081 tcp:8081` (P3). Nos scripts, envolver os comandos do adb em
-`timeout`, para uma trava não segurar a sessão.
+**Solução:** encerrar os gravadores e todos os `adb.exe` (`taskkill //F //IM
+adb.exe`), depois `adb start-server`, e refazer o `adb reverse tcp:8081 tcp:8081`
+(P3). Nos scripts, envolver os comandos do adb em `timeout`, e evitar gravadores
+por segundo em sessões longas: preferir leituras pontuais.
 
 ## Tentativas malsucedidas
 

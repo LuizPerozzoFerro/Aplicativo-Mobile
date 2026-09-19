@@ -1,0 +1,71 @@
+# A7 — instagram.com pelo navegador (parcial)
+# Galaxy S22, Android 16 / One UI 8, 19/09/2026, 00:04–00:11
+# Chrome 153 · mesma VPN local de DNS do A6 · Wi-Fi doméstico
+
+## O que foi acrescentado à VPN do A6
+  - Segunda lista, de redes sociais (instagram.com, cdninstagram.com): só registra
+    o acesso; nunca alerta nem bloqueia, em nenhum modo.
+  - A consulta de DNS não diz qual app perguntou, e o próprio app do Instagram
+    consulta os mesmos domínios que o site. Cada detecção é cruzada com o app em
+    primeiro plano (leitura do A1): se for um navegador, "via: navegador".
+  - Navegador = app que abre links https (resolução de intent; o manifesto já
+    declara essa consulta em <queries>). No S22: 2 (Chrome e Samsung Internet).
+  - Um registro por domínio e por app na tela a cada minuto.
+  - Rastreador de sessão (BrowserSessionTracker) para estimar o TEMPO no
+    navegador, escolhido pelo responsável entre as opções (heurística). Uma sessão
+    começa na primeira consulta com um navegador na frente e termina quando o
+    navegador sai da tela (conferido a cada 5 s) ou quando as consultas param por
+    90 s (o fim é então a última consulta). O instante de cada consulta vai no log,
+    para recalcular com outros intervalos sem repetir o teste.
+
+## Descartado antes de implementar
+  - Tempo por site que o Chrome informa ao Bem-estar digital: não está na API
+    pública do UsageStatsManager (referência consultada em 19/09/2026, atualizada
+    em 28/08/2026); é reservado ao sistema.
+  - Serviço de acessibilidade lendo a barra de endereço: lê conteúdo da tela
+    (CLAUDE.md §9) e o Google Play restringe esse uso.
+  - VPN que lê o tráfego inteiro: exige pilha de rede nativa; contraria a D5.
+
+=====================================================================
+## Rodada 1 (00:04) — registro do acesso
+
+  Log compartilhado
+  00:04:05.208  app            domain_watch_configured  modo: alert · 2 dominio(s) · 2 de rede social
+  00:04:05.240  LabVpnService  vpn_started              ... redes sociais: cdninstagram.com, instagram.com · navegadores: 2
+  00:04:18.712  LabVpnService  social_domain_detected   dominio: instagram.com · consulta: www.instagram.com (A) ·
+                                                        via: navegador · em primeiro plano: com.android.chrome
+  00:04:19.206  LabVpnService  social_domain_detected   dominio: cdninstagram.com · consulta: static.cdninstagram.com (HTTPS) ·
+                                                        via: navegador · em primeiro plano: com.android.chrome
+  --- app do Instagram aberto ---
+  00:04:40.638  LabVpnService  social_domain_detected   dominio: instagram.com · consulta: test-gateway.instagram.com (A) ·
+                                                        via: outro app · em primeiro plano: com.instagram.android
+  00:05:27.809  LabVpnService  vpn_stopped              consultas: 25 · repassadas: 25 · sem resposta: 0 ·
+                                                        redes sociais: 10 · outros pacotes descartados: 14 ·
+                                                        ida e volta media ao DNS da rede: 19,7 ms
+
+  Critério da spec ("evento registrado ao acessar instagram.com pelo
+  navegador"): cumprido. O uso pelo app sai separado.
+
+=====================================================================
+## Rodada 2 (00:10) — prévia do rastreador de sessão
+
+  00:10:33.904  BrowserSessionTracker  social_session_started  navegador: com.android.chrome · dominio: instagram.com
+  00:11:09.169  BrowserSessionTracker  social_session_ended    duracao estimada: 35 s ·
+                  motivo: navegador saiu da tela (agora: com.norte.lab.dev) · consultas: 5 ·
+                  maior intervalo: 0 s · consultas em (s): 0,0,0,0,0
+  00:11:14.981  LabVpnService          vpn_stopped             consultas: 14 · repassadas: 14 · sem resposta: 0 ·
+                                                               redes sociais: 5 · ida e volta media: 15,3 ms
+
+  O Chrome não estava logado no Instagram: a página era a de login (texto
+  "Entrar" lido pelo uiautomator; tela não capturada). Todas as consultas
+  saíram no carregamento (segundo 0) e nenhuma nos 35 s seguintes, com a página
+  parada. O fim da sessão veio do navegador saindo da tela, não do intervalo.
+
+=====================================================================
+## Pendente: rodada de 5 minutos, com o responsável
+  Pré-requisito: o responsável faz o login no Instagram no Chrome (senha não é
+  digitada pelo Claude). Roteiro: VPN ligada; abrir instagram.com no Chrome; o
+  responsável rola o feed por 3 min; aos 3 min, trocar para outro site
+  (pt.wikipedia.org) e ler por 2 min; aos 5 min, tela inicial.
+  Verdade: 180 s de Instagram. Comparar com a sessão estimada, e recalcular com
+  outros intervalos a partir dos instantes das consultas.
