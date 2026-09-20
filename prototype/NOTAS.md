@@ -7,7 +7,7 @@
 
 ## Estado atual e próximo passo
 
-> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 19/09/2026, 19:45.
+> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 19/09/2026, 20:30.
 
 **Branch:** `prototype/android-vpn`, criado a partir de `prototype/android-usage`
 (que ficou com A1–A5 e A9) para o grupo da VPN: A6, A7 e A8. Tudo commitado.
@@ -17,9 +17,9 @@
 | ID | Resultado |
 |---|---|
 | S1 · S4 · A1 · A2 · A5 | ✅ |
-| A3 · A4 · A6 · A7 · A8 · A9 | ⚠️ com limitações documentadas |
-| A10 | não iniciado |
+| A3 · A4 · A6 · A7 · A8 · A9 · A10 | ⚠️ com limitações documentadas |
 | S2 · S3 · iOS | não iniciados — dependem da conta Apple Developer pessoal |
+| C1 · C2 | C1 depende do iOS; C2 (textos neutros) já tem material no A3 |
 
 **Feito na sessão de 18 e 19/09/2026** (pausa pedida pelo responsável na
 madrugada de 19/09, retomada às 14:27):
@@ -44,8 +44,26 @@ madrugada de 19/09, retomada às 14:27):
   privado estrito se mostrou incompatível com a VPN (os apps ficam sem DNS) e o
   custo de bateria da VPN ficou na mesma ordem do serviço sozinho.
 
-**Próximo passo: A10** (políticas do Google Play e da App Store, documental).
-É pesquisa, sem aparelho; combinar o recorte com o responsável antes de começar.
+- **A10 ⚠️** (ver "Achado A10"): pesquisa documental das políticas do Google
+  Play, com a tabela de permissão, exigência e risco que a spec pede. Dois
+  riscos altos: a política da VpnService pressupõe servidor remoto e criptografia
+  até o túnel, que não existem num desenho local (I-19), e o critério de "rodar
+  só o tempo necessário" bate de frente com um serviço que fica ligado o dia
+  inteiro (I-2). Um achado técnico novo: qualquer app pode esconder a nossa
+  sobreposição (I-25). O desenho que não manda nada para fora paga bem na
+  declaração de segurança de dados, no spyware e na nova métrica de bateria.
+
+**Próximo passo: decidir com o responsável.** O Android fechou (A1–A10). As
+opções, em ordem de custo:
+1. **Rodada nova do A4**, para testar o achado I-25: um app com
+   `setHideOverlayWindows(true)` esconde a nossa tela de interrupção? Precisa de
+   um app de teste próprio, porque não se sabe quais apps instalados usam isso.
+2. **Fechar o C2** (textos neutros na tela bloqueada), que já tem material no A3
+   e precisa só de uma conferência com a tela bloqueada.
+3. **Roteiros T1–T10** com o responsável no aparelho, inclusive o T6 (um dia
+   inteiro de uso normal), que também fecha a pendência de bateria do A8.
+4. **Começar o relatório** de viabilidade, que é o entregável da Fase 1.
+5. **iOS**, se a conta Apple Developer estiver pronta (S2, S3).
 
 **VPN no aparelho:** consentimento concedido (`appops ... ACTIVATE_VPN: allow`),
 VPN **desligada**, modo salvo **alerta**, listas example.com e example.org (A6) e
@@ -233,6 +251,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | A7 | ⚠️ Funciona com limitações | Critério da spec cumprido: instagram.com no Chrome gerou `social_domain_detected` "via: navegador", e o app do Instagram saiu separado ("via: outro app"). A consulta de DNS não diz qual app perguntou; a separação vem do app em primeiro plano. Tempo no navegador, por heurística: 204 s estimados para 180,6 s reais (+13%) numa rodada de 5 min, mas com corte fora da faixa de 85–96 s o erro vai de −99% a +67%, e a resolução é de ~1 min. Ver achado abaixo |
 | A8 | ⚠️ | Navegação geral ok depois de corrigir o repasse (mediana de 2,6 s → 49 ms); apps de banco ok; outra VPN derruba a nossa, que não volta sozinha; **DNS privado estrito + nossa VPN deixa os apps sem DNS**; DNS seguro do Chrome ainda deixa ver o endereço principal; a VPN sobrevive à queda do Wi-Fi, ao Doze profundo e ao modo economia; bateria: 0,366% de CPU e ~1 mAh a cada 2 h com o aparelho parado. Ver achado abaixo |
 | A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. Faltam "Apps em suspensão" da Samsung (precisa de dias) e o roteiro T6 |
+| A10 | ⚠️ Tabela pronta, com riscos abertos | Pesquisa documental das políticas do Play em 19/09/2026. Tabela de permissão, exigência e risco no achado abaixo. `PACKAGE_USAGE_STATS` e a lista de apps são dado sensível: exigem divulgação destacada no app e política de privacidade. `specialUse` exige `<property>`, declaração no Play Console com vídeo e os cinco critérios de serviço em primeiro plano — o de "rodar só o tempo necessário" é o risco. `systemExempted` da VPN é isento desses critérios, mas só vale enquanto somos a VPN ativa. A política da `VpnService` pressupõe servidor remoto e criptografia até o túnel, que não existem no nosso desenho local. Achado novo: qualquer app pode esconder a nossa sobreposição com `setHideOverlayWindows`. Ver achado abaixo |
 
 ### Achado A1 — como medir tempo de uso por app, e o que não funciona
 
@@ -1133,6 +1152,93 @@ bateria nessa janela; o dado vale só como sobrevivência.
   força-parado deixa de receber broadcasts até ser aberto de novo — o que
   desligaria o religamento automático. Não testado aqui; exigiria outro reinício.
 
+### Achado A10 ⚠️ — o que o Google Play exige de cada permissão que usamos
+
+**Pesquisa documental em 19/09/2026**, nas páginas oficiais de política do Play
+e de referência do Android. Evidência, com todos os links e as datas de
+vigência, em `docs/relatorios/evidencias/a10-politicas-google-play.txt`.
+
+A tabela pedida pela spec (seção 6.2, A10):
+
+| Permissão / API | O que o Play exige | Risco para o nosso app |
+|---|---|---|
+| `PACKAGE_USAGE_STATS` (acesso ao uso) | É permissão restrita (nível `signature\|privileged\|appop`), então tudo que vem dela é dado pessoal e sensível: divulgação destacada **dentro** do app antes de pedir, uso só para funcionalidade central promovida na ficha, política de privacidade. Sem formulário próprio | Baixo, se o onboarding fizer a divulgação antes de mandar o usuário aos Ajustes |
+| `<queries>` MAIN/LAUNCHER (lista de apps) | `QUERY_ALL_PACKAGES` é proibida quando uma consulta direcionada resolve — e a política diz que métodos alternativos que *aproximem* a visibilidade ampla também ficam restritos à funcionalidade central | Baixo/médio: a nossa consulta lista todos os apps com ícone. A justificativa ("o usuário escolhe o que monitorar") precisa estar escrita na ficha e no app |
+| `FOREGROUND_SERVICE_SPECIAL_USE` + tipo `specialUse` | `<property>` no manifesto com texto livre lido por revisor humano, **mais** declaração no Play Console (descrição, impacto se a tarefa for adiada ou interrompida, vídeo) e os cinco critérios da política de serviços em primeiro plano | **O maior risco de loja.** O quinto critério é "rodar só o tempo necessário", e o nosso monitoramento roda o dia inteiro. Os outros quatro dão defesa |
+| `FOREGROUND_SERVICE_SYSTEM_EXEMPTED` + tipo `systemExempted` (VPN) | O Android só libera esse tipo para casos listados, entre eles apps de VPN; fora deles, `ForegroundServiceTypeNotAllowedException`. Em troca, a política **isenta** esse tipo dos cinco critérios | Médio: a isenção só vale enquanto somos a VPN ativa. Se outra VPN revogar a nossa (A8, rodada C), subir o serviço de novo pode estourar exceção |
+| `SYSTEM_ALERT_WINDOW` (sobreposição) | Permissão especial: mandar o usuário aos Ajustes sem manipulação, só para funcionalidade central promovida na ficha. A política de comportamento enganoso proíbe imitar avisos do sistema. A própria referência do Android diz que pouquíssimos apps deveriam usá-la | **Alto**, e agora por dois motivos: a justificativa de loja (I-7) e o achado novo abaixo — qualquer app pode esconder a nossa sobreposição |
+| `VpnService` | Funcionalidade central de VPN **ou** uma das exceções, que incluem "acompanhamento de uso de apps"; documentar na ficha; **criptografar os dados até o ponto final do túnel**; formulário no Play Console com dois vídeos de até 90 s (a VPN em uso e a divulgação destacada) | **Alto.** Duas exigências não encaixam num desenho local (ver abaixo), e a aprovação é humana |
+| `POST_NOTIFICATIONS` | Permissão de runtime comum; degradar com elegância se negada | Baixo, já tratado (I-6) |
+| `RECEIVE_BOOT_COMPLETED` | Nível normal, sem declaração | Nenhum |
+
+#### As duas exigências da VPN que não encaixam no nosso desenho
+
+A seção "VPN Service" entrou na política de permissões sensíveis e está em
+vigor **desde 01/01/2026**. Ela pressupõe uma VPN que leva o tráfego a um
+servidor: fala de apps que *precisam* de servidor remoto e manda criptografar
+os dados "até o ponto final do túnel". A nossa VPN (D5) é local: não existe
+servidor nem ponto final, e o tráfego nem sai do aparelho.
+
+A leitura favorável existe: o formulário do Play traz "App usage tracking" como
+opção de funcionalidade permitida, e é exatamente o nosso caso, com privacidade
+maior do que a política pressupõe. Mas é leitura, e a decisão é de um revisor
+humano. Não há como ter certeza antes de submeter.
+
+Some-se que ler domínios visitados é, na taxonomia do Play, histórico de
+navegação — o que exige a divulgação destacada específica da VPN, mesmo sem
+nada sair do aparelho (I-19).
+
+#### O achado novo: o app monitorado pode esconder a nossa sobreposição
+
+`Window.setHideOverlayWindows(true)` existe desde a API 31 e impede que
+sobreposições de terceiros apareçam sobre aquela janela. A permissão que ela
+exige (`HIDE_OVERLAY_WINDOWS`) é de nível **normal**: qualquer app pode
+declará-la, sem pedir nada ao usuário. Ou seja, um app que queira se proteger
+de sobreposições — e apps de banco costumam querer — apaga a nossa tela de
+interrupção. Não testado no protótipo; entra como rodada pendente do A4.
+
+#### O desenho local paga bem em três frentes
+
+- **Segurança de dados:** a política define "coletar" como transmitir dado para
+  fora do aparelho, e diz que dado processado **apenas** no aparelho não precisa
+  ser declarado como coletado. A nossa seção de segurança de dados pode ser
+  declarada sem coleta.
+- **Spyware:** os exemplos de violação giram em torno de transmitir dados. Nada
+  sai daqui.
+- **Bateria:** desde 01/03/2026 o Play trata wake lock parcial como métrica de
+  qualidade, com aviso na ficha e saída das recomendações para quem segura um
+  wake lock não isento por mais de 2 h em média com a tela apagada em mais de 5%
+  das sessões. O A8 mediu **zero** wake lock parcial nosso.
+
+Nada disso dispensa a política de privacidade (exigida mesmo sem coleta), a
+divulgação destacada no app, nem a exclusão de conta dentro do app e na web, que
+o app definitivo vai precisar por ser assinatura.
+
+#### Rotas que a pesquisa fechou
+
+- **Notificação em tela cheia** como alternativa à tela de interrupção: desde
+  22/01/2025, só apps de chamada ou despertador recebem `USE_FULL_SCREEN_INTENT`
+  por padrão. Não é caminho confiável.
+- **AccessibilityService** para detectar uso: a política manda usar APIs mais
+  estreitas quando existirem, e existe (`UsageStatsManager`). Além disso exige
+  declaração própria e proíbe a flag de ferramenta de acessibilidade para quem
+  não é uma.
+- **Isenção de otimização de bateria** (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`):
+  só é aceitável quando o Doze quebra a função central, e tentar contornar a
+  gestão de energia sem ser elegível é violação. No nosso caso o Doze só ocorre
+  com o aparelho parado, quando não há uso para detectar. Não pedir.
+- **`isMonitoringTool`**: é para apps que monitoram **outra pessoa** (pai/filho,
+  empresa/empregado), e quem declara aparece num aviso do Play Protect. O nosso
+  app monitora o próprio dono do aparelho: **não** declarar.
+
+#### O que não foi pesquisado
+
+- Regras da ficha da loja para o tema (política de conteúdo sexual,
+  classificação indicativa, o que pode aparecer em texto e imagens). É a lacuna
+  mais importante que sobra.
+- Obrigatoriedade do Google Play Billing para a assinatura.
+- Políticas equivalentes da App Store, que ficam com o grupo do iOS.
+
 ### Outros achados do dia
 
 - **Intent direcionado funciona no One UI 8.** `ACTION_USAGE_ACCESS_SETTINGS` com
@@ -1204,12 +1310,12 @@ decidido fora do Claude Code.
 | # | Achado | Afeta | O que precisa ser decidido |
 |---|---|---|---|
 | I-1 | O Android não expõe API de aviso de limite (`registerAppUsageObserver` é reservada ao sistema). Monitorar exige serviço em primeiro plano com **notificação permanente** | Doc 01 P7 (discrição) | Como tratar o ícone e o nome do app visíveis na barra de status o dia inteiro |
-| I-2 | O serviço é do tipo `specialUse`, aprovado por **revisão humana** do Google Play a partir de uma justificativa em texto livre | Doc 02 riscos, fase 9 | O texto da justificativa passa a ser parte do produto; risco de rejeição |
+| I-2 | O serviço é do tipo `specialUse`, aprovado por **revisão humana** do Google Play a partir de uma justificativa em texto livre. O A10 mediu o tamanho da exigência: `<property>` no manifesto, declaração no Play Console com descrição, impacto se a tarefa for adiada ou interrompida e vídeo, **mais** os cinco critérios da política de serviços em primeiro plano — e o quinto deles é "rodar só o tempo necessário para concluir a tarefa" | Doc 02 riscos, fase 9 | O texto da justificativa passa a ser parte do produto; risco de rejeição. Montar a defesa dos outros quatro critérios (o usuário liga, a notificação é perceptível, ele desliga quando quiser, e adiar significa não avisar na hora do risco) |
 | I-3 | No One UI o botão de ação da notificação **só aparece expandindo-a** — dois toques até a emergência | Doc 01 P3 ("no máximo um toque"), §6.7 | A emergência pela notificação não cumpre P3 no Samsung; depende da tela de interrupção |
 | I-4 | "Hoje" do sistema não coincide com a meia-noite: o método agregado atribui uso de ontem ao dia seguinte (confirmado duas vezes) | Doc 01 §6.2 e §6.8 | Streak de moderação e estatísticas diárias precisam calcular a borda do dia explicitamente |
 | I-5 | Após reiniciar o aparelho, o monitoramento só volta **~2,5 min depois do boot e só após o primeiro desbloqueio** | Doc 01 §6.5 (P2 proativo) | Declarar a janela cega ou aceitá-la |
 | I-6 | Sem a permissão de notificação o serviço roda, mas nenhum alerta chega — e nada avisa o usuário | Doc 01 §6.9, onboarding | O app precisa detectar e explicar o modo degradado |
-| I-7 | A tela de interrupção depende de `SYSTEM_ALERT_WINDOW`, e a documentação do Android enquadra "atividade sobre o app em uso" como **sequestro de interface** | Doc 02 riscos, A10 | Risco de loja para a tela de interrupção; justificar no pedido |
+| I-7 | A tela de interrupção depende de `SYSTEM_ALERT_WINDOW`, e a documentação do Android enquadra "atividade sobre o app em uso" como **sequestro de interface**; a própria referência da permissão diz que pouquíssimos apps deveriam usá-la. A política de comportamento enganoso ainda proíbe imitar avisos do sistema (A10) | Doc 02 riscos; Doc 01 §6.5 | Risco de loja para a tela de interrupção; justificar no pedido e desenhar a tela para se identificar como nossa, sem parecer aviso do Android |
 | I-8 | A tela inicial do sistema aparece na lista de uso como se fosse um app | Doc 01 §6.8 | Filtrar lançadores das estatísticas |
 | I-9 | Custo medido do monitoramento: 0,138% de CPU e 0,65% do consumo do aparelho, incluindo ruído do ambiente de desenvolvimento | Doc 02 riscos (bateria) | O risco de bateria parece baixo; confirmar no roteiro T6 |
 | I-10 | Com a sobreposição, o app monitorado continua em primeiro plano por baixo: o tempo diante da tela de interrupção conta como uso dele | Doc 01 §6.2 e §6.8 | Descontar esse tempo das estatísticas e da streak de moderação |
@@ -1221,12 +1327,15 @@ decidido fora do Claude Code.
 | I-16 | Só o "Continuar" pausa (A5). Acima do limite e fora da pausa, **cada reabertura** do app monitorado gera uma nova interrupção, em até 20 s | Doc 01 §6.5, que não fala de pausa nem de reinterrupção; risco R7 (excesso de alertas) | Definir no documento 01 a duração da pausa, quais saídas pausam, o que volta no fim dela (no protótipo: notificação e, se o uso continuar, a tela) e se há teto diário de interrupções |
 | I-17 | A VPN do A6 exige consentimento numa caixa do sistema cujo texto diz que ela "permite monitorar o tráfego da rede", e mostra a chave de VPN na barra de status enquanto estiver ligada | Doc 01 P7 (discrição), §4 (onboarding) | Preparar o usuário para essa caixa no onboarding; aceitar a chave visível o tempo todo |
 | I-18 | Só uma VPN funciona por vez: ligar outra desliga a do app na hora, e ela **não volta sozinha** quando a outra é desligada (A8, com a "Wi-Fi seguro" da Samsung) | Doc 01 §6.5, doc 02 riscos | Decidir o que fazer com quem já usa VPN; o app precisa perceber a queda (`onRevoke`) e avisar o usuário |
-| I-19 | Google Play: toda VPN exige declaração no Play Console, em categoria permitida (ex.: "monitoramento de uso de apps"); ler domínios visitados conta como histórico de navegação e exige declaração em destaque com consentimento dentro do app; a revisão pede vídeos | Doc 02 riscos, fase 9; A10 | Escolher a categoria e desenhar a declaração em destaque antes da publicação |
+| I-19 | Google Play: toda VPN exige declaração no Play Console, em categoria permitida (a lista inclui "acompanhamento de uso de apps"), com **dois vídeos de até 90 s** (a VPN em uso e a divulgação destacada); ler domínios visitados conta como histórico de navegação e exige divulgação destacada com consentimento dentro do app. O A10 achou o conflito de fundo: a política, em vigor desde 01/01/2026, pressupõe VPN com **servidor remoto** e manda **criptografar os dados até o ponto final do túnel** — e a nossa é local, sem servidor nem túnel | Doc 02 riscos, fase 9 | Escolher a categoria e desenhar a divulgação destacada antes da publicação. Decidir se vale submeter uma VPN local a essa política ou se a detecção por domínio sai do MVP; a resposta depende de revisão humana e não dá para prever |
 | I-20 | A detecção por DNS é um indício, não prova de acesso: pré-carregamento dispara alerta sem visita, e página guardada no navegador aparece sem nova consulta. DNS seguro do Chrome 153 (A8): o endereço principal de cada navegação ainda passou pela VPN, só os domínios secundários sumiram; comportamento interno, que pode mudar. E o próprio app da rede social consulta sozinho em segundo plano: em 2h 10 de aparelho parado, 10 das 11 detecções de instagram.com aconteceram sem ninguém no app (A8) | Doc 01 §6.5 ("onde tecnicamente possível"), §6.8 (estatísticas, recaídas) | Não tratar detecção como recaída automática; tratar o alerta de conteúdo como lembrete; cruzar sempre com o app em primeiro plano antes de contar um acesso |
 | I-21 | Redes sociais pelo navegador: o acesso é detectável (DNS + app em primeiro plano), mas o tempo de uso só se estima por heurística: +13% numa rodada de 5 min, resolução de ~1 min, e erro de −99% a +67% fora de uma faixa estreita de ajuste. A API do Chrome para o Bem-estar digital não é pública | Doc 01 §6.2 (limite de vídeos curtos), §6.8 (tempo de uso), risco R5 | Decidir se o limite conta o navegador (e com que precisão), ou se o navegador vira só gatilho de alerta depois que o limite do app estoura |
 | I-22 | **Com "DNS privado" no modo estrito (provedor com nome, comum para bloquear anúncios), ligar a VPN do app deixa os apps sem DNS**: o sistema não alcança o provedor pela rede da VPN, marca a rede como sem internet e avisa "Não é possível acessar o servidor DNS privado". A VPN também não vê nada nesse modo | Doc 01 §6.5, onboarding (§4); doc 02 riscos | O app precisa detectar o modo estrito antes de ligar a VPN (e depois, se mudar) e orientar o usuário, ou não ligar a VPN; nunca deixar o aparelho sem internet |
 | I-23 | O DNS do roteador doméstico perde consultas em rajadas de páginas pesadas, com ou sem VPN; um repasse ingênuo transforma essas perdas em atraso de 2 a 3 s para todas as consultas (medido e corrigido no A8) | Doc 02 riscos (qualidade da conexão com a VPN) | O repasse do app definitivo precisa de concorrência sem fila e nova tentativa curta, e de monitoramento de falhas |
 | I-24 | Custo da VPN somada ao serviço, com o aparelho parado (A8): 0,366% de CPU e ~1 mAh a cada 2 h, contra 0,138% e ~0,5 mAh do serviço sozinho (A9). Sem wakelock; atravessa Doze profundo e modo economia de energia. Projeção de 0,3% a 0,4% de bateria por dia, e o número é um teto (inclui ruído do ambiente de desenvolvimento) | Doc 02 riscos (bateria), roteiro T6 | O risco de bateria segue baixo, mas o número vale para aparelho parado: confirmar com um dia de uso real no T6 |
+| I-25 | **Qualquer app pode esconder a nossa sobreposição.** `Window.setHideOverlayWindows(true)` existe desde a API 31 e impede sobreposições de terceiros sobre aquela janela; a permissão que ela exige é de nível normal, concedida sem pedir nada ao usuário (A10, documental) | Doc 01 §6.5 (tela de interrupção), doc 02 riscos | A sobreposição não é garantia contra um app que se proteja. Testar numa rodada nova do A4 e, se confirmado, ter a tela própria como reserva — ela não é afetada, embora o voltar a dispense (I-13) |
+| I-26 | A rota de **notificação em tela cheia** para a interrupção está fechada: desde 22/01/2025, em apps que miram Android 14+, só apps de chamada ou despertador recebem `USE_FULL_SCREEN_INTENT` por padrão (A10) | Doc 01 §6.5, doc 02 (alternativas de alerta de nível 2) | Restam a sobreposição e a tela própria; não contar com notificação em tela cheia no MVP |
+| I-27 | Como **nada sai do aparelho**, a seção de segurança de dados do Play pode ser declarada **sem coleta** (a política define coletar como transmitir para fora do aparelho). Isso não dispensa política de privacidade, divulgação destacada no app, nem exclusão de conta dentro do app e na web — esta última passa a valer porque o app é por assinatura (A10) | Doc 01 §4 (onboarding) e §9 (privacidade), doc 02 fase 9 | Tratar "nenhum dado coletado" como diferencial de produto, e já prever política de privacidade, divulgação destacada e exclusão de conta no escopo do MVP |
 
 ## Comandos
 

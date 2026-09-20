@@ -17,9 +17,10 @@
     Declarar a intencao MAIN/LAUNCHER mostra apenas apps com icone na gaveta, que
     e o suficiente para o usuario escolher o que monitorar.
 
-    Deliberadamente NAO usamos QUERY_ALL_PACKAGES: o Google Play a classifica como
-    permissao sensivel, restrita a lancadores, antivirus e gerenciadores de
-    arquivos, e seu uso sem justificativa e motivo de remocao (ver experimento A10).
+    Deliberadamente NAO usamos QUERY_ALL_PACKAGES: o Google Play trata o inventario
+    de apps instalados como dado sensivel e proibe a permissao ampla quando uma
+    consulta direcionada resolve o problema, que e o nosso caso. Ela ainda exige
+    formulario proprio no Play Console (politica conferida no A10, em 19/09/2026).
   -->
   <queries>
     <intent>

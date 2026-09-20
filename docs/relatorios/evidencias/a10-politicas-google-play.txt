@@ -1,0 +1,199 @@
+# A10 — Políticas do Google Play para as permissões e APIs que o protótipo usa
+# Pesquisa documental, 19/09/2026. Páginas oficiais consultadas nesta data.
+# Nenhum trecho de política é reproduzido por extenso: o texto abaixo é resumo,
+# com o link para conferir o original.
+
+Fontes (todas consultadas em 19/09/2026):
+ P1 Permissions and APIs that Access Sensitive Information (política)
+    https://support.google.com/googleplay/android-developer/answer/13986130
+ P2 Device and Network Abuse (política; traz a seção de serviços em primeiro plano)
+    https://support.google.com/googleplay/android-developer/answer/16559646
+ P3 User Data (política; divulgação destacada, consentimento, política de privacidade)
+    https://support.google.com/googleplay/android-developer/answer/10144311
+ P4 Understanding Google Play VpnService policy (guia do formulário)
+    https://support.google.com/googleplay/android-developer/answer/12564964
+ P5 Understanding foreground service and full-screen intent requirements
+    https://support.google.com/googleplay/android-developer/answer/13392821
+ P6 Provide information for Google Play Data safety section
+    https://support.google.com/googleplay/android-developer/answer/10787469
+ P7 Use of the isMonitoringTool Flag
+    https://support.google.com/googleplay/android-developer/answer/12955211
+ P8 Understanding Google Play Spyware policy
+    https://support.google.com/googleplay/android-developer/answer/14745000
+ A1 Foreground service types (Android; página atualizada em 16/09/2026)
+    https://developer.android.com/develop/background-work/services/fgs/service-types
+ A2 Manifest.permission (níveis de proteção)
+    https://developer.android.com/reference/android/Manifest.permission
+ A3 Window.setHideOverlayWindows
+    https://developer.android.com/reference/android/view/Window
+ A4 Battery Technical Quality Enforcement (blog oficial; vigente desde 01/03/2026)
+    https://developer.android.com/blog/posts/battery-technical-quality-enforcement-is-here-how-to-optimize-common-wake-lock-use-cases
+
+=====================================================================
+## O que muda de data
+  - A seção "VPN Service" entrou na política P1 e está em vigor desde
+    01/01/2026. O guia P4, mais antigo, continua valendo para o formulário.
+  - As mudanças anunciadas em abril de 2026 e ainda não vigentes (efeito em
+    27/01/2027) são de localização, contatos e geofencing: **nada que afete o
+    nosso desenho**. Conferido nas versões "Preview" de P1 e P5.
+  - Qualidade técnica de bateria: em vigor desde 01/03/2026 (A4).
+
+=====================================================================
+## Acesso ao uso — PACKAGE_USAGE_STATS
+  Nível de proteção (A2): signature|privileged|development|appop|retailDemo.
+  P1 define como "restritas" as permissões Dangerous, Special ou Signature, e
+  diz que tudo obtido por elas é dado pessoal e sensível, sujeito a P3.
+  Exigências que decorrem disso:
+  - divulgação destacada dentro do app, antes de pedir o acesso (P3);
+  - só para funcionalidade central, promovida na ficha da loja (P1);
+  - política de privacidade obrigatória, mesmo sem coletar nada (P3).
+  Não existe formulário específico para esta permissão no Play Console.
+
+=====================================================================
+## Visibilidade de apps instalados — <queries> MAIN/LAUNCHER
+  P1 trata o inventário de apps instalados como dado pessoal e sensível.
+  QUERY_ALL_PACKAGES é restrita e proibida quando uma consulta direcionada
+  resolve o problema; exige formulário no Play Console. O protótipo usa
+  <queries> MAIN/LAUNCHER (decisão D3), que é o caminho recomendado.
+  Ponto de atenção: P1 diz que métodos alternativos que *aproximem* a
+  visibilidade ampla também ficam restritos à funcionalidade central. Listar
+  todos os apps com ícone na gaveta é perto disso, então a justificativa
+  ("o usuário escolhe o que monitorar") precisa estar na ficha e no app.
+
+=====================================================================
+## Serviço em primeiro plano do monitoramento — specialUse
+  Android (A1): além do tipo, exige a <property>
+  android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE com texto livre, lido por um
+  revisor do Google Play. O protótipo já declara essa property.
+  Play Console (P5): declaração na página de conteúdo do app com, para cada
+  tipo: descrição da funcionalidade, impacto para o usuário se a tarefa for
+  adiada e/ou interrompida, vídeo demonstrando como o usuário aciona o recurso,
+  e o caso de uso escolhido numa lista (specialUse não aparece nessa lista: o
+  caso de uso vai escrito à mão).
+  Critérios da política (P2), que specialUse **precisa** cumprir:
+    1. beneficia o usuário e é central no app
+    2. é iniciado pelo usuário ou é perceptível por ele
+    3. pode ser encerrado pelo usuário
+    4. não pode ser adiado ou interrompido pelo sistema sem estragar a
+       experiência
+    5. roda só o tempo necessário para concluir a tarefa
+  O critério 5 é o nosso problema: o monitoramento roda o dia inteiro. Os
+  outros quatro temos como sustentar (o usuário liga, a notificação permanente
+  é perceptível, ele desliga quando quiser, e adiar significa não avisar na
+  hora do risco — que é a razão de existir do app).
+  P2 isenta dos cinco critérios apenas systemExempted, shortService e o
+  dataSync do Play Asset Delivery.
+
+=====================================================================
+## Serviço em primeiro plano da VPN — systemExempted
+  Android (A1) lista quem pode usar esse tipo, e entre os casos estão os
+  "apps de VPN configurados em Ajustes > Rede e Internet > VPN". Quem não se
+  encaixa recebe ForegroundServiceTypeNotAllowedException.
+  Confirmado na prática: o serviço subiu e rodou 4h34 na sessão do A8.
+  P2 isenta systemExempted dos cinco critérios acima — é o único alívio de
+  política que a pesquisa encontrou.
+  Risco: a isenção vale enquanto o app é a VPN ativa. No A8 (rodada C) a
+  "Wi-Fi seguro" da Samsung revogou a nossa; se o app tentar subir o serviço
+  fora dessa condição, a exceção estoura. O religamento precisa checar antes.
+
+=====================================================================
+## Sobreposição — SYSTEM_ALERT_WINDOW
+  A2 é direta: são janelas pensadas para interação em nível de sistema, e
+  poucos apps deveriam usá-la.
+  P1 a trata como permissão especial: o app deve mandar o usuário à tela de
+  Ajustes, não pode manipulá-lo para conceder, e só pode pedir o que for
+  necessário para a funcionalidade central promovida na ficha.
+  Política de Comportamento Enganoso: o app não pode imitar funcionalidade nem
+  avisos do sistema ou de outros apps. Consequência de desenho: a tela de
+  interrupção tem de se identificar como nossa, sem parecer aviso do Android.
+  Limite técnico achado nesta pesquisa (A3): qualquer app pode chamar
+  Window.setHideOverlayWindows(true) (API 31+, permissão HIDE_OVERLAY_WINDOWS,
+  de nível normal) e **impedir que sobreposições de terceiros apareçam sobre
+  ele**. Ou seja, o app monitorado pode esconder a nossa tela de interrupção.
+  Não testado no protótipo — vale uma rodada.
+
+=====================================================================
+## VpnService
+  P1 (seção VPN Service, em vigor desde 01/01/2026) e o guia P4:
+  - permitido para apps cuja funcionalidade central é VPN; as exceções são para
+    apps "que precisam de um servidor remoto" para a função central, e a lista
+    de exceções inclui **acompanhamento de uso de apps**, controle parental,
+    segurança do aparelho, ferramentas de rede, navegadores e apps de operadora;
+  - não pode coletar dado pessoal ou sensível sem divulgação destacada e
+    consentimento; não pode redirecionar tráfego de outros apps para monetizar;
+  - **deve** documentar o uso da VpnService na ficha da loja e **criptografar os
+    dados do aparelho até o ponto final do túnel**;
+  - formulário no Play Console, sujeito a aprovação, com duas perguntas de
+    vídeo de até 90 s: um mostrando a VPN em uso, outro mostrando a divulgação
+    destacada dentro do app.
+  Dois conflitos com o nosso desenho (D5):
+  1. A nossa VPN é **local**: não há servidor remoto nem ponto final de túnel.
+     A exigência de criptografia até o túnel não tem como ser cumprida ao pé da
+     letra, e a frase das exceções fala de apps que *precisam* de servidor
+     remoto. A leitura favorável é que a lista do formulário traz
+     "App usage tracking" como opção e o nosso caso é exatamente isso, com
+     privacidade maior do que a política pressupõe (nada sai do aparelho). É
+     leitura, não garantia: depende de revisão humana.
+  2. Ler domínios visitados é histórico de navegação na taxonomia do Play
+     (o formulário lista "Web browsing history"). Mesmo sem sair do aparelho,
+     exige a divulgação destacada e o consentimento próprios da VPN.
+
+=====================================================================
+## Declaração de dados (Data safety) — o desenho local ajuda
+  P6 define "coletar" como transmitir dado do app para fora do aparelho, e diz
+  explicitamente que dado acessado e processado **apenas no aparelho**, sem sair
+  dele, não precisa ser declarado como coletado.
+  Com o desenho atual (nada sai do aparelho), a seção de segurança de dados
+  pode ser declarada sem coleta. Isso **não** dispensa:
+  - política de privacidade (P3 exige de todo app, mesmo sem coleta);
+  - divulgação destacada e consentimento no app (P3), porque o acesso a dado
+    sensível está fora da expectativa comum do usuário;
+  - exclusão de conta dentro do app e na web, se houver conta (P3) — o app
+    definitivo é por assinatura, então provavelmente terá.
+  O formato de divulgação que P3 recomenda é direto:
+  "[este app] coleta/transmite/sincroniza/armazena [tipo de dado] para
+  possibilitar [recurso], [em que situação]".
+
+=====================================================================
+## Spyware e apps de monitoramento — o nosso caso é o do próprio usuário
+  P7: a flag isMonitoringTool é para apps desenhados e vendidos para monitorar
+  **outra pessoa** (pai/filho ou empresa/empregado), com valores
+  child_monitoring, enterprise_management ou other; quem declara aparece para o
+  usuário como app de monitoramento num aviso do Play Protect. O nosso app
+  monitora o próprio dono do aparelho, então **não** deve declarar a flag.
+  P8: os exemplos de violação de spyware giram em torno de *transmitir* dados
+  (contatos, fotos, e-mail, registro de chamadas, conteúdo de notificações). O
+  desenho que não manda nada para fora é a melhor defesa que temos aqui.
+
+=====================================================================
+## Rotas que a pesquisa fechou (e por que não usá-las)
+  Notificação em tela cheia (USE_FULL_SCREEN_INTENT), como alternativa à tela
+  de interrupção: desde 22/01/2025, em apps que miram Android 14+, só apps de
+  chamada ou despertador ganham a permissão por padrão; os outros têm de pedir
+  ao usuário e degradar se for negada (P5). Não é caminho confiável.
+  AccessibilityService, como alternativa para detectar uso: P1 exige declaração
+  no Play Console, proíbe a flag isAccessibilityTool para quem não é ferramenta
+  de acessibilidade, e manda usar APIs mais estreitas quando existirem — existe
+  (UsageStatsManager). Não usar.
+  REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, para escapar do Doze: o Android só
+  considera aceitável quando o Doze quebra a função central, e P2 lista como
+  violação tentar contornar a gestão de energia sem ser elegível. Como o Doze
+  só acontece com o aparelho parado — quando não há uso de app para detectar —
+  não pedir.
+
+=====================================================================
+## Qualidade técnica de bateria (novo, e a nosso favor)
+  A4: desde 01/03/2026 o Play aplica tratamento de qualidade a wake locks. O
+  limiar de mau comportamento é segurar wake lock parcial não isento por, em
+  média, duas horas ou mais com a tela apagada em mais de 5% das sessões dos
+  últimos 28 dias. Quem passa disso pode receber aviso na ficha da loja e sair
+  das superfícies de recomendação.
+  Medição do A8: o protótipo não segurou **nenhum** wake lock parcial em 2h10
+  com a VPN e o serviço ligados. Estamos longe do limiar.
+
+=====================================================================
+## Não pesquisado nesta rodada
+  - Regras da ficha da loja para o tema (pornografia): política de conteúdo
+    sexual, classificação indicativa e o que pode aparecer em texto e imagens.
+  - Pagamentos: obrigatoriedade do Google Play Billing para a assinatura.
+  - Políticas equivalentes da App Store (ficam com o grupo do iOS).
