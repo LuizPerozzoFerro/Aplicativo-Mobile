@@ -1,6 +1,7 @@
 # A4 / impacto I-25 — um app consegue esconder a nossa sobreposição?
-# Galaxy S22, Android 16 / One UI 8, 19/09/2026, 21:20–21:37
-# Resultado: NÃO reproduzido neste aparelho. Leia as ressalvas no fim.
+# Galaxy S22, Android 16 / One UI 8, 19/09/2026, 21:20–22:10
+# Resultado: SIM. Um app comum apaga a nossa tela de interrupção, e o nosso log
+# continua dizendo que ela apareceu.
 
 ## O que motivou a rodada
   O A10 (documental) encontrou `Window.setHideOverlayWindows(true)`, que existe
@@ -10,75 +11,84 @@
   AOSP (core/res/AndroidManifest.xml, lido em 19/09/2026):
     <permission android:name="android.permission.HIDE_OVERLAY_WINDOWS"
                 android:protectionLevel="normal" />
-  Ou seja, qualquer app pode declará-la sem pedir nada ao usuário. Se a proteção
-  valesse contra a nossa tela de interrupção, o app monitorado poderia apagá-la.
+  Ou seja, qualquer app pode declará-la sem pedir nada ao usuário.
 
-## Como foi montado
-  Função nova no módulo (`setHideOverlayWindows`) e dois botões na seção A4 do
-  laboratório. O próprio laboratório virou o app monitorado, com limite de 1 min,
-  modo sobreposição e pausa de 2 min.
-
-  A permissão está no pacote instalado e concedida:
-    adb shell dumpsys package com.norte.lab.dev
-      android.permission.HIDE_OVERLAY_WINDOWS: granted=true
+=====================================================================
+## Rodada 1 — o laboratório protegendo a própria tela (21:20–21:37)
+  Função nova no módulo (`setHideOverlayWindows`) e dois botões na seção A4. O
+  próprio laboratório virou o app monitorado, com limite de 1 min.
 
   A flag chega ao sistema. `dumpsys window windows`, na janela
   com.norte.lab.dev/.MainActivity:
     protegida     pfl=10088840
     desprotegida  pfl=10008840
     diferença     0x00080000 = SYSTEM_FLAG_HIDE_NON_SYSTEM_OVERLAY_WINDOWS
-  O bit aparece e some junto com o botão, nos dois sentidos.
 
-## As três rodadas
-  21:26:16  limite armado (1 min), proteção LIGADA (pfl=10088840)
-  21:26:21  threshold_reached — 210 min de uso para limite de 1 min
-  21:26:41  interruption_shown (sobreposição)
-            dumpsys da janela de sobreposição (ty=APPLICATION_OVERLAY):
-              mHasSurface=true isReadyForDisplay()=true
-              Surface: shown=true  mDrawState=HAS_DRAWN  mLastHidden=false
-              isOnScreen=true   isVisible=true
-            captura: a4-protecao-sobreposicao-ligada.png
-            >>> a sobreposição APARECEU, com a proteção ligada
+  21:26:41  protegida: `interruption_shown` e a sobreposição **apareceu**
+            (isVisible=true, isOnScreen=true, Surface: shown=true)
+  21:29:08  protegida, depois de sair e voltar: **apareceu de novo**
+  21:31:42  desprotegida (controle): apareceu, como sempre
 
-  21:27     saída pela "Ir para a tela inicial", laboratório reaberto;
-            pfl continuava 10088840 (proteção ainda ligada)
-  21:29:08  interruption_shown de novo
-            >>> APARECEU outra vez, agora com a janela protegida recriada
+  Nenhuma diferença. Como o código do AOSP não isenta janelas do mesmo app, o
+  resultado ficou sem explicação e a rodada não respondeu à pergunta: entre
+  janelas do mesmo UID o sistema se comportou como se a proteção não existisse.
 
-  21:30:42  hide_overlay_windows — proteção DESLIGADA (pfl=10008840)
-  21:31:42  interruption_shown (controle) — apareceu, como sempre aparece
+=====================================================================
+## Rodada 2 — um segundo app, de outro UID (22:05–22:08)
+  App de teste mínimo, em Java, fora do protótipo: uma activity que chama
+  `getWindow().setHideOverlayWindows(true)` e um botão para alternar. Fonte em
+  `prototype/labtarget/`. Instalado como com.norte.labtarget; a permissão saiu
+  concedida na instalação, sem pop-up:
+    android.permission.HIDE_OVERLAY_WINDOWS: granted=true
 
-  Nenhuma diferença entre protegido e desprotegido.
+  Limite de 1 min com o app de teste entre os alvos; laboratório fora da lista.
 
-## O que diz o código do Android (AOSP, master, lido em 19/09/2026)
-  WindowState.hideNonSystemOverlayWindowsWhenVisible() exige DUAS coisas:
-    (mAttrs.privateFlags & SYSTEM_FLAG_HIDE_NON_SYSTEM_OVERLAY_WINDOWS) != 0
-    && mSession.mCanHideNonSystemOverlayWindows
-  A segunda é calculada uma única vez, no construtor de Session, a partir de
-  HIDE_NON_SYSTEM_OVERLAY_WINDOWS ou HIDE_OVERLAY_WINDOWS.
+  22:05:49  limite armado
+  22:06:07  threshold_reached — 1 min de uso para limite de 1 min
+  22:06:27  **interruption_shown** (o serviço acha que mostrou)
+  22:07     app de teste na frente, com pfl=100888c0 (protegida).
+            A janela da nossa sobreposição, no `dumpsys`:
+              mForceHideNonSystemOverlayWindow=true
+              mPolicyVisibility=false
+              Surface: shown=false   mLastHidden=true   mDrawState=READY_TO_SHOW
+              isOnScreen=false   isVisible=false
+            captura: a4-i25-alvo-protegido.png — a tela do app de teste, limpa,
+            sem nenhum sinal da interrupção
+  22:07:5x  toque em "Alternar protecao" no app de teste (pfl volta a 10008840).
+            **Na mesma hora**, sem o serviço fazer nada:
+              Surface: shown=true   isOnScreen=true   isVisible=true
+            captura: a4-i25-alvo-desprotegido.png — a interrupção na tela
 
-  WindowState.setForceHideNonSystemOverlayWindowIfNeeded() só dispensa:
-    - sessões que podem adicionar janelas internas do sistema;
-    - janelas que não são do tipo alerta nem TOAST;
-    - TYPE_APPLICATION_OVERLAY marcada como overlay de app do sistema, o que
-      depende de permissão de assinatura.
-  **Não existe isenção para janelas do mesmo app.** Pelo código, a nossa
-  sobreposição deveria ter sido escondida.
+  A mesma janela de sobreposição, criada uma vez só, sumiu e voltou conforme o
+  app da frente ligou e desligou a proteção.
 
-## Conclusão honesta
-  A proteção **não teve efeito** nesta medição, com a flag comprovada no
-  `dumpsys` e a permissão concedida. As explicações possíveis, que não dá para
-  distinguir de fora do sistema:
-  - a build da Samsung se comporta diferente do AOSP;
-  - a capacidade `mCanHideNonSystemOverlayWindows` da nossa sessão não está
-    ligada por algum motivo (ela não aparece em nenhum `dumpsys`);
-  - alguma condição de ordem que não reproduzimos.
+=====================================================================
+## O que isso significa
+  1. **Um app comum apaga a nossa tela de interrupção.** Basta uma linha e uma
+     permissão de nível normal, concedida na instalação, sem consentimento.
+  2. **O nosso log mente.** `interruption_shown` é gravado quando chamamos
+     `WindowManager.addView`, não quando a janela chega à tela. Nas rodadas
+     acima o evento está lá, com a tela do usuário limpa. Qualquer estatística
+     de "quantas vezes interrompemos" construída sobre esse evento estaria
+     errada, e o app não teria como perceber a falha.
+  3. A diferença entre as duas rodadas mostra que o mesmo UID não serve para
+     medir isso: o teste precisa de outro app, como o da rodada 2.
 
-  O que NÃO dá para concluir: que um app de terceiros não consiga nos esconder.
-  O teste definitivo precisa de um segundo app, de outro UID, que ligue a
-  proteção enquanto a nossa sobreposição tenta aparecer. Fica como pendência.
+  Referência do comportamento (AOSP, master, lido em 19/09/2026):
+  WindowState.hideNonSystemOverlayWindowsWhenVisible() exige a flag
+  SYSTEM_FLAG_HIDE_NON_SYSTEM_OVERLAY_WINDOWS mais a capacidade
+  mCanHideNonSystemOverlayWindows da sessão, calculada no construtor de Session
+  a partir de HIDE_OVERLAY_WINDOWS. Em
+  WindowState.setForceHideNonSystemOverlayWindowIfNeeded() as únicas isenções
+  são janelas do sistema, tipos que não são de alerta e sobreposições de app do
+  sistema (permissão de assinatura).
 
-  O que já dá para afirmar: o mecanismo existe, está documentado, custa uma
-  linha e uma permissão de nível normal. Quem quiser se proteger de
-  sobreposições tem como tentar, e o app definitivo não pode tratar a
-  sobreposição como garantia.
+=====================================================================
+## O que fazer com isso
+  - A sobreposição não pode ser tratada como garantia. A tela própria (activity)
+    não é afetada por essa proteção, mas o voltar a dispensa (I-13).
+  - O app definitivo precisa **conferir se a janela chegou mesmo à tela** e ter
+    um caminho alternativo quando não chegar — no mínimo a notificação, que o
+    app monitorado não tem como suprimir.
+  - Falta medir quantos apps reais usam essa proteção. Só isso diz se o risco é
+    teórico ou cotidiano. Bancos são os suspeitos naturais.

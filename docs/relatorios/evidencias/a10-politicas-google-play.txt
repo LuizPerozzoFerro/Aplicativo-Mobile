@@ -110,10 +110,10 @@ Fontes (todas consultadas em 19/09/2026):
   Window.setHideOverlayWindows(true) (API 31+, permissão HIDE_OVERLAY_WINDOWS,
   de nível normal) e **impedir que sobreposições de terceiros apareçam sobre
   ele**. Ou seja, o app monitorado pode esconder a nossa tela de interrupção.
-  Testado na mesma noite: no S22, com a proteção ligada na tela do laboratório e
-  a flag comprovada no `dumpsys`, a nossa sobreposição continuou aparecendo.
-  Ver `a4-protecao-contra-sobreposicao.txt`: o risco continua de pé para apps de
-  outro UID, que é o que falta testar.
+  Testado na mesma noite, com um app de teste de outro UID: a nossa
+  sobreposição ficou invisível enquanto o app protegido estava na frente, e
+  voltou no instante em que ele desligou a proteção. Ver
+  `a4-protecao-contra-sobreposicao.txt`.
 
 =====================================================================
 ## VpnService

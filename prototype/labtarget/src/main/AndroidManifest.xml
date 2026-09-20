@@ -1,0 +1,18 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <!-- Nivel normal: concedida na instalacao, sem pedir nada ao usuario. -->
+  <uses-permission android:name="android.permission.HIDE_OVERLAY_WINDOWS" />
+
+  <application
+    android:label="Alvo do laboratorio"
+    android:theme="@android:style/Theme.DeviceDefault">
+    <activity
+      android:name=".MainActivity"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity>
+  </application>
+</manifest>
