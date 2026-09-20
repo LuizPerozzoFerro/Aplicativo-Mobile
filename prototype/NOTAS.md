@@ -7,7 +7,7 @@
 
 ## Estado atual e próximo passo
 
-> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 20/09/2026, 17:00.
+> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 20/09/2026, 17:10.
 
 **Branch:** `prototype/android-vpn`, criado a partir de `prototype/android-usage`
 (que ficou com A1–A5 e A9) para o grupo da VPN: A6, A7 e A8. Tudo commitado.
@@ -110,15 +110,14 @@ madrugada de 19/09, retomada às 14:27):
   do canal. O que continua exposto (chave de VPN, ícone, aviso de sobreposição)
   não vem do texto.
 
-**Próximo passo: decidir com o responsável.** O Android está fechado (A1–A10) e
-o C2 também. As opções:
-1. **Roteiros T1–T10** com o responsável no aparelho, inclusive o T6 (um dia
-   inteiro de uso normal), que também fecha a pendência de bateria do A8.
-2. **Começar o relatório** de viabilidade, que é o entregável da Fase 1.
-3. **iOS**, se a conta Apple Developer estiver pronta (S2, S3). O C1 depende
-   disso.
-4. **Medir apps de aposta e de banco** com a proteção do I-25, olhando para a
-   Fase 2.
+**Próximo passo: os roteiros T1–T10**, decidido pelo responsável em 20/09, numa
+sessão nova. O T6 (um dia inteiro de uso normal) também fecha a pendência de
+bateria do A8, que só foi medida com o aparelho parado.
+
+Depois deles, na ordem que fizer sentido: o **relatório de viabilidade**
+(entregável da Fase 1), o **iOS** quando a conta Apple Developer estiver pronta
+(S2, S3 e o C1, que depende dele), e a medição de **apps de aposta e de banco**
+com a proteção do I-25, de olho na Fase 2.
 
 **VPN no aparelho:** consentimento concedido (`appops ... ACTIVATE_VPN: allow`),
 VPN **ligada em modo alerta** desde 13:48 de 20/09, listas example.com e example.org (A6) e
@@ -145,11 +144,11 @@ bateria do A8, e o monitoramento funcionou assim mesmo. O DNS privado está em
 Chrome voltou ao padrão. O relógio do PC está ~2 s adiantado em relação ao do
 aparelho.
 
+**Configuração do laboratório conferida no fim do C2** (20/09, 17:10): limite de
+600 min, só o Instagram na lista, modo sobreposição, pausa de 2 min e o texto do
+alerta de volta ao padrão ("Você atingiu o tempo que definiu para hoje."). O
+ajuste "minimizar notificações" da Samsung foi religado pelo responsável.
 
-**Depois do C2:** o texto do alerta ficou em "Um instante para respirar." (era
-"Você atingiu o tempo que definiu para hoje."), e o campo de minutos na tela
-está com um valor sujo de digitação — o salvo continua 600. Antes de tocar em
-"Iniciar limite" de novo, conferir os dois campos.
 **App de teste instalado:** `com.norte.labtarget` ("Alvo do laboratorio"), da
 rodada do I-25. Fonte em `prototype/labtarget/`. Não roda nada em segundo plano;
 some com `adb uninstall com.norte.labtarget`.
@@ -158,9 +157,9 @@ some com `adb uninstall com.norte.labtarget`.
 JavaScript antigo na memória. Subir o Metro não basta (P6): com o laboratório na
 frente, `adb shell input keyevent 46 46` recarrega.
 
-**Recomendação de trabalho:** o responsável quer retomar **nesta mesma sessão**
-do Claude Code (aberta em 18/09). Se ela não estiver disponível, uma sessão nova
-parte daqui: este arquivo é a passagem.
+**Recomendação de trabalho:** a sessão de 18 a 20/09 do Claude Code foi
+encerrada aqui, com o C2 fechado. O responsável vai seguir com os **roteiros T**
+numa sessão nova, que parte deste arquivo: ele é a passagem.
 
 **Pendências que dependem de tempo, e podem correr em paralelo:**
 - A9: "Apps em suspensão" da Samsung — dias sem abrir o protótipo.
