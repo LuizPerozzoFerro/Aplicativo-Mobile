@@ -66,3 +66,18 @@
 
   Onde ela funciona — aparelho bloqueado — é justamente onde não há uso de app
   para interromper.
+
+=====================================================================
+## Decisão: descartada como caminho técnico (20/09/2026)
+  Com as duas rodadas acima, o responsável descartou a notificação em tela
+  cheia como caminho para abrir a tela de interrupção. O código de teste foi
+  removido do protótipo no mesmo dia — a função do Notifier, as duas funções do
+  módulo, o botão do laboratório e a permissão USE_FULL_SCREEN_INTENT do
+  manifesto. A permissão saiu junto porque declará-la sem usar seria passivo de
+  loja à toa (A10).
+
+  Quem quiser reproduzir o teste encontra o código no commit 6cd4c70.
+
+  Continuam valendo, como caminhos: a **sobreposição** (com o limite do I-25) e
+  a **tela própria** — esta sem atraso relevante, 31 ms entre o pedido do
+  serviço e o `interruption_shown` da activity.

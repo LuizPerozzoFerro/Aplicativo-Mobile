@@ -26,9 +26,6 @@ object Notifier {
   const val DOMAIN_ALERT_NOTIFICATION_ID = 1003
   const val VPN_NOTIFICATION_ID = 1004
 
-  /** A4: notificacao com intent de tela cheia, testada contra o I-25. */
-  const val FULL_SCREEN_NOTIFICATION_ID = 1005
-
   const val ACTION_EMERGENCY = "expo.modules.labmonitoring.EMERGENCY"
 
   /** Texto padrao, usado quando o responsavel nao configura outro na tela. */
@@ -97,55 +94,6 @@ object Notifier {
   /** A6: alerta de nivel 1 para dominio da lista, com o mesmo botao de emergencia. */
   fun sendDomainAlert(context: Context) {
     sendAlert(context, DOMAIN_ALERT_NOTIFICATION_ID, DOMAIN_MESSAGE)
-  }
-
-  /**
-   * A4: notificacao com intent de tela cheia, apontando para a tela de
-   * interrupcao. Testada como alternativa a sobreposicao, que o app monitorado
-   * consegue esconder (I-25).
-   *
-   * A documentacao oficial (Notification.Builder.setFullScreenIntent, consultada
-   * em 20/09/2026) e explicita: a partir do Android 13, **com o usuario usando o
-   * aparelho o sistema mostra um aviso flutuante em vez de abrir a activity**.
-   * A tela cheia so acontece com o aparelho bloqueado. Com a permissao
-   * USE_FULL_SCREEN_INTENT concedida, esse aviso flutuante fica persistente ate
-   * o usuario dispensar; sem ela, dura 60 s.
-   *
-   * O canal precisa ser de importancia alta -- o de alerta do A3 ja e.
-   */
-  fun sendFullScreenInterruption(context: Context, message: String) {
-    ensureChannels(context)
-
-    val screen = Intent(context, InterruptionActivity::class.java).apply {
-      addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-      putExtra(InterruptionActivity.EXTRA_MOTIVATION, message)
-    }
-    val pending = PendingIntent.getActivity(
-      context,
-      2,
-      screen,
-      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-    )
-
-    val notification = Notification.Builder(context, ALERT_CHANNEL_ID)
-      .setContentTitle("Momento de pausa")
-      .setContentText(message)
-      .setSmallIcon(android.R.drawable.ic_menu_recent_history)
-      .setAutoCancel(true)
-      .setCategory(Notification.CATEGORY_REMINDER)
-      .setFullScreenIntent(pending, true)
-      .setContentIntent(pending)
-      .build()
-
-    val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    manager.notify(FULL_SCREEN_NOTIFICATION_ID, notification)
-  }
-
-  /** A4: se o sistema deixa este app usar intent de tela cheia (Android 14+). */
-  fun canUseFullScreenIntent(context: Context): Boolean {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return true
-    val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    return manager.canUseFullScreenIntent()
   }
 
   private fun sendAlert(context: Context, id: Int, message: String) {

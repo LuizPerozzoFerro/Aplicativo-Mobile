@@ -143,3 +143,44 @@
   - e um retrato das versoes instaladas hoje, e muda com uma atualizacao;
   - apps de banco, que sao os suspeitos naturais, nao foram medidos (o
     laboratorio nao opera apps bancarios do responsavel).
+
+=====================================================================
+## Rodada 5 — recuo progressivo depois da supressão (20/09/2026, 13:32–13:36)
+  Regra decidida pelo responsável: depois de cada supressão, esperar 1 min,
+  depois 2, depois 5, com teto de 15 — e voltar a tentar na hora se a pessoa
+  sair do app monitorado e entrar de novo acima do limite.
+
+  13:32:23  interruption_suppressed
+  13:32:43  interruption_discarded  ·  interruption_backoff "supressao 1 ·
+            proxima tentativa em 1 min"
+  13:34:03  nova tentativa (o recuo venceu 13:33:43; o ciclo seguinte pegou
+            13:34:03) — suprimida de novo
+  13:34:23  interruption_discarded  ·  interruption_backoff "supressao 2 ·
+            proxima tentativa em 2 min"
+  13:34:5x  tela inicial: a pessoa sai do app monitorado
+  13:35:03  interruption_backoff_reset "motivo: saiu do app monitorado ·
+            supressoes anteriores: 2"
+  13:35:21  volta ao app monitorado, ainda protegido
+  13:35:23  tentativa IMEDIATA, no ciclo seguinte (sem esperar os 2 min)
+  13:35:43  interruption_discarded · backoff volta a "supressao 1"
+
+  O intervalo entre tentativas saiu de 40 s (antes do recuo) para 100 s na
+  primeira falha e 140 s na segunda. Os degraus de 5 e 15 min não foram
+  exercitados no aparelho: são o mesmo caminho de código, escolhido por índice.
+
+=====================================================================
+## Rodada 6 — regressão do A5 no build de hoje (13:37–13:40)
+  Com o app de teste DESprotegido, para conferir que as mudanças do I-25 e do
+  I-28 não quebraram a pausa do A5.
+
+  13:37:04  interruption_shown (foco: sim, todas as sondas positivas)
+  13:37:37  continue_tapped  ·  pause_started "2 min, ate 13:39:37"
+  13:37:39  returned_to_app com.norte.labtarget
+  (2 min de pausa, 6 verificações, NENHUM alerta)
+  13:39:44  pause_ended "atraso 6 s · 6 verificacoes durante a pausa ·
+            em primeiro plano: com.norte.labtarget"
+  13:39:44  notification_sent "fim da pausa"
+  13:40:04  interruption_shown — a tela volta no ciclo seguinte, porque a
+            pessoa continuou no app
+
+  É exatamente a regra do A5 decidida em 18/09. O experimento segue ✅.

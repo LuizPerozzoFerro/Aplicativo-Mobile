@@ -49,7 +49,6 @@ export default function LabScreen() {
   const [interruptionMode, setInterruptionMode] = useState<InterruptionMode>('overlay');
   // A4 / I-25: protecao contra sobreposicoes ligada na propria tela do laboratorio.
   const [hideOverlays, setHideOverlays] = useState(false);
-  const [fullScreen, setFullScreen] = useState<PermissionState | null>(null);
 
   // A5
   const [pauseMinutes, setPauseMinutes] = useState('2');
@@ -72,7 +71,6 @@ export default function LabScreen() {
     setNotifications(status.notifications);
     setOverlay(status.overlay);
     setVpn(status.vpn);
-    setFullScreen(status.fullScreenIntent);
   }, []);
 
   // Como no A2: a lista e o modo do A6 vêm do nativo na primeira leitura.
@@ -458,47 +456,6 @@ export default function LabScreen() {
             Liga nesta tela a mesma proteção que qualquer app pode ligar
             (setHideOverlayWindows, permissão de nível normal). Com ela ligada, o
             laboratório precisa ser o app monitorado para o teste valer.
-          </Text>
-
-          <Row label="Notificação em tela cheia" value={permissionLabel(fullScreen)} />
-
-          <View style={styles.rowButtons}>
-            <Button
-              label="Pedir permissão"
-              compact
-              busy={busy === 'askFsi'}
-              onPress={() =>
-                run('askFsi', async () => {
-                  await monitoring.requestFullScreenIntentPermission();
-                })
-              }
-            />
-            <Button
-              label="Tela cheia agora"
-              compact
-              busy={busy === 'sendFsi'}
-              onPress={() =>
-                run('sendFsi', async () => {
-                  await monitoring.sendFullScreenInterruption(0);
-                })
-              }
-            />
-          </View>
-
-          <Button
-            label="Tela cheia em 10 s (bloqueie o aparelho)"
-            busy={busy === 'sendFsiLater'}
-            onPress={() =>
-              run('sendFsiLater', async () => {
-                await monitoring.sendFullScreenInterruption(10);
-              })
-            }
-          />
-
-          <Text style={styles.note}>
-            A documentação do Android avisa que, com o aparelho em uso, o sistema
-            mostra um aviso flutuante em vez de abrir a tela. A tela cheia só
-            acontece com o aparelho bloqueado.
           </Text>
 
           {limit?.escalatedAt ? (

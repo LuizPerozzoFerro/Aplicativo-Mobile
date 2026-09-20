@@ -253,6 +253,7 @@ object InterruptionOverlay {
 
           if (focused && windowVisible && shown) {
             runCatching { root.viewTreeObserver.removeOnDrawListener(onDraw) }
+            InterruptionBackoff.markShown()
             EventLog.append(
               context = context,
               source = "InterruptionOverlay",
@@ -288,6 +289,8 @@ object InterruptionOverlay {
                 details = "abordagem: sobreposicao · suprimida por ${elapsed / 1000} s · " +
                   "a notificacao de nivel 1 fica como rede de seguranca"
               )
+              // Só agora desistimos de verdade: e daqui que o recuo comeca.
+              InterruptionBackoff.markSuppressed(context)
             } else {
               root.postDelayed({ check() }, VISIBILITY_RETRY_MS)
             }

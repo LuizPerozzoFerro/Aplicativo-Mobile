@@ -184,9 +184,17 @@ class UsageLimitService : Service() {
       }
     }
 
-    if (target == null) return
+    if (target == null) {
+      // Saiu do app monitorado: a proxima entrada acima do limite interrompe na
+      // hora, sem esperar o recuo acumulado (decisao do responsavel, 20/09).
+      InterruptionBackoff.reset(this, reason = "saiu do app monitorado")
+      return
+    }
     if (InterruptionOverlay.isShowing || InterruptionActivity.isShowing) return
     if (InterruptionExits.exitedRecently(now)) return
+
+    // A4 / I-28: depois de uma interrupcao suprimida, esperar antes de insistir.
+    if (InterruptionBackoff.isWaiting()) return
 
     LimitConfig.markEscalated(this, now)
     showInterruption(target)

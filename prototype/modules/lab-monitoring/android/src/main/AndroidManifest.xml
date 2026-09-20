@@ -41,6 +41,7 @@
     specialUse exige a <property> abaixo, cujo texto e lido por um revisor humano
     do Google Play na publicacao. Risco a registrar no A10.
   -->
+
   <!--
     A4 / impacto I-25: permite que a tela do laboratorio se proteja de
     sobreposicoes de terceiros (setHideOverlayWindows), para medir se a nossa
@@ -52,15 +53,6 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
-  <!--
-    A4: notificacao com intent de tela cheia, testada como alternativa a
-    sobreposicao (I-25). Desde o Android 14 ela nao e mais concedida na
-    instalacao para quem nao e app de chamada ou despertador: o usuario precisa
-    ligar em Ajustes, e o Google Play revoga por politica quem nao se encaixa
-    (A10). O protótipo checa com NotificationManager.canUseFullScreenIntent.
-  -->
-  <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
   <!-- A9: religar o monitoramento depois de reiniciar o aparelho. -->
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
