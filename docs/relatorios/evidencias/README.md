@@ -29,6 +29,7 @@ One UI 8.0.
 | `a9-leitura-de-base.txt` | A9 | Estado do aparelho antes do teste de 2 h |
 | `a9-sobrevivencia-e-custo.txt` | A9 | Doze profundo, custo de CPU, reinício do aparelho |
 | `c2-textos-neutros.txt` | C2 | Os quatro textos de notificação lidos do registro do sistema, a prova de que o texto do alerta é configurável, e o que a tela de bloqueio mostra com e sem o "minimizar notificações" da Samsung |
+| `t-roteiros-android.txt` | T1–T10 | Rodada Android dos roteiros de teste manual: cada passo com hora e evento do log, incluindo o que o T5 e o T10 revelaram (VPN que não volta depois do boot, e a perda de permissão que não gera aviso) |
 | `a10-politicas-google-play.txt` | A10 | Resumo das políticas do Google Play que valem para acesso ao uso, lista de apps, serviço em primeiro plano, sobreposição e VpnService, com links, datas de vigência e os riscos abertos |
 
 ## Privacidade

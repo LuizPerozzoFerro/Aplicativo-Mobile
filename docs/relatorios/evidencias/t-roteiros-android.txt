@@ -1,0 +1,159 @@
+# Roteiros de teste manual T1–T10 — rodada Android
+# Galaxy S22, Android 16 / One UI 8, 20/09/2026, 18:11–19:33
+# Executados com o responsável operando o aparelho; cada passo foi pedido por
+# escrito antes e conferido no log depois.
+# T9 não se aplica ao Android (é sobre iPhone desconectado do computador).
+# T6 roda em separado, em segundo plano, e será fechado quando a janela acabar.
+
+Estado comum no início: limite de 2 min no Instagram, modo sobreposição, pausa
+de 2 min, VPN local em modo alerta, economia de energia ligada, aparelho no
+cabo. O Instagram tinha 12 s de uso no dia, então o limite de 2 min do roteiro
+foi atingido por uso real, não por saldo acumulado.
+
+=====================================================================
+## T1 — limite de 2 min, protótipo fechado, 3 min de Instagram   ✅
+  18:11:42.485  limit_configured      2 min · 1 app · pausa de 2 min · overlay
+  ~18:14        responsável abre o Instagram (protótipo fechado pelos recentes)
+  18:16:14.575  threshold_reached     "2 min de uso para limite de 2 min"
+  18:16:14.593  notification_sent     18 ms depois do limite
+  18:16:35.193  interruption_shown    20,6 s depois — o ciclo de verificação;
+                                      foco, janela, isShown e desenho positivos
+  Conferido no dumpsys no mesmo instante: isVisible=true, Surface: shown=true.
+
+  De brinde: 18:14:26 e 18:19:26, social_domain_detected de instagram.com
+  "via: outro app" — tráfego de fundo do próprio app, o padrão do I-20.
+
+=====================================================================
+## T2 — "continuar mesmo assim" e mais 5 min de uso   ✅
+  18:22:21.440  continue_tapped
+  18:22:21.443  pause_started         "2 min, ate 18:24:21"
+  18:22:22.977  returned_to_app       com.instagram.android
+  18:22–18:24   6 verificações durante a pausa, NENHUM alerta
+  18:24:35.603  pause_ended           "atraso 14 s · 6 verificacoes ·
+                                      em primeiro plano: com.instagram.android"
+  18:24:35.612  notification_sent     "fim da pausa"
+  18:24:56.213  interruption_shown    20,6 s depois da notificação
+  O atraso de 14 s é o ciclo de 20 s: a pausa vence em silêncio e só é notada
+  na verificação seguinte (comportamento já medido no A5).
+
+=====================================================================
+## T3 — instagram.com no navegador com o limite ativo   ✅ com limitação
+  18:27:09.742  home_tapped           saída pela tela inicial
+  18:27:22.653  social_domain_detected www.instagram.com (A) · VIA: NAVEGADOR
+  18:27:22.665  social_session_started com.android.chrome · instagram.com
+  18:27:23 / 18:28:28 / 18:29:03  mais 3 detecções (static.cdninstagram.com e
+                                  www.instagram.com, tipo HTTPS)
+  18:30:23.811  social_session_ended  "duracao estimada: 181 s · motivo:
+                                      navegador saiu da tela · consultas: 10 ·
+                                      maior intervalo: 65 s"
+  18:27–18:30   NENHUM threshold_reached, notification_sent ou
+                interruption_shown
+
+  O acesso é detectado e atribuído ao navegador, mas o limite não reage: o
+  Chrome não está na lista de apps monitorados. Detecção e limite são dois
+  mecanismos separados, e só o segundo interrompe. É o I-21 na prática.
+  Estimativa de 181 s para ~194 s reais: erro de ~7%.
+
+=====================================================================
+## T4 — domínio da lista com monitoramento em modo alerta   ✅
+  18:31:21.140  adult_domain_detected example.com · www.example.com (HTTPS)
+  18:31:21.149  notification_sent     9 ms depois
+  18:31:49.657  adult_domain_detected example.org · example.org (HTTPS)
+  18:31:49.664  notification_sent     7 ms depois
+  As duas páginas carregaram: modo alerta detecta sem bloquear.
+  O Chrome consultou o tipo de registro HTTPS, não o A; o casamento de domínio
+  pegou igual.
+  Ressalva: o responsável não percebeu as notificações chegarem. Elas estão no
+  sistema (id 1003, importância 4), mas não há como saber se apareceram como
+  aviso flutuante e passaram batido.
+
+=====================================================================
+## T5 — reiniciar o aparelho e repetir o T1 sem abrir o protótipo   ✅ com achado
+  ~19:11:43     aparelho ligou (uptime de 4 min às 19:15:43)
+  19:14:33.219  service_restarted     BOOT_COMPLETED — ~2min50s depois do boot
+  19:14:33.243  service_started       "limite 2 min, intervalo 20s"
+  19:15:14.588  interruption_shown    sem o laboratório ter sido aberto
+
+  Dois achados além do previsto:
+  - o estado "limite já atingido" sobreviveu ao reinício: não houve novo
+    threshold_reached, o serviço voltou já sabendo e foi direto à interrupção;
+  - **a VPN NÃO volta depois do boot**. Zero eventos de VPN, nenhuma VPN
+    conectada, só o UsageLimitService rodando. O BootReceiver religa apenas o
+    serviço do limite. A detecção de domínios fica desligada em silêncio até
+    alguém abrir o laboratório.
+
+=====================================================================
+## T7 — economia de bateria ligada   ✅
+  A economia já estava ligada durante o T1 inteiro (low_power = 1), então a
+  contagem, o disparo e a escalada do T1 já são o resultado do T7. A rodada de
+  comparação:
+  19:04:17.958  Instagram em primeiro plano (visto pela VPN), economia DESLIGADA
+  19:04:21.898  interruption_shown    ~4 s depois
+  19:04:28.960  home_tapped
+  19:05:01.950  interruption_shown    economia RELIGADA, dentro de um ciclo
+  Não dá para cravar a latência da segunda rodada: o log do sistema neste
+  aparelho não expõe a troca de app em primeiro plano, e o instante em que o
+  Instagram foi reaberto não ficou registrado.
+
+=====================================================================
+## T8 — outra VPN (Wi-Fi seguro da Samsung)   ✅ confirma o I-18
+  19:08:14.410  continue_tapped       (interrupção que estava no caminho)
+  19:08:15.947  not_returned_to_app   "em primeiro plano: com.samsung.android.fast
+                                      · esperado: com.instagram.android"
+  19:08:23.987  vpn_revoked
+  19:08:24.042  vpn_stopped           "motivo: revogada pelo sistema ·
+                                      consultas: 465 · repassadas: 465 (2 na
+                                      segunda tentativa) · sem resposta: 0 ·
+                                      na lista: 7 · redes sociais: 35"
+  Depois de desligar a Wi-Fi seguro: nenhuma VPN ativa. A nossa não volta
+  sozinha (I-18). Religada à mão pelo laboratório às 19:10:15.
+
+  A linha das 19:08:15 é um bônus de instrumentação: o protótipo percebeu que o
+  usuário NÃO voltou ao app monitorado depois do "Continuar".
+
+=====================================================================
+## T10 — revogar permissões pelo sistema   ⚠️ detecta, mas não informa
+  Passo 1, só a sobreposição revogada (pelo responsável, nos Ajustes):
+    SYSTEM_ALERT_WINDOW: deny
+    40 s de Instagram → NENHUM evento no log.
+    dumpsys da janela de interrupção que estava na tela desde o T5:
+      mAppOpVisibility=false · isVisible=false · Surface: shown=false
+      mas a janela continuava ADICIONADA.
+    Ou seja: o sistema apagou a tela e o protótipo não soube. Para ele
+    isShowing continuava verdadeiro, então o serviço pulou as verificações
+    seguintes sem registrar nada. Quando a permissão voltou, a mesma janela
+    reapareceu — o mesmo problema de contexto do I-25, que a conferência de
+    +500 ms do I-28 não pega, porque ela é um retrato e não um acompanhamento.
+
+  Passo 2, acesso a dados de uso revogado:
+    GET_USAGE_STATS: ignore, com rejectTime avançando a cada ciclo — o serviço
+    continuou consultando e o sistema continuou negando.
+    40 s de Instagram → NENHUM evento no log.
+
+  Passo 3, as três permissões revogadas pelo cabo (autorizado pelo responsável:
+  appops GET_USAGE_STATS ignore, appops SYSTEM_ALERT_WINDOW ignore,
+  pm revoke POST_NOTIFICATIONS), com o laboratório aberto:
+    Acesso a dados de uso      → negado
+    Aparecer sobre outros apps → negado
+    Permissão de notificação   → negado
+    As três lidas corretamente, na hora.
+
+  Passo 4: permissões devolvidas (allow/grant) e conferidas; a tela voltou a
+  mostrar "concedido" e a interrupção voltou a funcionar (19:29:13).
+
+  Conclusão: **o protótipo detecta quando perguntado, e não informa nunca.**
+  Nenhum evento no log, nenhuma notificação, nenhum aviso — só quem abrir a
+  tela do laboratório e olhar as linhas descobre. Enquanto isso o serviço segue
+  rodando, consultando e sendo negado pelo sistema.
+
+  Achado de brinde: o próprio app de **Ajustes do Android protege as telas
+  dele** contra sobreposição (pfl com o bit 0x00080000). Faz sentido, já que é
+  onde se concedem permissões — mas entra na lista do I-25 junto com os
+  financeiros.
+
+=====================================================================
+## Não executados nesta rodada
+  T6 — um dia de uso normal. Roda em separado, em segundo plano.
+  T9 — repetir o T1 com o iPhone desconectado do computador. Depende do iOS.
+  Todos os roteiros acima serão repetidos no iPhone quando a conta Apple
+  Developer destravar.

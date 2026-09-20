@@ -7,7 +7,7 @@
 
 ## Estado atual e próximo passo
 
-> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 20/09/2026, 17:10.
+> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 20/09/2026, 19:40.
 
 **Branch:** `prototype/android-vpn`, criado a partir de `prototype/android-usage`
 (que ficou com A1–A5 e A9) para o grupo da VPN: A6, A7 e A8. Tudo commitado.
@@ -110,14 +110,21 @@ madrugada de 19/09, retomada às 14:27):
   do canal. O que continua exposto (chave de VPN, ícone, aviso de sobreposição)
   não vem do texto.
 
-**Próximo passo: os roteiros T1–T10**, decidido pelo responsável em 20/09, numa
-sessão nova. O T6 (um dia inteiro de uso normal) também fecha a pendência de
-bateria do A8, que só foi medida com o aparelho parado.
+- **Roteiros T rodados no Android em 20/09** (ver "Roteiros de teste manual"):
+  T1, T2, T3, T4, T5, T7, T8 e T10. Sete passaram; o T10 é ⚠️, porque o app
+  detecta a perda de permissão quando é perguntado mas **nunca avisa** (I-30).
+  O T5 mostrou que a VPN não volta depois do boot (I-29). **T6** está em
+  andamento em segundo plano e **T9** depende do iOS.
 
-Depois deles, na ordem que fizer sentido: o **relatório de viabilidade**
-(entregável da Fase 1), o **iOS** quando a conta Apple Developer estiver pronta
-(S2, S3 e o C1, que depende dele), e a medição de **apps de aposta e de banco**
-com a proteção do I-25, de olho na Fase 2.
+**Próximo passo: fechar o T6.** O retrato de antes foi tirado às 19:33 com o
+aparelho no cabo. Quando o responsável **tirar o cabo**, o `batterystats` zera
+sozinho e a janela do T6 começa ali; no fim do dia, com o cabo de volta, ler o
+consumo do UID do protótipo e varrer o log do período atrás de falhas.
+
+Depois dele: o **relatório de viabilidade** (entregável da Fase 1), o **iOS**
+quando a conta Apple Developer destravar — o que traz junto S2, S3, C1, T9 e a
+repetição dos roteiros T no iPhone —, e a medição de **apps de aposta e de
+banco** com a proteção do I-25, de olho na Fase 2.
 
 **VPN no aparelho:** consentimento concedido (`appops ... ACTIVATE_VPN: allow`),
 VPN **ligada em modo alerta** desde 13:48 de 20/09, listas example.com e example.org (A6) e
@@ -1599,6 +1606,55 @@ terceiros.
 
 ---
 
+## Roteiros de teste manual (spec §7) — rodada Android
+
+**Rodados em 20/09/2026, das 18:11 às 19:33**, com o responsável operando o
+aparelho: cada passo foi pedido por escrito antes e conferido no log depois.
+Evidência completa, com os horários de cada evento, em
+`docs/relatorios/evidencias/t-roteiros-android.txt`.
+
+| # | Roteiro | Resultado |
+|---|---|---|
+| T1 | Limite de 2 min, protótipo fechado, 3 min de Instagram | ✅ Notificação 18 ms depois do limite, tela 20,6 s depois, com as quatro sondas positivas |
+| T2 | "Continuar mesmo assim" e mais 5 min de uso | ✅ Pausa de 2 min sem nenhum alerta em 6 verificações, notificação de fim e tela de volta no ciclo seguinte |
+| T3 | instagram.com no navegador com o limite ativo | ✅ com limitação. O acesso é detectado e atribuído ao navegador, mas **o limite não reage**: o Chrome não é app monitorado (I-21) |
+| T4 | Domínio da lista em modo alerta | ✅ Duas detecções (example.com e example.org) com notificação 7 a 9 ms depois, páginas carregando |
+| T5 | Reiniciar e repetir o T1 sem abrir o protótipo | ✅ com achado. Serviço volta ~2min50s depois do boot e interrompe sozinho; **a VPN não volta** (I-29) |
+| T6 | Um dia de uso normal | em andamento, em segundo plano |
+| T7 | Economia de bateria ligada | ✅ O T1 inteiro já rodou com ela ligada; na comparação, a tela apareceu ~4 s depois com ela desligada e dentro de um ciclo com ela religada |
+| T8 | Outra VPN (Wi-Fi seguro da Samsung) | ✅ confirma o I-18. `vpn_revoked` no instante em que a outra subiu, e a nossa não volta sozinha |
+| T9 | iPhone desconectado do computador | pendente — depende do iOS |
+| T10 | Revogar permissões pelo sistema | ⚠️ **Detecta quando perguntado, não informa nunca** (I-30) |
+
+Os mesmos roteiros serão repetidos no iPhone quando a conta Apple Developer
+destravar.
+
+#### O que o T10 revelou, e que nenhuma rodada anterior tinha pego
+
+Com a sobreposição revogada **enquanto a tela de interrupção estava na tela**, o
+sistema apagou a janela (`mAppOpVisibility=false`) e o protótipo não soube: para
+ele `isShowing` continuou verdadeiro, então o serviço pulou as verificações
+seguintes **sem registrar nada**. Quando a permissão voltou, a mesma janela
+reapareceu, fora de contexto.
+
+A conferência de visibilidade que o I-28 trouxe é um retrato em +500 ms, não um
+acompanhamento: ela não pega uma janela escondida depois. O prazo de 20 s também
+não, porque já tinha terminado.
+
+E com o acesso a dados de uso revogado, o `appops` mostrava `rejectTime`
+avançando a cada ciclo — o serviço continuou consultando, o sistema continuou
+negando, e o log não registrou uma linha sequer.
+
+#### Achado de brinde para o I-25
+
+O próprio app de **Ajustes do Android** protege as telas dele contra
+sobreposição (o `pfl` da janela traz o bit `0x00080000`). Faz sentido, já que é
+onde se concedem permissões — mas entra na lista dos apps que apagariam a nossa
+tela de interrupção, ao lado dos financeiros.
+
+---
+
+
 ## Impactos nos documentos 01 e 02
 
 Insumo para a seção 8 do relatório de viabilidade. **Os documentos 01 e 02 não
@@ -1631,10 +1687,12 @@ decidido fora do Claude Code.
 | I-22 | **Com "DNS privado" no modo estrito (provedor com nome, comum para bloquear anúncios), ligar a VPN do app deixa os apps sem DNS**: o sistema não alcança o provedor pela rede da VPN, marca a rede como sem internet e avisa "Não é possível acessar o servidor DNS privado". A VPN também não vê nada nesse modo | Doc 01 §6.5, onboarding (§4); doc 02 riscos | O app precisa detectar o modo estrito antes de ligar a VPN (e depois, se mudar) e orientar o usuário, ou não ligar a VPN; nunca deixar o aparelho sem internet |
 | I-23 | O DNS do roteador doméstico perde consultas em rajadas de páginas pesadas, com ou sem VPN; um repasse ingênuo transforma essas perdas em atraso de 2 a 3 s para todas as consultas (medido e corrigido no A8) | Doc 02 riscos (qualidade da conexão com a VPN) | O repasse do app definitivo precisa de concorrência sem fila e nova tentativa curta, e de monitoramento de falhas |
 | I-24 | Custo da VPN somada ao serviço, com o aparelho parado (A8): 0,366% de CPU e ~1 mAh a cada 2 h, contra 0,138% e ~0,5 mAh do serviço sozinho (A9). Sem wakelock; atravessa Doze profundo e modo economia de energia. Projeção de 0,3% a 0,4% de bateria por dia, e o número é um teto (inclui ruído do ambiente de desenvolvimento) | Doc 02 riscos (bateria), roteiro T6 | O risco de bateria segue baixo, mas o número vale para aparelho parado: confirmar com um dia de uso real no T6 |
-| I-25 | **Um app comum apaga a nossa tela de interrupção.** `Window.setHideOverlayWindows(true)` existe desde a API 31 e a permissão que ela exige é de nível normal, concedida na instalação sem consentimento. Medido em 19/09 no S22 com um app de teste de outro UID (A4): com ele na frente e protegido, a nossa sobreposição ficou `isVisible=false`; ao desligar a proteção, a mesma janela apareceu na hora. Varredura de 20/09: **nenhum dos seis apps-alvo** protege a tela de abertura, então hoje o risco é teórico para esse conjunto. **Mas os candidatos naturais a usar a proteção são os apps financeiros — bancos, carteiras e casas de aposta —, porque sobreposição é a técnica clássica de fraude em tela de pagamento. Isso atinge em cheio a Fase 2, que prevê apostas** | Doc 01 §6.5 (tela de interrupção), doc 02 riscos; escopo da Fase 2 | A sobreposição não é garantia. Manter a tela própria como reserva (I-13) — e, se o alvo for aposta, tratá-la como abordagem principal. Conferir a visibilidade (I-28), aceitar a notificação como rede de segurança, e medir uma amostra de apps de aposta e de banco antes de fechar o desenho |
+| I-25 | **Um app comum apaga a nossa tela de interrupção.** `Window.setHideOverlayWindows(true)` existe desde a API 31 e a permissão que ela exige é de nível normal, concedida na instalação sem consentimento. Medido em 19/09 no S22 com um app de teste de outro UID (A4): com ele na frente e protegido, a nossa sobreposição ficou `isVisible=false`; ao desligar a proteção, a mesma janela apareceu na hora. Varredura de 20/09: **nenhum dos seis apps-alvo** protege a tela de abertura, então hoje o risco é teórico para esse conjunto. Mas o **app de Ajustes do próprio Android protege as telas dele** (visto no T10), o que faz sentido: é onde se concedem permissões. **Mas os candidatos naturais a usar a proteção são os apps financeiros — bancos, carteiras e casas de aposta —, porque sobreposição é a técnica clássica de fraude em tela de pagamento. Isso atinge em cheio a Fase 2, que prevê apostas** | Doc 01 §6.5 (tela de interrupção), doc 02 riscos; escopo da Fase 2 | A sobreposição não é garantia. Manter a tela própria como reserva (I-13) — e, se o alvo for aposta, tratá-la como abordagem principal. Conferir a visibilidade (I-28), aceitar a notificação como rede de segurança, e medir uma amostra de apps de aposta e de banco antes de fechar o desenho |
 | I-26 | **A rota de notificação em tela cheia está fechada, por dois motivos.** Política: desde 22/01/2025, em apps que miram Android 14+, só apps de chamada ou despertador recebem `USE_FULL_SCREEN_INTENT` por padrão, e o Play revoga a de quem não se encaixa (A10). Comportamento, medido em 20/09 (A4): mesmo com a permissão concedida num build instalado pelo cabo, **com o aparelho em uso o sistema não abre a tela** — mostra um aviso flutuante, que é o que a notificação do A3 já faz. Com o aparelho bloqueado ela abre a activity, mas atrás do bloqueio | Doc 01 §6.5, doc 02 (alternativas de alerta de nível 2) | **Descartada como caminho técnico pelo responsável em 20/09**, e o código de teste removido do protótipo (fica no commit `6cd4c70`). Restam a sobreposição e a tela própria — esta sem atraso relevante, 31 ms entre o pedido e a tela —, com o alerta de nível 1 como rede de segurança das duas |
 | I-27 | Como **nada sai do aparelho**, a seção de segurança de dados do Play pode ser declarada **sem coleta** (a política define coletar como transmitir para fora do aparelho). Isso não dispensa política de privacidade, divulgação destacada no app, nem exclusão de conta dentro do app e na web — esta última passa a valer porque o app é por assinatura (A10) | Doc 01 §4 (onboarding) e §9 (privacidade), doc 02 fase 9 | Tratar "nenhum dado coletado" como diferencial de produto, e já prever política de privacidade, divulgação destacada e exclusão de conta no escopo do MVP |
 | I-28 | **O evento que diz "interrompi" não provava que o usuário viu.** `interruption_shown` era gravado no `addView`, não quando a janela chegava à tela. **Corrigido no protótipo em 19 e 20/09:** a sobreposição confere quatro sondas (só o **foco de janela** denuncia a supressão) e grava `interruption_shown`, `interruption_suppressed` ou, passados **20 s** sem aparecer, `interruption_discarded`. Decisão do responsável: a janela suprimida é descartada em vez de surgir fora de contexto, e nenhuma outra ação é tomada — a notificação de nível 1 já enviada é a rede de segurança. Na tela própria, o serviço grava `interruption_requested` ao pedir a tela (A4) | Doc 01 §6.5 e §6.8 (estatísticas), doc 02 (telemetria local) | Levar as três regras para o app definitivo: confirmar a visibilidade, descartar depois do prazo e contar com a notificação. **Resolvido em 20/09:** recuo progressivo de 1, 2, 5 e 15 min depois de cada supressão, com volta à tentativa imediata quando a pessoa sai do app monitorado e entra de novo (medido: intervalo entre tentativas foi de 40 s para 100 s e 140 s) |
+| I-29 | **Depois de reiniciar o aparelho, a VPN não volta.** O religamento automático cobre só o serviço do limite: o `BootReceiver` do protótipo não religa a `LabVpnService`. Medido no T5 (20/09): serviço de volta ~2min50s depois do boot e interrompendo sozinho, zero eventos de VPN, nenhuma VPN conectada | Doc 01 §6.5 (detecção de conteúdo), doc 02 (ciclo de vida dos serviços) | No app definitivo, ou a VPN volta junto com o serviço depois do boot, ou o app precisa avisar que a detecção de domínios está desligada. Hoje ela fica cega em silêncio |
+| I-30 | **Perder uma permissão não gera aviso nenhum.** No T10: com a sobreposição revogada enquanto a tela de interrupção estava visível, o sistema a apagou (`mAppOpVisibility=false`), o protótipo continuou achando que estava mostrando e parou de tentar, sem registrar nada; com o acesso a dados de uso revogado, o serviço seguiu consultando e sendo negado (`rejectTime` avançando a cada ciclo), também sem registrar nada. O laboratório mostra "negado" nas três permissões quando é aberto — ou seja, o app **detecta quando perguntado, e não informa nunca** | Doc 01 §6.9 (modo degradado), §4 (onboarding); doc 02 (telemetria local) | O app definitivo precisa vigiar as permissões e avisar ativamente quando perder alguma, porque é exatamente aí que ele para de proteger. A conferência de visibilidade do I-28 também precisa virar acompanhamento, não um retrato em +500 ms |
 
 ## Comandos
 
