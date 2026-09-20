@@ -7,7 +7,7 @@
 
 ## Estado atual e próximo passo
 
-> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 20/09/2026, 13:50.
+> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 20/09/2026, 13:55.
 
 **Branch:** `prototype/android-vpn`, criado a partir de `prototype/android-usage`
 (que ficou com A1–A5 e A9) para o grupo da VPN: A6, A7 e A8. Tudo commitado.
@@ -101,17 +101,23 @@ madrugada de 19/09, retomada às 14:27):
   são os candidatos naturais a ligar a proteção do I-25** — o que atinge em
   cheio o escopo da Fase 2.
 
-**Próximo passo: A6, em modo alerta.** O experimento já está ⚠️ concluído desde
-18/09 (ver "Achado A6"), então o que falta é revalidar no build de hoje: ligar a
-VPN em modo alerta e conferir a detecção de um domínio da lista pelo Chrome,
-com a notificação. A VPN está desligada desde 19:30 de 19/09.
+- **A6 revalidado** às 13:48, em modo alerta: `www.example.com` detectado e
+  notificação 10 ms depois, com a página carregando normalmente no Chrome. O
+  experimento já estava ⚠️ concluído desde 18/09 e continua como estava.
 
-Depois disso, as opções continuam: fechar o C2, rodar os roteiros T1–T10
-(inclusive o T6, que fecha a pendência de bateria do A8), começar o relatório de
-viabilidade, ou o iOS, se a conta Apple Developer estiver pronta.
+**Próximo passo: decidir com o responsável.** O Android está fechado (A1–A10),
+com A4, A5 e A6 revalidados no build de hoje. As opções:
+1. **Fechar o C2** (textos neutros na tela bloqueada), que já tem material no A3
+   e precisa só de uma conferência com a tela bloqueada.
+2. **Roteiros T1–T10** com o responsável no aparelho, inclusive o T6 (um dia
+   inteiro de uso normal), que também fecha a pendência de bateria do A8.
+3. **Começar o relatório** de viabilidade, que é o entregável da Fase 1.
+4. **iOS**, se a conta Apple Developer estiver pronta (S2, S3).
+5. **Medir apps de aposta e de banco** com a proteção do I-25, olhando para a
+   Fase 2.
 
 **VPN no aparelho:** consentimento concedido (`appops ... ACTIVATE_VPN: allow`),
-VPN **desligada**, modo salvo **alerta**, listas example.com e example.org (A6) e
+VPN **ligada em modo alerta** desde 13:48 de 20/09, listas example.com e example.org (A6) e
 instagram.com e cdninstagram.com (A7). O Chrome está logado no Instagram (login
 feito pelo responsável em 19/09).
 
@@ -300,7 +306,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | A3 | ⚠️ Funciona com limitações | Notificação disparada pelo Kotlin com o app fechado, **14 ms** após a detecção (~6 s do limite real até o alerta). Apareceu **flutuando por cima do Instagram**, texto neutro e configurável. **Mas o botão "Emergência" só aparece se a notificação for expandida** — dois toques até a emergência |
 | A4 | ⚠️ Funciona com limitações | As duas abordagens cumprem o critério: a tela aparece sobre o Instagram com o protótipo fechado, mostra a motivação, e "Continuar" registra `continue_tapped` e volta **ao mesmo post**. **Sobreposição:** o voltar é ignorado, ela continua por cima da tela inicial, não cobre as barras, e o sistema publica "Norte Lab exibido sobre outros apps". **Tela própria:** o voltar a fecha sem escolha. Ambas dependem de `SYSTEM_ALERT_WINDOW`. Em 18/09 à noite: instrumentação corrigida e botão "Ir para a tela inicial" nas duas, validados no aparelho. Em 19/09, rodada do I-25: um app de teste de outro UID, com `setHideOverlayWindows`, **apagou a nossa sobreposição** enquanto o log dizia que ela tinha aparecido (I-25). Corrigido: a sobreposição confere o foco da janela antes de gravar `interruption_shown`, grava `interruption_suppressed` quando some e descarta a janela depois de 20 s (I-28). Varredura de 20/09: nenhum dos seis apps-alvo protege a tela de abertura. Notificação em tela cheia testada e **descartada como caminho técnico**: com o aparelho em uso ela não abre a tela (I-26). Recuo progressivo de 1, 2, 5 e 15 min depois de cada supressão, com volta imediata quando a pessoa sai e volta ao app (I-28). Ver achado abaixo |
 | A5 | ✅ Funciona | Pausa de 2 min depois do "Continuar", na sobreposição: nenhum alerta em 6 verificações, com a pessoa no Instagram e saindo e voltando. No fim, a notificação e, 20 s depois, a tela. O fim da pausa é notado com até 20 s de atraso (medido: 14 s). Tela inicial e emergência não pausam: reabrir o Instagram interrompe de novo em ~7 s. A pausa sobreviveu à recriação do serviço. Revalidado em 20/09 no build com o recuo progressivo: mesma regra, sem desvio. Ver achado abaixo |
-| A6 | ⚠️ Funciona com limitações | VPN local só de DNS. No Chrome, abrir example.com gerou `adult_domain_detected` e a notificação 15 ms depois, e a página carregou: critério cumprido. Modo bloqueio também funciona (`DNS_PROBE_FINISHED_NXDOMAIN`). Zero consultas sem resposta; ida e volta de 26 ms ao DNS da rede. Limitações: o pré-carregamento dispara o alerta sem visita, página guardada no navegador aparece mesmo bloqueada, só uma VPN por vez, e o sistema diz ao usuário que a VPN "permite monitorar o tráfego da rede". Ver achado abaixo |
+| A6 | ⚠️ Funciona com limitações | VPN local só de DNS. No Chrome, abrir example.com gerou `adult_domain_detected` e a notificação 15 ms depois, e a página carregou: critério cumprido. Modo bloqueio também funciona (`DNS_PROBE_FINISHED_NXDOMAIN`). Zero consultas sem resposta; ida e volta de 26 ms ao DNS da rede. Limitações: o pré-carregamento dispara o alerta sem visita, página guardada no navegador aparece mesmo bloqueada, só uma VPN por vez, e o sistema diz ao usuário que a VPN "permite monitorar o tráfego da rede". Revalidado em 20/09 no build de hoje: detecção e notificação em 10 ms, página carregando. Ver achado abaixo |
 | A7 | ⚠️ Funciona com limitações | Critério da spec cumprido: instagram.com no Chrome gerou `social_domain_detected` "via: navegador", e o app do Instagram saiu separado ("via: outro app"). A consulta de DNS não diz qual app perguntou; a separação vem do app em primeiro plano. Tempo no navegador, por heurística: 204 s estimados para 180,6 s reais (+13%) numa rodada de 5 min, mas com corte fora da faixa de 85–96 s o erro vai de −99% a +67%, e a resolução é de ~1 min. Ver achado abaixo |
 | A8 | ⚠️ | Navegação geral ok depois de corrigir o repasse (mediana de 2,6 s → 49 ms); apps de banco ok; outra VPN derruba a nossa, que não volta sozinha; **DNS privado estrito + nossa VPN deixa os apps sem DNS**; DNS seguro do Chrome ainda deixa ver o endereço principal; a VPN sobrevive à queda do Wi-Fi, ao Doze profundo e ao modo economia; bateria: 0,366% de CPU e ~1 mAh a cada 2 h com o aparelho parado. Ver achado abaixo |
 | A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. Faltam "Apps em suspensão" da Samsung (precisa de dias) e o roteiro T6 |
@@ -1009,6 +1015,10 @@ pausa.
 normalmente. As limitações vêm do próprio DNS, que avisa que um nome foi
 consultado, não que uma página foi vista. Desenho na decisão D5; evidência em
 `docs/relatorios/evidencias/a6-vpn-dns.txt`.
+
+**Revalidado em 20/09/2026, às 13:48**, depois das mudanças do A4: a VPN
+religada em modo alerta detectou `www.example.com` e mandou a notificação 10 ms
+depois, com a página carregando normalmente. Mesmo resultado de 18/09.
 
 #### O que foi medido
 

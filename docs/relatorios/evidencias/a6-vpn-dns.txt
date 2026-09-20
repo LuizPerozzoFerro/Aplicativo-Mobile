@@ -115,3 +115,21 @@
   Depois de "Parar": nenhuma rede "VPN CONNECTED" no dumpsys connectivity; só o
   serviço do limite (A2) segue no ar. A leitura da interface para via poll() com
   um pipe de interrupção: fechar só a interface não acordaria uma leitura presa.
+
+=====================================================================
+## Revalidação no build de 20/09/2026 (13:48)
+  Depois das mudanças do A4 (recuo progressivo, prazo de validade da janela
+  suprimida, remoção do código de tela cheia), a VPN foi ligada de novo em modo
+  alerta, com as mesmas listas salvas.
+
+  13:48:01.784  vpn_started — modo: alerta · dominios: example.com, example.org
+                · redes sociais: cdninstagram.com, instagram.com
+  13:48:01.793  upstream_changed — rede: wifi · 1 servidor de DNS: 192.168.1.1
+  13:48:16.545  adult_domain_detected — dominio: example.com ·
+                consulta: www.example.com (A) · modo: alerta
+  13:48:16.555  notification_sent   (10 ms depois da detecção)
+  A página carregou normalmente no Chrome ("Example Domain"), como manda o modo
+  alerta: detectar sem bloquear. A notificação 1003 está no sistema com
+  importância 4 e o texto neutro de sempre.
+
+  Critério do A6 cumprido de novo. Nada mudou no resultado de 18/09.
