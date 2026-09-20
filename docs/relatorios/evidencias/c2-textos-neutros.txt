@@ -1,0 +1,88 @@
+# C2 — textos neutros nas notificações, conferidos na tela bloqueada
+# Galaxy S22, Android 16 / One UI 8, 20/09/2026, 16:25–16:55
+# Critério da spec (§6.4): confirmar que nada sensível aparece na tela
+# bloqueada, com o conteúdo da notificação configurável.
+
+## As quatro notificações do protótipo, lidas do próprio sistema
+  `adb shell dumpsys notification --noredact`, campos android.title e
+  android.text de cada registro do pacote com.norte.lab.dev:
+
+  id    canal           importância  título                 texto
+  1001  lab-monitoring  2 (baixa)    Acompanhamento ativo   O app está acompanhando seu tempo de uso.
+  1002  lab-alerts      4 (alta)     Momento de pausa       (configurável — ver abaixo)
+  1003  lab-alerts      4 (alta)     Momento de pausa       Lembre-se do objetivo que você definiu.
+  1004  lab-monitoring  2 (baixa)    Acompanhamento ativo   Nenhum dado sai do aparelho.
+
+  Nenhum texto cita o tema do app, nome de site, domínio, nome do app
+  monitorado ou qualquer coisa que exponha a pessoa a quem olhe a tela. O
+  alerta de domínio (1003, do A6) é deliberadamente mais vago que o do limite.
+
+  Todos os registros estão com vis=PRIVATE, que é o valor padrão: o sistema
+  esconde o conteúdo quando o usuário pede para ocultar conteúdo sensível na
+  tela bloqueada.
+
+## Os nomes de canal, que aparecem nos Ajustes do sistema
+  lab-monitoring → "Monitoramento"  (importância 2)
+  lab-alerts     → "Alertas"        (importância 4)
+  Também neutros. Isso importa porque o nome do canal fica visível na tela de
+  notificações dos Ajustes, fora do controle do app.
+
+## O texto do alerta é mesmo configurável (16:30)
+  Trocado na tela do laboratório, de "Você atingiu o tempo que definiu para
+  hoje." para "Um instante para respirar.", e salvo com "Iniciar limite".
+  Depois do disparo de teste, o sistema mostrava:
+    android.title=String (Momento de pausa)
+    android.text=String (Um instante para respirar.)
+  Confirmado: o texto vem da configuração, não do código. (Detalhe do
+  protótipo: o campo só é salvo ao tocar em "Iniciar limite"; disparar o teste
+  antes disso usa o texto salvo anteriormente.)
+
+## Primeira conferência, na configuração padrão do aparelho (16:34)
+  Aparelho bloqueado com as quatro notificações na gaveta. A tela de bloqueio
+  não mostrou **nenhum texto**: só relógio, data, estado da bateria e os ícones
+  da barra de status.
+
+  A explicação está num ajuste da Samsung, não no app:
+    system.lockscreen_minimizing_notification = 1
+  ("minimizar notificações na tela de bloqueio" — só ícones). Os ajustes do
+  Android por baixo já estavam no modo mais permissivo:
+    secure.lock_screen_show_notifications = 1
+    secure.lock_screen_allow_private_notifications = 1
+
+  Como esse ajuste é escolha do usuário e pode mudar a qualquer momento, a
+  conferência foi refeita com ele desligado.
+
+## Segunda conferência, com o texto liberado (16:54)
+  O responsável desligou o "minimizar notificações", deixando a configuração
+  mais exposta possível: cartão com texto inteiro na tela de bloqueio.
+    system.lockscreen_minimizing_notification = 0
+
+  O cartão do protótipo, às 16:54, tinha exatamente:
+    [ícone do app]  Momento de pausa            16:54    4
+                    Um instante para respirar.
+
+  - o título e o texto são os nossos, e são neutros;
+  - o "4" à direita é a contagem de notificações agrupadas do app;
+  - **o nome do app não aparece no cartão**, nem o nome do canal: quem olha a
+    tela de bloqueio vê só o ícone. O nome volta a importar quando a gaveta é
+    aberta.
+
+  A captura não foi versionada porque a mesma tela trazia notificações pessoais
+  do responsável (CLAUDE.md §9).
+
+## O que aparece de qualquer jeito, e não depende do texto
+  - **A chave de VPN na barra de status**, enquanto a VPN do A6/A7 estiver
+    ligada. Visível também com o aparelho bloqueado. Já registrado em I-17.
+  - **O ícone do app** entre os ícones de notificação, por causa da notificação
+    permanente do serviço em primeiro plano. O nome do app aparece ao abrir a
+    gaveta — o que torna o nome definitivo parte do problema de discrição
+    (doc 01, P7).
+  - **A notificação do sistema "exibido sobre outros apps"**, enquanto a
+    sobreposição estiver na tela (I-11).
+
+## Resultado
+  Critério cumprido. Os textos são neutros, configuráveis e não revelam o tema
+  nem na configuração mais exposta da tela de bloqueio. O que resta de exposição
+  não vem do texto: vem do ícone, do nome do app e dos avisos que o próprio
+  sistema publica — e isso é assunto do nome e da identidade visual do app
+  definitivo, não da mensagem.

@@ -7,7 +7,7 @@
 
 ## Estado atual e próximo passo
 
-> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 20/09/2026, 13:55.
+> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 20/09/2026, 17:00.
 
 **Branch:** `prototype/android-vpn`, criado a partir de `prototype/android-usage`
 (que ficou com A1–A5 e A9) para o grupo da VPN: A6, A7 e A8. Tudo commitado.
@@ -16,10 +16,9 @@
 
 | ID | Resultado |
 |---|---|
-| S1 · S4 · A1 · A2 · A5 | ✅ |
+| S1 · S4 · A1 · A2 · A5 · C2 | ✅ |
 | A3 · A4 · A6 · A7 · A8 · A9 · A10 | ⚠️ com limitações documentadas |
-| S2 · S3 · iOS | não iniciados — dependem da conta Apple Developer pessoal |
-| C1 · C2 | C1 depende do iOS; C2 (textos neutros) já tem material no A3 |
+| S2 · S3 · iOS · C1 | não iniciados — dependem da conta Apple Developer pessoal |
 
 **Feito na sessão de 18 e 19/09/2026** (pausa pedida pelo responsável na
 madrugada de 19/09, retomada às 14:27):
@@ -105,15 +104,20 @@ madrugada de 19/09, retomada às 14:27):
   notificação 10 ms depois, com a página carregando normalmente no Chrome. O
   experimento já estava ⚠️ concluído desde 18/09 e continua como estava.
 
-**Próximo passo: decidir com o responsável.** O Android está fechado (A1–A10),
-com A4, A5 e A6 revalidados no build de hoje. As opções:
-1. **Fechar o C2** (textos neutros na tela bloqueada), que já tem material no A3
-   e precisa só de uma conferência com a tela bloqueada.
-2. **Roteiros T1–T10** com o responsável no aparelho, inclusive o T6 (um dia
+- **C2 ✅** (ver "Achado C2"): os quatro textos de notificação são neutros e o
+  do alerta é configurável ponta a ponta. Na tela de bloqueio, na configuração
+  mais exposta, o cartão mostra só o nosso título e texto — sem nome do app nem
+  do canal. O que continua exposto (chave de VPN, ícone, aviso de sobreposição)
+  não vem do texto.
+
+**Próximo passo: decidir com o responsável.** O Android está fechado (A1–A10) e
+o C2 também. As opções:
+1. **Roteiros T1–T10** com o responsável no aparelho, inclusive o T6 (um dia
    inteiro de uso normal), que também fecha a pendência de bateria do A8.
-3. **Começar o relatório** de viabilidade, que é o entregável da Fase 1.
-4. **iOS**, se a conta Apple Developer estiver pronta (S2, S3).
-5. **Medir apps de aposta e de banco** com a proteção do I-25, olhando para a
+2. **Começar o relatório** de viabilidade, que é o entregável da Fase 1.
+3. **iOS**, se a conta Apple Developer estiver pronta (S2, S3). O C1 depende
+   disso.
+4. **Medir apps de aposta e de banco** com a proteção do I-25, olhando para a
    Fase 2.
 
 **VPN no aparelho:** consentimento concedido (`appops ... ACTIVATE_VPN: allow`),
@@ -128,11 +132,11 @@ Desde o A5, **cada** abertura do Instagram acima do limite e fora da pausa
 interrompe de novo. Ao terminar, subir o limite outra vez, para não atrapalhar o
 uso normal do aparelho.
 
-**Estado do aparelho em 20/09/2026, 13:50:** serviço do limite ativo (instância
+**Estado do aparelho em 20/09/2026, 17:00:** serviço do limite ativo (instância
 recriada pela reinstalação das 13:29, que trouxe o recuo progressivo e tirou o
 código da tela cheia), **limite de 600 min** no Instagram (acima do uso diário:
 o serviço segue rodando sem interromper), modo **sobreposição**, pausa de 2 min.
-VPN **desligada** desde 19:30:39 de 19/09. Todas as permissões concedidas
+VPN **ligada em modo alerta** desde 13:48 de 20/09. Todas as permissões concedidas
 (acesso a dados de uso, notificação, sobreposição, VPN e HIDE_OVERLAY_WINDOWS).
 Rotação automática ligada. **Modo economia de energia ligado**
 (`settings get global low_power` = 1): estava ligado durante toda a janela de
@@ -141,6 +145,11 @@ bateria do A8, e o monitoramento funcionou assim mesmo. O DNS privado está em
 Chrome voltou ao padrão. O relógio do PC está ~2 s adiantado em relação ao do
 aparelho.
 
+
+**Depois do C2:** o texto do alerta ficou em "Um instante para respirar." (era
+"Você atingiu o tempo que definiu para hoje."), e o campo de minutos na tela
+está com um valor sujo de digitação — o salvo continua 600. Antes de tocar em
+"Iniciar limite" de novo, conferir os dois campos.
 **App de teste instalado:** `com.norte.labtarget` ("Alvo do laboratorio"), da
 rodada do I-25. Fonte em `prototype/labtarget/`. Não roda nada em segundo plano;
 some com `adb uninstall com.norte.labtarget`.
@@ -311,6 +320,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | A8 | ⚠️ | Navegação geral ok depois de corrigir o repasse (mediana de 2,6 s → 49 ms); apps de banco ok; outra VPN derruba a nossa, que não volta sozinha; **DNS privado estrito + nossa VPN deixa os apps sem DNS**; DNS seguro do Chrome ainda deixa ver o endereço principal; a VPN sobrevive à queda do Wi-Fi, ao Doze profundo e ao modo economia; bateria: 0,366% de CPU e ~1 mAh a cada 2 h com o aparelho parado. Ver achado abaixo |
 | A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. Faltam "Apps em suspensão" da Samsung (precisa de dias) e o roteiro T6 |
 | A10 | ⚠️ Tabela pronta, com riscos abertos | Pesquisa documental das políticas do Play em 19/09/2026. Tabela de permissão, exigência e risco no achado abaixo. `PACKAGE_USAGE_STATS` e a lista de apps são dado sensível: exigem divulgação destacada no app e política de privacidade. `specialUse` exige `<property>`, declaração no Play Console com vídeo e os cinco critérios de serviço em primeiro plano — o de "rodar só o tempo necessário" é o risco. `systemExempted` da VPN é isento desses critérios, mas só vale enquanto somos a VPN ativa. A política da `VpnService` pressupõe servidor remoto e criptografia até o túnel, que não existem no nosso desenho local. Achado novo, confirmado no aparelho na mesma noite: `setHideOverlayWindows` esconde a nossa sobreposição, com uma permissão de nível normal, e o nosso log não percebe (I-25, I-28). Ver achado abaixo |
+| C2 | ✅ Funciona | Os quatro textos de notificação do protótipo, lidos do registro do sistema, são neutros: nenhum cita tema, site, domínio ou o app monitorado. Os nomes de canal ("Monitoramento", "Alertas") também. O texto do alerta é configurável ponta a ponta. Na tela de bloqueio, com o ajuste da Samsung de "minimizar notificações" **desligado** (configuração mais exposta), o cartão mostra só o nosso título e texto, sem o nome do app nem o do canal. O que continua exposto — chave de VPN, ícone do app, aviso de "exibido sobre outros apps" — não vem do texto. Ver achado abaixo |
 
 ### Achado A1 — como medir tempo de uso por app, e o que não funciona
 
@@ -1475,6 +1485,58 @@ o app definitivo vai precisar por ser assinatura.
   mais importante que sobra.
 - Obrigatoriedade do Google Play Billing para a assinatura.
 - Políticas equivalentes da App Store, que ficam com o grupo do iOS.
+
+### Achado C2 ✅ — os textos são neutros, e o que vaza não vem deles
+
+**Conferido em 20/09/2026, das 16:25 às 16:55**, com o responsável operando os
+ajustes do aparelho. Evidência em
+`docs/relatorios/evidencias/c2-textos-neutros.txt`.
+
+As quatro notificações do protótipo, lidas do registro do próprio sistema:
+
+| id | canal | título | texto |
+|---|---|---|---|
+| 1001 | Monitoramento | Acompanhamento ativo | O app está acompanhando seu tempo de uso. |
+| 1002 | Alertas | Momento de pausa | configurável pelo usuário |
+| 1003 | Alertas | Momento de pausa | Lembre-se do objetivo que você definiu. |
+| 1004 | Monitoramento | Acompanhamento ativo | Nenhum dado sai do aparelho. |
+
+Nenhuma cita tema, site, domínio ou o nome do app monitorado. Os nomes de canal
+("Monitoramento" e "Alertas"), que aparecem nos Ajustes do sistema e não são
+controlados pelo app depois de criados, também são neutros.
+
+**Configurável, ponta a ponta.** O texto do alerta foi trocado na tela do
+laboratório para "Um instante para respirar.", salvo, e chegou assim à
+notificação — lido do sistema, não da nossa tela.
+
+#### A conferência precisou de duas rodadas
+
+Na primeira (16:34), a tela de bloqueio não mostrou **texto nenhum**, só ícones.
+Não era mérito do app: é o ajuste `lockscreen_minimizing_notification` da
+Samsung, ligado no aparelho do responsável. Como isso é escolha do usuário e
+muda a qualquer momento, o responsável desligou o ajuste e a conferência foi
+refeita na configuração mais exposta possível.
+
+Na segunda (16:54), o cartão na tela de bloqueio era:
+
+```
+[ícone do app]  Momento de pausa            16:54    4
+                Um instante para respirar.
+```
+
+Título e texto nossos, neutros. O "4" é a contagem de notificações agrupadas.
+**O nome do app não aparece no cartão**, nem o nome do canal: na tela de
+bloqueio, quem olha vê só o ícone.
+
+#### O que continua exposto, e não depende do texto
+
+- A **chave de VPN** na barra de status enquanto a VPN estiver ligada (I-17),
+  visível inclusive com o aparelho bloqueado.
+- O **ícone do app**, por causa da notificação permanente do serviço. O nome
+  aparece ao abrir a gaveta — o que faz do nome e do ícone definitivos parte do
+  problema de discrição do documento 01 (P7), não da mensagem.
+- A notificação do sistema **"exibido sobre outros apps"** enquanto a
+  sobreposição estiver na tela (I-11).
 
 ### Outros achados do dia
 
