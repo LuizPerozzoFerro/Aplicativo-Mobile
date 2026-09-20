@@ -12,6 +12,7 @@ import {
   type UsageLimitStatus,
   type NotificationPermissionResult,
   type OverlayPermissionResult,
+  type HideOverlayWindowsResult,
   type Unsupported,
 } from './LabMonitoring.types';
 
@@ -77,6 +78,10 @@ class LabMonitoringModule extends NativeModule<{}> {
   }
 
   async hideInterruption(): Promise<void> {}
+
+  async setHideOverlayWindows(): Promise<HideOverlayWindowsResult> {
+    return { supported: false, hidden: false };
+  }
 
   async requestNotificationPermission(): Promise<NotificationPermissionResult> {
     return { requested: false, notifications: UNSUPPORTED };

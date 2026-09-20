@@ -19,6 +19,7 @@ import type {
   NotificationPermissionResult,
   InterruptionMode,
   OverlayPermissionResult,
+  HideOverlayWindowsResult,
   Unsupported,
 } from '../../modules/lab-monitoring/src/LabMonitoring.types';
 
@@ -36,6 +37,7 @@ export type {
   NotificationPermissionResult,
   InterruptionMode,
   OverlayPermissionResult,
+  HideOverlayWindowsResult,
   Unsupported,
 } from '../../modules/lab-monitoring/src/LabMonitoring.types';
 
@@ -91,6 +93,12 @@ export interface MonitoringModule {
 
   /** Fecha a tela de interrupcao, se estiver visivel. */
   hideInterruption(): Promise<void>;
+
+  /**
+   * A4 / I-25: liga na tela do laboratorio a protecao contra sobreposicoes de
+   * terceiros, para medir se a tela de interrupcao ainda aparece por cima.
+   */
+  setHideOverlayWindows(hide: boolean): Promise<HideOverlayWindowsResult>;
 
   /** Dispara o alerta do A3 imediatamente, sem esperar o limite. */
   sendTestAlert(): Promise<void>;

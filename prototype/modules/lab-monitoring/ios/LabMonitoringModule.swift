@@ -83,6 +83,11 @@ public class LabMonitoringModule: Module {
     AsyncFunction("hideInterruption") {
     }
 
+    // A4 / I-25: so existe no Android, onde a sobreposicao existe.
+    AsyncFunction("setHideOverlayWindows") { (_: Bool) -> [String: Any] in
+      ["supported": false, "hidden": false]
+    }
+
     AsyncFunction("sendTestAlert") {
       throw UnsupportedOnIOSException()
     }

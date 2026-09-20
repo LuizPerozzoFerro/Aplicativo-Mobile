@@ -41,6 +41,14 @@
     specialUse exige a <property> abaixo, cujo texto e lido por um revisor humano
     do Google Play na publicacao. Risco a registrar no A10.
   -->
+  <!--
+    A4 / impacto I-25: permite que a tela do laboratorio se proteja de
+    sobreposicoes de terceiros (setHideOverlayWindows), para medir se a nossa
+    propria tela de interrupcao ainda aparece. Nivel normal: o sistema concede
+    sem pedir nada ao usuario, e e por isso que qualquer app pode fazer o mesmo.
+  -->
+  <uses-permission android:name="android.permission.HIDE_OVERLAY_WINDOWS" />
+
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

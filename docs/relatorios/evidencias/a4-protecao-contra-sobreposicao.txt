@@ -1,0 +1,84 @@
+# A4 / impacto I-25 — um app consegue esconder a nossa sobreposição?
+# Galaxy S22, Android 16 / One UI 8, 19/09/2026, 21:20–21:37
+# Resultado: NÃO reproduzido neste aparelho. Leia as ressalvas no fim.
+
+## O que motivou a rodada
+  O A10 (documental) encontrou `Window.setHideOverlayWindows(true)`, que existe
+  desde a API 31 e, segundo a referência do Android, impede que sobreposições de
+  terceiros sejam desenhadas sobre aquela janela. A permissão que ela exige,
+  HIDE_OVERLAY_WINDOWS, é de nível **normal** — conferido no manifesto do próprio
+  AOSP (core/res/AndroidManifest.xml, lido em 19/09/2026):
+    <permission android:name="android.permission.HIDE_OVERLAY_WINDOWS"
+                android:protectionLevel="normal" />
+  Ou seja, qualquer app pode declará-la sem pedir nada ao usuário. Se a proteção
+  valesse contra a nossa tela de interrupção, o app monitorado poderia apagá-la.
+
+## Como foi montado
+  Função nova no módulo (`setHideOverlayWindows`) e dois botões na seção A4 do
+  laboratório. O próprio laboratório virou o app monitorado, com limite de 1 min,
+  modo sobreposição e pausa de 2 min.
+
+  A permissão está no pacote instalado e concedida:
+    adb shell dumpsys package com.norte.lab.dev
+      android.permission.HIDE_OVERLAY_WINDOWS: granted=true
+
+  A flag chega ao sistema. `dumpsys window windows`, na janela
+  com.norte.lab.dev/.MainActivity:
+    protegida     pfl=10088840
+    desprotegida  pfl=10008840
+    diferença     0x00080000 = SYSTEM_FLAG_HIDE_NON_SYSTEM_OVERLAY_WINDOWS
+  O bit aparece e some junto com o botão, nos dois sentidos.
+
+## As três rodadas
+  21:26:16  limite armado (1 min), proteção LIGADA (pfl=10088840)
+  21:26:21  threshold_reached — 210 min de uso para limite de 1 min
+  21:26:41  interruption_shown (sobreposição)
+            dumpsys da janela de sobreposição (ty=APPLICATION_OVERLAY):
+              mHasSurface=true isReadyForDisplay()=true
+              Surface: shown=true  mDrawState=HAS_DRAWN  mLastHidden=false
+              isOnScreen=true   isVisible=true
+            captura: a4-protecao-sobreposicao-ligada.png
+            >>> a sobreposição APARECEU, com a proteção ligada
+
+  21:27     saída pela "Ir para a tela inicial", laboratório reaberto;
+            pfl continuava 10088840 (proteção ainda ligada)
+  21:29:08  interruption_shown de novo
+            >>> APARECEU outra vez, agora com a janela protegida recriada
+
+  21:30:42  hide_overlay_windows — proteção DESLIGADA (pfl=10008840)
+  21:31:42  interruption_shown (controle) — apareceu, como sempre aparece
+
+  Nenhuma diferença entre protegido e desprotegido.
+
+## O que diz o código do Android (AOSP, master, lido em 19/09/2026)
+  WindowState.hideNonSystemOverlayWindowsWhenVisible() exige DUAS coisas:
+    (mAttrs.privateFlags & SYSTEM_FLAG_HIDE_NON_SYSTEM_OVERLAY_WINDOWS) != 0
+    && mSession.mCanHideNonSystemOverlayWindows
+  A segunda é calculada uma única vez, no construtor de Session, a partir de
+  HIDE_NON_SYSTEM_OVERLAY_WINDOWS ou HIDE_OVERLAY_WINDOWS.
+
+  WindowState.setForceHideNonSystemOverlayWindowIfNeeded() só dispensa:
+    - sessões que podem adicionar janelas internas do sistema;
+    - janelas que não são do tipo alerta nem TOAST;
+    - TYPE_APPLICATION_OVERLAY marcada como overlay de app do sistema, o que
+      depende de permissão de assinatura.
+  **Não existe isenção para janelas do mesmo app.** Pelo código, a nossa
+  sobreposição deveria ter sido escondida.
+
+## Conclusão honesta
+  A proteção **não teve efeito** nesta medição, com a flag comprovada no
+  `dumpsys` e a permissão concedida. As explicações possíveis, que não dá para
+  distinguir de fora do sistema:
+  - a build da Samsung se comporta diferente do AOSP;
+  - a capacidade `mCanHideNonSystemOverlayWindows` da nossa sessão não está
+    ligada por algum motivo (ela não aparece em nenhum `dumpsys`);
+  - alguma condição de ordem que não reproduzimos.
+
+  O que NÃO dá para concluir: que um app de terceiros não consiga nos esconder.
+  O teste definitivo precisa de um segundo app, de outro UID, que ligue a
+  proteção enquanto a nossa sobreposição tenta aparecer. Fica como pendência.
+
+  O que já dá para afirmar: o mecanismo existe, está documentado, custa uma
+  linha e uma permissão de nível normal. Quem quiser se proteger de
+  sobreposições tem como tentar, e o app definitivo não pode tratar a
+  sobreposição como garantia.

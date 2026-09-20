@@ -13,6 +13,7 @@ import type {
   NotificationPermissionResult,
   InterruptionMode,
   OverlayPermissionResult,
+  HideOverlayWindowsResult,
   Unsupported,
 } from './LabMonitoring.types';
 
@@ -31,6 +32,7 @@ declare class LabMonitoringModule extends NativeModule<{}> {
   ): Promise<void>;
   requestOverlayPermission(): Promise<OverlayPermissionResult>;
   hideInterruption(): Promise<void>;
+  setHideOverlayWindows(hide: boolean): Promise<HideOverlayWindowsResult>;
   requestNotificationPermission(): Promise<NotificationPermissionResult>;
   sendTestAlert(): Promise<void>;
   stopUsageLimit(): Promise<void>;

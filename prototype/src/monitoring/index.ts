@@ -12,6 +12,7 @@ import {
   type UsageLimitStatus,
   type NotificationPermissionResult,
   type OverlayPermissionResult,
+  type HideOverlayWindowsResult,
   type Unsupported,
 } from './types';
 
@@ -77,6 +78,10 @@ const monitoring: MonitoringModule = {
 
   async hideInterruption(): Promise<void> {
     return LabMonitoring.hideInterruption();
+  },
+
+  async setHideOverlayWindows(hide: boolean): Promise<HideOverlayWindowsResult> {
+    return LabMonitoring.setHideOverlayWindows(hide);
   },
 
   async sendTestAlert(): Promise<void> {

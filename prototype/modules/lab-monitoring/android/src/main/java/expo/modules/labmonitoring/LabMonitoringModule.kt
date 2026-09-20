@@ -139,6 +139,34 @@ class LabMonitoringModule : Module() {
     }.runOnQueue(Queues.MAIN)
 
     /**
+     * A4 / impacto I-25: liga na tela do laboratorio a mesma protecao que qualquer
+     * app pode ligar contra sobreposicoes de terceiros. setHideOverlayWindows existe
+     * desde a API 31 e exige HIDE_OVERLAY_WINDOWS, permissao de nivel normal,
+     * concedida sem pedir nada ao usuario.
+     *
+     * Serve para medir se a nossa tela de interrupcao ainda aparece sobre uma janela
+     * protegida. A protecao vale para a janela desta activity enquanto ela existir.
+     */
+    AsyncFunction("setHideOverlayWindows") { hide: Boolean ->
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+        return@AsyncFunction mapOf("supported" to false, "hidden" to false)
+      }
+      val activity = appContext.currentActivity
+        ?: throw Exceptions.MissingActivity()
+      activity.window.setHideOverlayWindows(hide)
+
+      EventLog.append(
+        context = context,
+        source = "app",
+        experiment = "A4",
+        event = "hide_overlay_windows",
+        details = if (hide) "protecao ligada na tela do laboratorio" else "protecao desligada"
+      )
+
+      mapOf("supported" to true, "hidden" to hide)
+    }.runOnQueue(Queues.MAIN)
+
+    /**
      * Pede a permissao de notificacao (Android 13+). Ao contrario do acesso a
      * dados de uso, esta e uma permissao de runtime normal, com pop-up.
      */

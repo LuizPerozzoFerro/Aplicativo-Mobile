@@ -120,3 +120,10 @@ export type DomainWatchStatus = {
   socialDomains: string[];
   stats: DomainWatchStats | null;
 };
+
+/** A4 / I-25: resultado de ligar a protecao contra sobreposicoes de terceiros. */
+export type HideOverlayWindowsResult = {
+  /** Falso abaixo da API 31, onde a chamada nao existe. */
+  supported: boolean;
+  hidden: boolean;
+};

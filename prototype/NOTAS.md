@@ -7,7 +7,7 @@
 
 ## Estado atual e próximo passo
 
-> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 19/09/2026, 20:30.
+> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 19/09/2026, 21:45.
 
 **Branch:** `prototype/android-vpn`, criado a partir de `prototype/android-usage`
 (que ficou com A1–A5 e A9) para o grupo da VPN: A6, A7 e A8. Tudo commitado.
@@ -53,11 +53,18 @@ madrugada de 19/09, retomada às 14:27):
   sobreposição (I-25). O desenho que não manda nada para fora paga bem na
   declaração de segurança de dados, no spyware e na nova métrica de bateria.
 
+- **A4, rodada do I-25** (ver "Achado A4 → Rodada do I-25"): função nova no
+  módulo (`setHideOverlayWindows`) e botões no laboratório para ligar, na
+  própria tela, a proteção contra sobreposições de terceiros. Com a proteção
+  ligada e comprovada no `dumpsys`, a sobreposição **apareceu assim mesmo**,
+  duas vezes. O código do AOSP diz que deveria ter sido escondida e não isenta o
+  mesmo app, então falta repetir com um app de outro UID antes de fechar.
+
 **Próximo passo: decidir com o responsável.** O Android fechou (A1–A10). As
 opções, em ordem de custo:
-1. **Rodada nova do A4**, para testar o achado I-25: um app com
-   `setHideOverlayWindows(true)` esconde a nossa tela de interrupção? Precisa de
-   um app de teste próprio, porque não se sabe quais apps instalados usam isso.
+1. **Fechar a rodada do I-25** com um segundo app, de outro UID, que ligue a
+   proteção enquanto a nossa sobreposição tenta aparecer. É o único jeito de
+   saber se um app de terceiros consegue nos apagar.
 2. **Fechar o C2** (textos neutros na tela bloqueada), que já tem material no A3
    e precisa só de uma conferência com a tela bloqueada.
 3. **Roteiros T1–T10** com o responsável no aparelho, inclusive o T6 (um dia
@@ -77,17 +84,18 @@ Desde o A5, **cada** abertura do Instagram acima do limite e fora da pausa
 interrompe de novo. Ao terminar, subir o limite outra vez, para não atrapalhar o
 uso normal do aparelho.
 
-**Estado do aparelho em 19/09/2026, 19:45:** serviço do limite ativo (a mesma
-instância desde a reinstalação de 00:09), **limite de 600 min** no Instagram
-(acima do uso diário: o serviço segue rodando sem interromper), modo
-**sobreposição**, pausa de 2 min. VPN desligada pelo laboratório às 19:30:39.
-Todas as permissões concedidas (acesso a dados de uso, notificação,
-sobreposição, VPN). Rotação automática ligada. **Modo economia de energia
-ligado** (`settings get global low_power` = 1): estava ligado durante toda a
-janela de bateria do A8, e o monitoramento funcionou assim mesmo. O DNS privado
-está em `opportunistic` (o nome `dns.google` ficou guardado, sem uso) e o DNS
-seguro do Chrome voltou ao padrão. O relógio do PC está ~2 s adiantado em
-relação ao do aparelho.
+**Estado do aparelho em 19/09/2026, 21:45:** serviço do limite ativo (instância
+recriada pela reinstalação das 21:18, que trouxe o `setHideOverlayWindows`),
+**limite de 600 min** no Instagram (acima do uso diário: o serviço segue rodando
+sem interromper), modo **sobreposição**, pausa de 2 min. VPN desligada pelo
+laboratório às 19:30:39. Todas as permissões concedidas (acesso a dados de uso,
+notificação, sobreposição, VPN, e a nova HIDE_OVERLAY_WINDOWS, de nível normal).
+Rotação automática ligada. **Modo economia de energia ligado**
+(`settings get global low_power` = 1): estava ligado durante toda a janela de
+bateria do A8, e o monitoramento funcionou assim mesmo. O DNS privado está em
+`opportunistic` (o nome `dns.google` ficou guardado, sem uso) e o DNS seguro do
+Chrome voltou ao padrão. O relógio do PC está ~2 s adiantado em relação ao do
+aparelho.
 
 **Atenção ao abrir o laboratório:** o serviço mantém o processo vivo, e com ele o
 JavaScript antigo na memória. Subir o Metro não basta (P6): com o laboratório na
@@ -245,13 +253,13 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | A1 | ✅ Funciona | Leitura por `queryEvents` coincidiu com a contabilidade do sistema no mesmo minuto (`1:41:10`), 17/09/2026. O caminho agregado foi descartado por dois defeitos medidos. Ver achado abaixo |
 | A2 | ✅ Funciona | `threshold_reached` registrado às 16:36:44 com o protótipo fechado, 9 s após o Instagram cruzar o limite de 2 min. Serviço em primeiro plano `specialUse` sobreviveu ao app ser arrastado para fora dos recentes. Segunda rodada após 2 h de Doze: latência de 3 s |
 | A3 | ⚠️ Funciona com limitações | Notificação disparada pelo Kotlin com o app fechado, **14 ms** após a detecção (~6 s do limite real até o alerta). Apareceu **flutuando por cima do Instagram**, texto neutro e configurável. **Mas o botão "Emergência" só aparece se a notificação for expandida** — dois toques até a emergência |
-| A4 | ⚠️ Funciona com limitações | As duas abordagens cumprem o critério: a tela aparece sobre o Instagram com o protótipo fechado, mostra a motivação, e "Continuar" registra `continue_tapped` e volta **ao mesmo post**. **Sobreposição:** o voltar é ignorado, ela continua por cima da tela inicial, não cobre as barras, e o sistema publica "Norte Lab exibido sobre outros apps". **Tela própria:** o voltar a fecha sem escolha. Ambas dependem de `SYSTEM_ALERT_WINDOW`. Em 18/09 à noite: instrumentação corrigida e botão "Ir para a tela inicial" nas duas, validados no aparelho. Ver achado abaixo |
+| A4 | ⚠️ Funciona com limitações | As duas abordagens cumprem o critério: a tela aparece sobre o Instagram com o protótipo fechado, mostra a motivação, e "Continuar" registra `continue_tapped` e volta **ao mesmo post**. **Sobreposição:** o voltar é ignorado, ela continua por cima da tela inicial, não cobre as barras, e o sistema publica "Norte Lab exibido sobre outros apps". **Tela própria:** o voltar a fecha sem escolha. Ambas dependem de `SYSTEM_ALERT_WINDOW`. Em 18/09 à noite: instrumentação corrigida e botão "Ir para a tela inicial" nas duas, validados no aparelho. Em 19/09: rodada do I-25, com a proteção `setHideOverlayWindows` ligada na tela protegida — a sobreposição apareceu assim mesmo, e falta repetir com um app de outro UID. Ver achado abaixo |
 | A5 | ✅ Funciona | Pausa de 2 min depois do "Continuar", na sobreposição: nenhum alerta em 6 verificações, com a pessoa no Instagram e saindo e voltando. No fim, a notificação e, 20 s depois, a tela. O fim da pausa é notado com até 20 s de atraso (medido: 14 s). Tela inicial e emergência não pausam: reabrir o Instagram interrompe de novo em ~7 s. A pausa sobreviveu à recriação do serviço. Ver achado abaixo |
 | A6 | ⚠️ Funciona com limitações | VPN local só de DNS. No Chrome, abrir example.com gerou `adult_domain_detected` e a notificação 15 ms depois, e a página carregou: critério cumprido. Modo bloqueio também funciona (`DNS_PROBE_FINISHED_NXDOMAIN`). Zero consultas sem resposta; ida e volta de 26 ms ao DNS da rede. Limitações: o pré-carregamento dispara o alerta sem visita, página guardada no navegador aparece mesmo bloqueada, só uma VPN por vez, e o sistema diz ao usuário que a VPN "permite monitorar o tráfego da rede". Ver achado abaixo |
 | A7 | ⚠️ Funciona com limitações | Critério da spec cumprido: instagram.com no Chrome gerou `social_domain_detected` "via: navegador", e o app do Instagram saiu separado ("via: outro app"). A consulta de DNS não diz qual app perguntou; a separação vem do app em primeiro plano. Tempo no navegador, por heurística: 204 s estimados para 180,6 s reais (+13%) numa rodada de 5 min, mas com corte fora da faixa de 85–96 s o erro vai de −99% a +67%, e a resolução é de ~1 min. Ver achado abaixo |
 | A8 | ⚠️ | Navegação geral ok depois de corrigir o repasse (mediana de 2,6 s → 49 ms); apps de banco ok; outra VPN derruba a nossa, que não volta sozinha; **DNS privado estrito + nossa VPN deixa os apps sem DNS**; DNS seguro do Chrome ainda deixa ver o endereço principal; a VPN sobrevive à queda do Wi-Fi, ao Doze profundo e ao modo economia; bateria: 0,366% de CPU e ~1 mAh a cada 2 h com o aparelho parado. Ver achado abaixo |
 | A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. Faltam "Apps em suspensão" da Samsung (precisa de dias) e o roteiro T6 |
-| A10 | ⚠️ Tabela pronta, com riscos abertos | Pesquisa documental das políticas do Play em 19/09/2026. Tabela de permissão, exigência e risco no achado abaixo. `PACKAGE_USAGE_STATS` e a lista de apps são dado sensível: exigem divulgação destacada no app e política de privacidade. `specialUse` exige `<property>`, declaração no Play Console com vídeo e os cinco critérios de serviço em primeiro plano — o de "rodar só o tempo necessário" é o risco. `systemExempted` da VPN é isento desses critérios, mas só vale enquanto somos a VPN ativa. A política da `VpnService` pressupõe servidor remoto e criptografia até o túnel, que não existem no nosso desenho local. Achado novo: qualquer app pode esconder a nossa sobreposição com `setHideOverlayWindows`. Ver achado abaixo |
+| A10 | ⚠️ Tabela pronta, com riscos abertos | Pesquisa documental das políticas do Play em 19/09/2026. Tabela de permissão, exigência e risco no achado abaixo. `PACKAGE_USAGE_STATS` e a lista de apps são dado sensível: exigem divulgação destacada no app e política de privacidade. `specialUse` exige `<property>`, declaração no Play Console com vídeo e os cinco critérios de serviço em primeiro plano — o de "rodar só o tempo necessário" é o risco. `systemExempted` da VPN é isento desses critérios, mas só vale enquanto somos a VPN ativa. A política da `VpnService` pressupõe servidor remoto e criptografia até o túnel, que não existem no nosso desenho local. Achado novo: `setHideOverlayWindows` promete esconder sobreposições de terceiros com uma permissão de nível normal — testado na mesma noite e **não reproduzido** com o nosso próprio app (I-25). Ver achado abaixo |
 
 ### Achado A1 — como medir tempo de uso por app, e o que não funciona
 
@@ -673,6 +681,35 @@ logcat (documentação oficial de restrições de início em segundo plano, cons
 em 18/09/2026). O `home_tapped` prova o toque, não a chegada à tela inicial; a
 prova de chegada veio do sistema.
 
+#### Rodada do I-25: a proteção contra sobreposição não nos apagou (19/09/2026, 21:20–21:37)
+
+O A10 achou `Window.setHideOverlayWindows(true)`, que promete impedir
+sobreposições de terceiros sobre a janela de quem chama, com uma permissão de
+nível **normal** — qualquer app pode declará-la sem pedir nada ao usuário. Se
+valesse contra nós, o app monitorado apagaria a tela de interrupção. Fizemos a
+rodada na mesma noite, com o laboratório protegendo a própria tela e sendo o
+app monitorado. Evidência em
+`docs/relatorios/evidencias/a4-protecao-contra-sobreposicao.txt`.
+
+| Momento | O que aconteceu |
+|---|---|
+| Proteção ligada | A flag chega ao sistema: `pfl=10088840` protegida contra `pfl=10008840` desprotegida, diferença de `0x00080000` (`SYSTEM_FLAG_HIDE_NON_SYSTEM_OVERLAY_WINDOWS`). A permissão está concedida (`granted=true`) |
+| 21:26:41, protegida | `interruption_shown`, e a sobreposição **apareceu**: `isVisible=true`, `isOnScreen=true`, `Surface: shown=true`. Captura guardada |
+| 21:29:08, protegida | Depois de sair pela tela inicial e voltar, com a flag ainda ligada: **apareceu de novo** |
+| 21:31:42, controle | Proteção desligada: apareceu, como sempre |
+
+**O código do AOSP diz que deveria ter escondido.** A condição é a flag mais a
+capacidade `mCanHideNonSystemOverlayWindows` da sessão, e as únicas isenções são
+para janelas do sistema, tipos que não são de alerta e sobreposições de app do
+sistema (permissão de assinatura). **Não há isenção para o mesmo app.**
+
+Então o resultado é honesto mas incompleto: **não reproduzimos o bloqueio**, e
+não dá para saber de fora se a build da Samsung diverge, se a capacidade da
+sessão não está ligada ou se falta alguma condição de ordem. O teste que fecha a
+questão precisa de um segundo app, de outro UID. Enquanto isso, a conclusão
+prática para o produto continua a mesma: o mecanismo existe, é barato, e a
+sobreposição não pode ser tratada como garantia (I-25).
+
 #### Ainda não testado
 
 - Botão "Emergência" na tela própria. (O gesto de início foi testado em 18/09,
@@ -689,6 +726,9 @@ prova de chegada veio do sistema.
   `FLAG_KEEP_SCREEN_ON`, que impede a tela de apagar sozinha enquanto a janela
   existir. Se o usuário largar o aparelho, isso custa bateria.
 - Todo o comportamento de voltar com o voltar preditivo ligado.
+- **A proteção `setHideOverlayWindows` com um app de outro UID.** A rodada de
+  19/09 ligou a proteção na própria tela do laboratório e a sobreposição
+  apareceu assim mesmo; falta repetir com um segundo app (I-25).
 
 #### Latência, medida na sessão das 13:24 (fluxo real)
 
@@ -1187,15 +1227,17 @@ humano. Não há como ter certeza antes de submeter.
 Some-se que ler domínios visitados é, na taxonomia do Play, histórico de
 navegação — o que exige a divulgação destacada específica da VPN, mesmo sem
 nada sair do aparelho (I-19).
-
-#### O achado novo: o app monitorado pode esconder a nossa sobreposição
+#### O achado novo: uma linha que promete esconder a nossa sobreposição
 
 `Window.setHideOverlayWindows(true)` existe desde a API 31 e impede que
 sobreposições de terceiros apareçam sobre aquela janela. A permissão que ela
 exige (`HIDE_OVERLAY_WINDOWS`) é de nível **normal**: qualquer app pode
 declará-la, sem pedir nada ao usuário. Ou seja, um app que queira se proteger
-de sobreposições — e apps de banco costumam querer — apaga a nossa tela de
-interrupção. Não testado no protótipo; entra como rodada pendente do A4.
+de sobreposições — e apps de banco costumam querer — poderia apagar a nossa tela
+de interrupção. Testado na mesma noite (ver "Achado A4 → Rodada do I-25"): com a
+proteção ligada na tela do laboratório, a nossa sobreposição continuou
+aparecendo. O código do AOSP diz que deveria ter sido escondida, e não isenta o
+mesmo app, então o risco continua de pé até repetirmos com um app de outro UID.
 
 #### O desenho local paga bem em três frentes
 
@@ -1333,7 +1375,7 @@ decidido fora do Claude Code.
 | I-22 | **Com "DNS privado" no modo estrito (provedor com nome, comum para bloquear anúncios), ligar a VPN do app deixa os apps sem DNS**: o sistema não alcança o provedor pela rede da VPN, marca a rede como sem internet e avisa "Não é possível acessar o servidor DNS privado". A VPN também não vê nada nesse modo | Doc 01 §6.5, onboarding (§4); doc 02 riscos | O app precisa detectar o modo estrito antes de ligar a VPN (e depois, se mudar) e orientar o usuário, ou não ligar a VPN; nunca deixar o aparelho sem internet |
 | I-23 | O DNS do roteador doméstico perde consultas em rajadas de páginas pesadas, com ou sem VPN; um repasse ingênuo transforma essas perdas em atraso de 2 a 3 s para todas as consultas (medido e corrigido no A8) | Doc 02 riscos (qualidade da conexão com a VPN) | O repasse do app definitivo precisa de concorrência sem fila e nova tentativa curta, e de monitoramento de falhas |
 | I-24 | Custo da VPN somada ao serviço, com o aparelho parado (A8): 0,366% de CPU e ~1 mAh a cada 2 h, contra 0,138% e ~0,5 mAh do serviço sozinho (A9). Sem wakelock; atravessa Doze profundo e modo economia de energia. Projeção de 0,3% a 0,4% de bateria por dia, e o número é um teto (inclui ruído do ambiente de desenvolvimento) | Doc 02 riscos (bateria), roteiro T6 | O risco de bateria segue baixo, mas o número vale para aparelho parado: confirmar com um dia de uso real no T6 |
-| I-25 | **Qualquer app pode esconder a nossa sobreposição.** `Window.setHideOverlayWindows(true)` existe desde a API 31 e impede sobreposições de terceiros sobre aquela janela; a permissão que ela exige é de nível normal, concedida sem pedir nada ao usuário (A10, documental) | Doc 01 §6.5 (tela de interrupção), doc 02 riscos | A sobreposição não é garantia contra um app que se proteja. Testar numa rodada nova do A4 e, se confirmado, ter a tela própria como reserva — ela não é afetada, embora o voltar a dispense (I-13) |
+| I-25 | **Existe uma chamada de uma linha que promete esconder a nossa sobreposição.** `Window.setHideOverlayWindows(true)` existe desde a API 31 e a permissão que ela exige é de nível normal, concedida sem pedir nada ao usuário (conferido no manifesto do AOSP). Testado em 19/09 no S22 (A4, rodada do I-25): com a proteção ligada na tela do laboratório e a flag comprovada no `dumpsys`, a nossa sobreposição continuou aparecendo, duas vezes. Pelo código do AOSP não há isenção para o mesmo app, então o resultado não fecha a questão: falta testar com um app de outro UID | Doc 01 §6.5 (tela de interrupção), doc 02 riscos | Não tratar a sobreposição como garantia: manter a tela própria como reserva (I-13) e, no app definitivo, perceber quando a interrupção não chega à tela. Fechar o teste com um segundo app antes do relatório |
 | I-26 | A rota de **notificação em tela cheia** para a interrupção está fechada: desde 22/01/2025, em apps que miram Android 14+, só apps de chamada ou despertador recebem `USE_FULL_SCREEN_INTENT` por padrão (A10) | Doc 01 §6.5, doc 02 (alternativas de alerta de nível 2) | Restam a sobreposição e a tela própria; não contar com notificação em tela cheia no MVP |
 | I-27 | Como **nada sai do aparelho**, a seção de segurança de dados do Play pode ser declarada **sem coleta** (a política define coletar como transmitir para fora do aparelho). Isso não dispensa política de privacidade, divulgação destacada no app, nem exclusão de conta dentro do app e na web — esta última passa a valer porque o app é por assinatura (A10) | Doc 01 §4 (onboarding) e §9 (privacidade), doc 02 fase 9 | Tratar "nenhum dado coletado" como diferencial de produto, e já prever política de privacidade, divulgação destacada e exclusão de conta no escopo do MVP |
 

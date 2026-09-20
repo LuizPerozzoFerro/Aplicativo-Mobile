@@ -47,6 +47,8 @@ export default function LabScreen() {
   // A4
   const [overlay, setOverlay] = useState<PermissionState | null>(null);
   const [interruptionMode, setInterruptionMode] = useState<InterruptionMode>('overlay');
+  // A4 / I-25: protecao contra sobreposicoes ligada na propria tela do laboratorio.
+  const [hideOverlays, setHideOverlays] = useState(false);
 
   // A5
   const [pauseMinutes, setPauseMinutes] = useState('2');
@@ -423,6 +425,38 @@ export default function LabScreen() {
               })
             }
           />
+
+          <Text style={styles.fieldLabel}>I-25 — proteção contra sobreposição</Text>
+          <View style={styles.rowButtons}>
+            <Button
+              label={hideOverlays ? '✓ Protegida' : 'Proteger esta tela'}
+              compact
+              busy={busy === 'hideOv'}
+              onPress={() =>
+                run('hideOv', async () => {
+                  const result = await monitoring.setHideOverlayWindows(true);
+                  setHideOverlays(result.hidden);
+                })
+              }
+            />
+            <Button
+              label={hideOverlays ? 'Desproteger' : '✓ Desprotegida'}
+              compact
+              busy={busy === 'showOv'}
+              onPress={() =>
+                run('showOv', async () => {
+                  const result = await monitoring.setHideOverlayWindows(false);
+                  setHideOverlays(result.hidden);
+                })
+              }
+            />
+          </View>
+
+          <Text style={styles.note}>
+            Liga nesta tela a mesma proteção que qualquer app pode ligar
+            (setHideOverlayWindows, permissão de nível normal). Com ela ligada, o
+            laboratório precisa ser o app monitorado para o teste valer.
+          </Text>
 
           {limit?.escalatedAt ? (
             <Row
