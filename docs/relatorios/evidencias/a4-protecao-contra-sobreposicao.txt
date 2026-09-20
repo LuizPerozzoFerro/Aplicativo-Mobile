@@ -1,5 +1,5 @@
 # A4 / impacto I-25 — um app consegue esconder a nossa sobreposição?
-# Galaxy S22, Android 16 / One UI 8, 19/09/2026, 21:20–22:10
+# Galaxy S22, Android 16 / One UI 8, 19/09/2026, 21:20–22:45
 # Resultado: SIM. Um app comum apaga a nossa tela de interrupção, e o nosso log
 # continua dizendo que ela apareceu.
 
@@ -87,8 +87,34 @@
 ## O que fazer com isso
   - A sobreposição não pode ser tratada como garantia. A tela própria (activity)
     não é afetada por essa proteção, mas o voltar a dispensa (I-13).
-  - O app definitivo precisa **conferir se a janela chegou mesmo à tela** e ter
-    um caminho alternativo quando não chegar — no mínimo a notificação, que o
-    app monitorado não tem como suprimir.
+  - O app definitivo precisa **conferir se a janela chegou mesmo à tela** (feito
+    no protótipo na rodada 3, abaixo) e ter um caminho alternativo quando não
+    chegar — no mínimo a notificação, que o app monitorado não tem como suprimir.
   - Falta medir quantos apps reais usam essa proteção. Só isso diz se o risco é
     teórico ou cotidiano. Bancos são os suspeitos naturais.
+
+=====================================================================
+## Rodada 3 — a correção do I-28 (22:36–22:43)
+  A sobreposição passou a conferir, meio segundo depois do `addView`, se a
+  janela chegou à tela. Quatro sondas da própria view, com o mesmo app de teste:
+
+  rodada                        evento gravado             foco  janela  isShown  desenhou
+  22:36:50 app desprotegido     interruption_shown         sim   sim     sim      sim
+  22:37:50 app protegido        interruption_suppressed    nao   sim     sim      sim
+
+  Só o **foco de janela** denuncia a supressão. windowVisibility, isShown e o
+  desenho continuam positivos com a janela escondida — é por isso que o app não
+  tinha como perceber. A sobreposição é focável (precisa receber o voltar e os
+  toques), então a ausência de foco meio segundo depois vale como sinal. Não é
+  infalível: sobreposição não focável, ou teclado do sistema por cima, dariam
+  falso negativo.
+
+  Efeito colateral notado no caminho: a janela suprimida **não é descartada**.
+  Fica adicionada e invisível, e aparece no instante em que o app protegido sai
+  da frente — às 22:39 a interrupção surgiu sobre o laboratório, fora de
+  contexto. No app definitivo isso precisa de prazo de validade.
+
+  Tela própria: um início de activity barrado pelo sistema não gera exceção.
+  Agora o serviço grava `interruption_requested` ao pedir a tela e a activity
+  grava `interruption_shown` no onCreate; o par mostra se a tela existiu.
+  Medido às 22:43:10 com o app de teste na frente: 31 ms entre um e outro.

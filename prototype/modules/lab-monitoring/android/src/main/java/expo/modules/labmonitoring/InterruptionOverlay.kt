@@ -6,6 +6,7 @@ import android.os.Build
 import android.provider.Settings
 import android.view.Gravity
 import android.view.View
+import android.view.ViewTreeObserver
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.LinearLayout
@@ -29,6 +30,13 @@ import android.widget.TextView
 object InterruptionOverlay {
   // Lida tambem pela thread do servico (A5), para nao empilhar interrupcoes.
   @Volatile private var view: View? = null
+
+  /**
+   * Quanto esperamos, depois de adicionar a janela, para conferir se ela chegou
+   * mesmo a tela (impacto I-28). Meio segundo e o suficiente para o sistema
+   * decidir, e curto o bastante para quase nunca alcancar um toque do usuario.
+   */
+  private const val VISIBILITY_CHECK_MS = 500L
 
   fun canDraw(context: Context): Boolean =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) Settings.canDrawOverlays(context) else true
@@ -169,16 +177,7 @@ object InterruptionOverlay {
     )
 
     val result = runCatching { manager.addView(root, params) }
-    if (result.isSuccess) {
-      view = root
-      EventLog.append(
-        context = context,
-        source = "InterruptionOverlay",
-        experiment = "A4",
-        event = "interruption_shown",
-        details = "abordagem: sobreposicao"
-      )
-    } else {
+    if (result.isFailure) {
       EventLog.append(
         context = context,
         source = "InterruptionOverlay",
@@ -186,8 +185,62 @@ object InterruptionOverlay {
         event = "interruption_failed",
         details = result.exceptionOrNull()?.let { "${it.javaClass.simpleName}: ${it.message}" }
       )
+      return
     }
+
+    view = root
+    confirmOnScreen(context, root)
   }
+
+  /**
+   * Impacto I-28: adicionar a view NAO prova que o usuario viu alguma coisa.
+   *
+   * Um app na frente pode chamar setHideOverlayWindows(true) e o sistema esconde
+   * a nossa janela sem avisar: nao ha excecao, nao ha retorno de erro, e o
+   * addView continua "bem-sucedido". Medido no A4 em 19/09/2026.
+   *
+   * Por isso o `interruption_shown` so e gravado depois de conferir a propria
+   * view. As quatro sondas vao no detalhe do evento nos dois casos, para o
+   * experimento mostrar qual delas percebe a supressao.
+   */
+  private fun confirmOnScreen(context: Context, root: View) {
+    var drew = false
+    val onDraw = ViewTreeObserver.OnDrawListener { drew = true }
+    runCatching { root.viewTreeObserver.addOnDrawListener(onDraw) }
+
+    root.postDelayed({
+      runCatching { root.viewTreeObserver.removeOnDrawListener(onDraw) }
+
+      // Se a interrupcao ja foi fechada, ela estava na tela: alguem a fechou.
+      if (view !== root) {
+        EventLog.append(
+          context = context,
+          source = "InterruptionOverlay",
+          experiment = "A4",
+          event = "interruption_shown",
+          details = "abordagem: sobreposicao · fechada antes da conferencia"
+        )
+        return@postDelayed
+      }
+
+      val focused = root.hasWindowFocus()
+      val windowVisible = root.windowVisibility == View.VISIBLE
+      val shown = root.isShown
+      val onScreen = focused && windowVisible && shown
+      val probes = "foco: ${yesNo(focused)} · janela visivel: ${yesNo(windowVisible)} · " +
+        "isShown: ${yesNo(shown)} · desenhou: ${yesNo(drew)}"
+
+      EventLog.append(
+        context = context,
+        source = "InterruptionOverlay",
+        experiment = "A4",
+        event = if (onScreen) "interruption_shown" else "interruption_suppressed",
+        details = "abordagem: sobreposicao · $probes"
+      )
+    }, VISIBILITY_CHECK_MS)
+  }
+
+  private fun yesNo(value: Boolean) = if (value) "sim" else "nao"
 
   /**
    * Remove a sobreposicao. Os botoes registram o proprio evento; [reason] e para

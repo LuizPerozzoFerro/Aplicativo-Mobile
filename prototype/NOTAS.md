@@ -7,7 +7,7 @@
 
 ## Estado atual e próximo passo
 
-> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 19/09/2026, 22:15.
+> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 19/09/2026, 22:50.
 
 **Branch:** `prototype/android-vpn`, criado a partir de `prototype/android-usage`
 (que ficou com A1–A5 e A9) para o grupo da VPN: A6, A7 e A8. Tudo commitado.
@@ -63,14 +63,23 @@ madrugada de 19/09, retomada às 14:27):
   própria tela não dava para ver nada: entre janelas do mesmo UID o sistema
   ignorou a proteção.
 
-**Próximo passo: decidir com o responsável.** O Android fechou (A1–A10), e a
-rodada do I-25 abriu uma pergunta de desenho para o relatório. As opções, em
-ordem de custo:
-1. **Medir quantos apps reais usam a proteção** (I-25). Sem isso não dá para
-   dizer se o risco é teórico ou cotidiano. Dá para conferir app por app no
-   `dumpsys window`, com o responsável abrindo os que usa.
-2. **Conferir se a janela chegou à tela** (I-28), para o protótipo parar de
-   registrar interrupção que ninguém viu. É mudança pequena no Kotlin.
+- **I-28 corrigido no protótipo** (ver "Achado A4 → Correção do I-28"): a
+  sobreposição confere quatro sondas meio segundo depois de aparecer e grava
+  `interruption_shown` só se a janela estiver mesmo na tela; se não estiver,
+  grava `interruption_suppressed`. Das quatro sondas, **só o foco de janela**
+  denuncia a supressão. Na tela própria, o serviço passou a gravar
+  `interruption_requested`, para um início barrado em silêncio aparecer como
+  pedido sem tela. Validado nas duas rodadas de 22:36 e 22:43.
+
+**Próximo passo: decidir com o responsável.** O Android fechou (A1–A10). As
+opções, em ordem de custo:
+1. **Medir quantos apps reais usam a proteção do I-25.** Sem isso não dá para
+   dizer se o risco é teórico ou cotidiano. O responsável abre os apps que usa e
+   eu leio o `pfl` da janela no `dumpsys window`.
+2. **Caminho alternativo quando a interrupção é suprimida:** hoje o protótipo só
+   registra. Cair para a notificação, e dar prazo de validade à janela que ficou
+   escondida, são decisões de produto que valem uma conversa antes de virar
+   código.
 3. **Fechar o C2** (textos neutros na tela bloqueada), que já tem material no A3
    e precisa só de uma conferência com a tela bloqueada.
 4. **Roteiros T1–T10** com o responsável no aparelho, inclusive o T6 (um dia
@@ -90,8 +99,8 @@ Desde o A5, **cada** abertura do Instagram acima do limite e fora da pausa
 interrompe de novo. Ao terminar, subir o limite outra vez, para não atrapalhar o
 uso normal do aparelho.
 
-**Estado do aparelho em 19/09/2026, 22:15:** serviço do limite ativo (instância
-recriada pela reinstalação das 21:18, que trouxe o `setHideOverlayWindows`),
+**Estado do aparelho em 19/09/2026, 22:50:** serviço do limite ativo (instância
+recriada pela reinstalação das 22:34, que trouxe a conferência do I-28),
 **limite de 600 min** no Instagram (acima do uso diário: o serviço segue rodando
 sem interromper), modo **sobreposição**, pausa de 2 min. VPN desligada pelo
 laboratório às 19:30:39. Todas as permissões concedidas (acesso a dados de uso,
@@ -265,7 +274,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | A1 | ✅ Funciona | Leitura por `queryEvents` coincidiu com a contabilidade do sistema no mesmo minuto (`1:41:10`), 17/09/2026. O caminho agregado foi descartado por dois defeitos medidos. Ver achado abaixo |
 | A2 | ✅ Funciona | `threshold_reached` registrado às 16:36:44 com o protótipo fechado, 9 s após o Instagram cruzar o limite de 2 min. Serviço em primeiro plano `specialUse` sobreviveu ao app ser arrastado para fora dos recentes. Segunda rodada após 2 h de Doze: latência de 3 s |
 | A3 | ⚠️ Funciona com limitações | Notificação disparada pelo Kotlin com o app fechado, **14 ms** após a detecção (~6 s do limite real até o alerta). Apareceu **flutuando por cima do Instagram**, texto neutro e configurável. **Mas o botão "Emergência" só aparece se a notificação for expandida** — dois toques até a emergência |
-| A4 | ⚠️ Funciona com limitações | As duas abordagens cumprem o critério: a tela aparece sobre o Instagram com o protótipo fechado, mostra a motivação, e "Continuar" registra `continue_tapped` e volta **ao mesmo post**. **Sobreposição:** o voltar é ignorado, ela continua por cima da tela inicial, não cobre as barras, e o sistema publica "Norte Lab exibido sobre outros apps". **Tela própria:** o voltar a fecha sem escolha. Ambas dependem de `SYSTEM_ALERT_WINDOW`. Em 18/09 à noite: instrumentação corrigida e botão "Ir para a tela inicial" nas duas, validados no aparelho. Em 19/09, rodada do I-25: um app de teste de outro UID, com `setHideOverlayWindows`, **apagou a nossa sobreposição** enquanto o log dizia que ela tinha aparecido (I-25 e I-28). Ver achado abaixo |
+| A4 | ⚠️ Funciona com limitações | As duas abordagens cumprem o critério: a tela aparece sobre o Instagram com o protótipo fechado, mostra a motivação, e "Continuar" registra `continue_tapped` e volta **ao mesmo post**. **Sobreposição:** o voltar é ignorado, ela continua por cima da tela inicial, não cobre as barras, e o sistema publica "Norte Lab exibido sobre outros apps". **Tela própria:** o voltar a fecha sem escolha. Ambas dependem de `SYSTEM_ALERT_WINDOW`. Em 18/09 à noite: instrumentação corrigida e botão "Ir para a tela inicial" nas duas, validados no aparelho. Em 19/09, rodada do I-25: um app de teste de outro UID, com `setHideOverlayWindows`, **apagou a nossa sobreposição** enquanto o log dizia que ela tinha aparecido (I-25). Corrigido na mesma noite: a sobreposição confere o foco da janela antes de gravar `interruption_shown`, e grava `interruption_suppressed` quando some (I-28). Ver achado abaixo |
 | A5 | ✅ Funciona | Pausa de 2 min depois do "Continuar", na sobreposição: nenhum alerta em 6 verificações, com a pessoa no Instagram e saindo e voltando. No fim, a notificação e, 20 s depois, a tela. O fim da pausa é notado com até 20 s de atraso (medido: 14 s). Tela inicial e emergência não pausam: reabrir o Instagram interrompe de novo em ~7 s. A pausa sobreviveu à recriação do serviço. Ver achado abaixo |
 | A6 | ⚠️ Funciona com limitações | VPN local só de DNS. No Chrome, abrir example.com gerou `adult_domain_detected` e a notificação 15 ms depois, e a página carregou: critério cumprido. Modo bloqueio também funciona (`DNS_PROBE_FINISHED_NXDOMAIN`). Zero consultas sem resposta; ida e volta de 26 ms ao DNS da rede. Limitações: o pré-carregamento dispara o alerta sem visita, página guardada no navegador aparece mesmo bloqueada, só uma VPN por vez, e o sistema diz ao usuário que a VPN "permite monitorar o tráfego da rede". Ver achado abaixo |
 | A7 | ⚠️ Funciona com limitações | Critério da spec cumprido: instagram.com no Chrome gerou `social_domain_detected` "via: navegador", e o app do Instagram saiu separado ("via: outro app"). A consulta de DNS não diz qual app perguntou; a separação vem do app em primeiro plano. Tempo no navegador, por heurística: 204 s estimados para 180,6 s reais (+13%) numa rodada de 5 min, mas com corte fora da faixa de 85–96 s o erro vai de −99% a +67%, e a resolução é de ~1 min. Ver achado abaixo |
@@ -727,6 +736,37 @@ Duas conclusões, e a segunda é pior que a primeira:
    evento está lá com a tela do usuário limpa. Qualquer contagem de
    interrupções construída sobre esse evento estaria errada, e o app não teria
    como perceber a falha (I-28).
+
+#### Correção do I-28: o log passou a conferir se a janela chegou à tela (22:36–22:43)
+
+A sobreposição agora só grava `interruption_shown` **meio segundo depois de ser
+adicionada**, e só se quatro sondas da própria view disserem que ela está na
+tela. Quando não está, grava `interruption_suppressed` com as mesmas sondas no
+detalhe. As duas rodadas, com o mesmo app de teste da rodada anterior:
+
+| Rodada | Evento gravado | foco | janela visível | isShown | desenhou |
+|---|---|---|---|---|---|
+| 22:36:50, app **desprotegido** | `interruption_shown` | sim | sim | sim | sim |
+| 22:37:50, app **protegido** | `interruption_suppressed` | **não** | sim | sim | sim |
+
+**Só o foco de janela denuncia a supressão.** `windowVisibility`, `isShown` e o
+desenho da view continuam positivos com a janela escondida — é exatamente por
+isso que o app não tinha como perceber. Como a nossa sobreposição é focável (ela
+precisa receber o voltar e os toques), a ausência de foco meio segundo depois de
+aparecer é sinal confiável. Não é infalível: uma sobreposição não focável, ou um
+teclado do sistema por cima, dariam falso negativo.
+
+Também ficou visível um efeito que ninguém tinha notado: **a janela suprimida
+não é descartada**. Ela fica adicionada e invisível, e no instante em que o app
+protegido sai da frente ela aparece — às 22:39 a interrupção surgiu sobre o
+laboratório, fora de contexto, minutos depois do que a motivou. No app
+definitivo isso precisa de prazo de validade.
+
+Na tela própria (abordagem b) o problema é outro: um início de activity barrado
+pelo sistema não gera exceção. Agora o serviço grava `interruption_requested`
+quando pede a tela, e a activity grava o `interruption_shown` no `onCreate`; o
+par mostra se a tela chegou a existir. Medido às 22:43:10: pedido e tela com
+31 ms de diferença.
 
 #### Ainda não testado
 
@@ -1398,7 +1438,7 @@ decidido fora do Claude Code.
 | I-25 | **Um app comum apaga a nossa tela de interrupção.** `Window.setHideOverlayWindows(true)` existe desde a API 31 e a permissão que ela exige é de nível normal, concedida na instalação sem consentimento. Medido em 19/09 no S22 com um app de teste de outro UID (A4, rodada do I-25): com ele na frente e protegido, a nossa sobreposição ficou `isVisible=false`; ao desligar a proteção, a mesma janela apareceu na hora. Entre janelas do mesmo app o sistema ignorou a proteção, então só um segundo app mede isso | Doc 01 §6.5 (tela de interrupção), doc 02 riscos | A sobreposição não é garantia. Manter a tela própria como reserva (I-13), conferir se a janela chegou à tela (I-28) e ter um caminho alternativo — no mínimo a notificação, que o app monitorado não suprime. Medir quantos apps reais usam a proteção |
 | I-26 | A rota de **notificação em tela cheia** para a interrupção está fechada: desde 22/01/2025, em apps que miram Android 14+, só apps de chamada ou despertador recebem `USE_FULL_SCREEN_INTENT` por padrão (A10) | Doc 01 §6.5, doc 02 (alternativas de alerta de nível 2) | Restam a sobreposição e a tela própria; não contar com notificação em tela cheia no MVP |
 | I-27 | Como **nada sai do aparelho**, a seção de segurança de dados do Play pode ser declarada **sem coleta** (a política define coletar como transmitir para fora do aparelho). Isso não dispensa política de privacidade, divulgação destacada no app, nem exclusão de conta dentro do app e na web — esta última passa a valer porque o app é por assinatura (A10) | Doc 01 §4 (onboarding) e §9 (privacidade), doc 02 fase 9 | Tratar "nenhum dado coletado" como diferencial de produto, e já prever política de privacidade, divulgação destacada e exclusão de conta no escopo do MVP |
-| I-28 | **O evento que diz "interrompi" não prova que o usuário viu.** `interruption_shown` é gravado quando o app chama `addView`, não quando a janela chega à tela; na rodada do I-25 ele apareceu duas vezes com a tela do usuário limpa (A4) | Doc 01 §6.8 (estatísticas), doc 02 (telemetria local) | O app definitivo precisa confirmar que a janela ficou visível e tratar o caso contrário como falha: cair para a notificação e registrar o motivo. Vale a mesma dúvida para qualquer contagem de interrupções |
+| I-28 | **O evento que diz "interrompi" não provava que o usuário viu.** `interruption_shown` era gravado no `addView`, não quando a janela chegava à tela; na rodada do I-25 ele apareceu duas vezes com a tela do usuário limpa. **Corrigido no protótipo em 19/09:** a sobreposição confere quatro sondas meio segundo depois e grava `interruption_shown` ou `interruption_suppressed`; das quatro, só o **foco de janela** denuncia a supressão. Na tela própria, o serviço agora grava `interruption_requested` ao pedir a tela, e o par com o `interruption_shown` da activity mostra um início barrado em silêncio (A4) | Doc 01 §6.8 (estatísticas), doc 02 (telemetria local) | O app definitivo precisa confirmar que a janela ficou visível e tratar o contrário como falha: cair para a notificação, que o app monitorado não suprime, e registrar o motivo. Atenção ao efeito colateral medido: a janela suprimida **não é descartada** e reaparece quando o app protegido sai da frente, fora de contexto — ela precisa de prazo de validade |
 
 ## Comandos
 

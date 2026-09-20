@@ -217,6 +217,18 @@ class UsageLimitService : Service() {
         putExtra(InterruptionActivity.EXTRA_RETURN_TO, foregroundPackage)
       }
       val started = runCatching { startActivity(intent) }
+      if (started.isSuccess) {
+        // I-28: pedir nao e aparecer. Um inicio de activity barrado pelo sistema
+        // nao gera excecao (A4), entao o par com o `interruption_shown` da
+        // propria activity e o que mostra se a tela chegou a existir.
+        EventLog.append(
+          context = this,
+          source = "UsageLimitService",
+          experiment = "A4",
+          event = "interruption_requested",
+          details = "abordagem: activity · app na frente: $foregroundPackage"
+        )
+      }
       if (started.isFailure) {
         EventLog.append(
           context = this,
