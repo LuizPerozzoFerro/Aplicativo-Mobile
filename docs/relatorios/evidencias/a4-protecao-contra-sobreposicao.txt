@@ -118,3 +118,28 @@
   Agora o serviço grava `interruption_requested` ao pedir a tela e a activity
   grava `interruption_shown` no onCreate; o par mostra se a tela existiu.
   Medido às 22:43:10 com o app de teste na frente: 31 ms entre um e outro.
+
+=====================================================================
+## Rodada 4 — quais apps-alvo realmente ligam a proteção (20/09/2026, 11:4x)
+  Cada app foi aberto pelo laboratório e a janela dele lida no
+  `dumpsys window windows`, conferindo o bit 0x00080000 do `pfl`.
+
+  app                 pacote                          tela medida          protegida?
+  Instagram           com.instagram.android           MainTabActivity      nao
+  TikTok              com.zhiliaoapp.musically        tela de login        nao
+  X                   com.twitter.android             MainActivity         nao
+  Reddit              com.reddit.frontpage            AuthActivity         nao
+  YouTube             com.google.android.youtube      HomeActivity         nao
+  Chrome              com.android.chrome              Main                 nao
+  Samsung Internet    com.sec.android.app.sbrowser    HelpIntroActivity    nao
+  (controle) Alvo     com.norte.labtarget             MainActivity         SIM
+
+  **Nenhum dos seis apps-alvo protege a tela de abertura.** O risco do I-25
+  continua real, mas hoje e teorico para este conjunto de apps.
+
+  Tres ressalvas:
+  - so a tela que abre foi medida. A flag e por janela: um app pode liga-la
+    numa tela de pagamento ou de login e nao na inicial;
+  - e um retrato das versoes instaladas hoje, e muda com uma atualizacao;
+  - apps de banco, que sao os suspeitos naturais, nao foram medidos (o
+    laboratorio nao opera apps bancarios do responsavel).

@@ -13,6 +13,7 @@ import {
   type NotificationPermissionResult,
   type OverlayPermissionResult,
   type HideOverlayWindowsResult,
+  type FullScreenIntentResult,
   type Unsupported,
 } from './LabMonitoring.types';
 
@@ -27,6 +28,7 @@ class LabMonitoringModule extends NativeModule<{}> {
       notifications: UNSUPPORTED,
       overlay: UNSUPPORTED,
       vpn: UNSUPPORTED,
+      fullScreenIntent: UNSUPPORTED,
     };
   }
 
@@ -81,6 +83,14 @@ class LabMonitoringModule extends NativeModule<{}> {
 
   async setHideOverlayWindows(): Promise<HideOverlayWindowsResult> {
     return { supported: false, hidden: false };
+  }
+
+  async sendFullScreenInterruption(): Promise<FullScreenIntentResult> {
+    return { allowed: false };
+  }
+
+  async requestFullScreenIntentPermission(): Promise<OverlayPermissionResult> {
+    return { settingsOpened: false };
   }
 
   async requestNotificationPermission(): Promise<NotificationPermissionResult> {

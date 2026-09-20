@@ -26,6 +26,8 @@ export type PermissionStatus = {
   overlay: PermissionState;
   /** A6: consentimento de VPN do sistema (VpnService.prepare). */
   vpn: PermissionState;
+  /** A4: notificacao em tela cheia (USE_FULL_SCREEN_INTENT, Android 14+). */
+  fullScreenIntent: PermissionState;
 };
 
 export type NotificationPermissionResult = {
@@ -126,4 +128,10 @@ export type HideOverlayWindowsResult = {
   /** Falso abaixo da API 31, onde a chamada nao existe. */
   supported: boolean;
   hidden: boolean;
+};
+
+/** A4: resultado do disparo da notificacao em tela cheia. */
+export type FullScreenIntentResult = {
+  /** Se o sistema permite tela cheia para este app hoje. */
+  allowed: boolean;
 };

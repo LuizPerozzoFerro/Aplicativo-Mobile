@@ -20,6 +20,7 @@ import type {
   InterruptionMode,
   OverlayPermissionResult,
   HideOverlayWindowsResult,
+  FullScreenIntentResult,
   Unsupported,
 } from '../../modules/lab-monitoring/src/LabMonitoring.types';
 
@@ -38,6 +39,7 @@ export type {
   InterruptionMode,
   OverlayPermissionResult,
   HideOverlayWindowsResult,
+  FullScreenIntentResult,
   Unsupported,
 } from '../../modules/lab-monitoring/src/LabMonitoring.types';
 
@@ -99,6 +101,12 @@ export interface MonitoringModule {
    * terceiros, para medir se a tela de interrupcao ainda aparece por cima.
    */
   setHideOverlayWindows(hide: boolean): Promise<HideOverlayWindowsResult>;
+
+  /** A4: dispara a notificacao com intent de tela cheia, alternativa a sobreposicao. */
+  sendFullScreenInterruption(delaySeconds?: number): Promise<FullScreenIntentResult>;
+
+  /** A4: abre os Ajustes da permissao de tela cheia (Android 14+). */
+  requestFullScreenIntentPermission(): Promise<OverlayPermissionResult>;
 
   /** Dispara o alerta do A3 imediatamente, sem esperar o limite. */
   sendTestAlert(): Promise<void>;

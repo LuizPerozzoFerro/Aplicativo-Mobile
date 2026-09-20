@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.VpnService
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.net.Uri
 import android.provider.Settings
 import expo.modules.kotlin.exception.Exceptions
@@ -34,7 +36,9 @@ class LabMonitoringModule : Module() {
         "notifications" to if (Notifications.isAllowed(context)) "granted" else "denied",
         "overlay" to if (InterruptionOverlay.canDraw(context)) "granted" else "denied",
         // A6: prepare() devolve null quando o usuario ja consentiu com a VPN.
-        "vpn" to if (VpnService.prepare(context) == null) "granted" else "denied"
+        "vpn" to if (VpnService.prepare(context) == null) "granted" else "denied",
+        // A4: permissao de notificacao em tela cheia (Android 14+).
+        "fullScreenIntent" to if (Notifier.canUseFullScreenIntent(context)) "granted" else "denied"
       )
     }
 
@@ -185,6 +189,60 @@ class LabMonitoringModule : Module() {
         "requested" to asked,
         "notifications" to if (Notifications.isAllowed(context)) "granted" else "denied"
       )
+    }
+
+    /**
+     * A4: dispara a notificacao com intent de tela cheia, para medir o que o
+     * sistema faz com ela em cada situacao (aparelho em uso, aparelho
+     * bloqueado). Alternativa a sobreposicao, que o app monitorado esconde (I-25).
+     */
+    AsyncFunction("sendFullScreenInterruption") { delaySeconds: Int ->
+      val allowed = Notifier.canUseFullScreenIntent(context)
+      val fire = {
+        Notifier.sendFullScreenInterruption(context, LimitConfig.message(context))
+        EventLog.append(
+          context = context,
+          source = "app",
+          experiment = "A4",
+          event = "full_screen_intent_sent",
+          details = "permissao de tela cheia: ${if (allowed) "concedida" else "negada"}" +
+            if (delaySeconds > 0) " · disparada ${delaySeconds}s depois do toque" else ""
+        )
+      }
+
+      if (delaySeconds > 0) {
+        // Atraso para conseguir testar com o aparelho bloqueado ou com outro app
+        // na frente: o sistema decide entre tela cheia e aviso flutuante na hora
+        // em que a notificacao e postada, nao quando o usuario toca no botao.
+        Handler(Looper.getMainLooper()).postDelayed({ fire() }, delaySeconds * 1000L)
+      } else {
+        fire()
+      }
+
+      mapOf("allowed" to allowed)
+    }
+
+    /**
+     * A4: abre a tela de Ajustes onde o usuario liga a permissao de tela cheia.
+     * Nao existe pop-up: desde o Android 14 e concessao manual (A10).
+     */
+    AsyncFunction("requestFullScreenIntentPermission") {
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        return@AsyncFunction mapOf("settingsOpened" to false)
+      }
+      val intent = Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT)
+        .setData(Uri.fromParts("package", context.packageName, null))
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      val opened = runCatching { context.startActivity(intent) }.isSuccess
+
+      EventLog.append(
+        context = context,
+        source = "app",
+        experiment = "A4",
+        event = if (opened) "full_screen_settings_opened" else "full_screen_settings_unavailable"
+      )
+
+      mapOf("settingsOpened" to opened)
     }
 
     /** Dispara o alerta do A3 na hora, sem esperar o limite. Para teste. */

@@ -13,6 +13,7 @@ import {
   type NotificationPermissionResult,
   type OverlayPermissionResult,
   type HideOverlayWindowsResult,
+  type FullScreenIntentResult,
   type Unsupported,
 } from './types';
 
@@ -35,6 +36,7 @@ const monitoring: MonitoringModule = {
       notifications: current.notifications,
       overlay: current.overlay,
       vpn: current.vpn,
+      fullScreenIntent: current.fullScreenIntent,
     };
   },
 
@@ -82,6 +84,14 @@ const monitoring: MonitoringModule = {
 
   async setHideOverlayWindows(hide: boolean): Promise<HideOverlayWindowsResult> {
     return LabMonitoring.setHideOverlayWindows(hide);
+  },
+
+  async sendFullScreenInterruption(delaySeconds = 0): Promise<FullScreenIntentResult> {
+    return LabMonitoring.sendFullScreenInterruption(delaySeconds);
+  },
+
+  async requestFullScreenIntentPermission(): Promise<OverlayPermissionResult> {
+    return LabMonitoring.requestFullScreenIntentPermission();
   },
 
   async sendTestAlert(): Promise<void> {

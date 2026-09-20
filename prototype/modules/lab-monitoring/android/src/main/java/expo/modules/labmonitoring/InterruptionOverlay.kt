@@ -3,6 +3,7 @@ package expo.modules.labmonitoring
 import android.content.Context
 import android.graphics.Color
 import android.os.Build
+import android.os.SystemClock
 import android.provider.Settings
 import android.view.Gravity
 import android.view.View
@@ -37,6 +38,18 @@ object InterruptionOverlay {
    * decidir, e curto o bastante para quase nunca alcancar um toque do usuario.
    */
   private const val VISIBILITY_CHECK_MS = 500L
+
+  /** De quanto em quanto tempo insistimos, enquanto a janela nao aparece. */
+  private const val VISIBILITY_RETRY_MS = 1_000L
+
+  /**
+   * Prazo de validade da janela suprimida (decisao do responsavel, 19/09/2026).
+   * Passou disso sem aparecer, ela e descartada: mostrar a interrupcao minutos
+   * depois, quando o app protegido sai da frente, e pior do que nao mostrar. A
+   * rede de seguranca e a notificacao de nivel 1, que ja foi enviada e que o app
+   * monitorado nao consegue suprimir.
+   */
+  private const val VISIBILITY_DEADLINE_MS = 20_000L
 
   fun canDraw(context: Context): Boolean =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) Settings.canDrawOverlays(context) else true
@@ -208,36 +221,82 @@ object InterruptionOverlay {
     val onDraw = ViewTreeObserver.OnDrawListener { drew = true }
     runCatching { root.viewTreeObserver.addOnDrawListener(onDraw) }
 
-    root.postDelayed({
-      runCatching { root.viewTreeObserver.removeOnDrawListener(onDraw) }
+    val addedAt = SystemClock.elapsedRealtime()
+    var reportedSuppression = false
 
-      // Se a interrupcao ja foi fechada, ela estava na tela: alguem a fechou.
-      if (view !== root) {
-        EventLog.append(
-          context = context,
-          source = "InterruptionOverlay",
-          experiment = "A4",
-          event = "interruption_shown",
-          details = "abordagem: sobreposicao · fechada antes da conferencia"
-        )
-        return@postDelayed
+    lateinit var check: () -> Unit
+    check = {
+      val elapsed = SystemClock.elapsedRealtime() - addedAt
+
+      when {
+        // Ja foi fechada: estava na tela, alguem a fechou. Os botoes registram
+        // o proprio evento; aqui so fechamos o par do interruption_shown.
+        view !== root -> {
+          runCatching { root.viewTreeObserver.removeOnDrawListener(onDraw) }
+          if (!reportedSuppression) {
+            EventLog.append(
+              context = context,
+              source = "InterruptionOverlay",
+              experiment = "A4",
+              event = "interruption_shown",
+              details = "abordagem: sobreposicao · fechada antes da conferencia"
+            )
+          }
+        }
+
+        else -> {
+          val focused = root.hasWindowFocus()
+          val windowVisible = root.windowVisibility == View.VISIBLE
+          val shown = root.isShown
+          val probes = "foco: ${yesNo(focused)} · janela visivel: ${yesNo(windowVisible)} · " +
+            "isShown: ${yesNo(shown)} · desenhou: ${yesNo(drew)}"
+
+          if (focused && windowVisible && shown) {
+            runCatching { root.viewTreeObserver.removeOnDrawListener(onDraw) }
+            EventLog.append(
+              context = context,
+              source = "InterruptionOverlay",
+              experiment = "A4",
+              event = "interruption_shown",
+              details = if (reportedSuppression) {
+                "abordagem: sobreposicao · apareceu depois de ${elapsed / 1000.0} s · $probes"
+              } else {
+                "abordagem: sobreposicao · $probes"
+              }
+            )
+          } else {
+            if (!reportedSuppression) {
+              reportedSuppression = true
+              EventLog.append(
+                context = context,
+                source = "InterruptionOverlay",
+                experiment = "A4",
+                event = "interruption_suppressed",
+                details = "abordagem: sobreposicao · $probes"
+              )
+            }
+
+            if (elapsed >= VISIBILITY_DEADLINE_MS) {
+              // Prazo de validade: descartar em vez de aparecer fora de contexto.
+              runCatching { root.viewTreeObserver.removeOnDrawListener(onDraw) }
+              hide(context)
+              EventLog.append(
+                context = context,
+                source = "InterruptionOverlay",
+                experiment = "A4",
+                event = "interruption_discarded",
+                details = "abordagem: sobreposicao · suprimida por ${elapsed / 1000} s · " +
+                  "a notificacao de nivel 1 fica como rede de seguranca"
+              )
+            } else {
+              root.postDelayed({ check() }, VISIBILITY_RETRY_MS)
+            }
+          }
+        }
       }
+    }
 
-      val focused = root.hasWindowFocus()
-      val windowVisible = root.windowVisibility == View.VISIBLE
-      val shown = root.isShown
-      val onScreen = focused && windowVisible && shown
-      val probes = "foco: ${yesNo(focused)} · janela visivel: ${yesNo(windowVisible)} · " +
-        "isShown: ${yesNo(shown)} · desenhou: ${yesNo(drew)}"
-
-      EventLog.append(
-        context = context,
-        source = "InterruptionOverlay",
-        experiment = "A4",
-        event = if (onScreen) "interruption_shown" else "interruption_suppressed",
-        details = "abordagem: sobreposicao · $probes"
-      )
-    }, VISIBILITY_CHECK_MS)
+    root.postDelayed({ check() }, VISIBILITY_CHECK_MS)
   }
 
   private fun yesNo(value: Boolean) = if (value) "sim" else "nao"

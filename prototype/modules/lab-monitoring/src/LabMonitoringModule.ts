@@ -14,6 +14,7 @@ import type {
   InterruptionMode,
   OverlayPermissionResult,
   HideOverlayWindowsResult,
+  FullScreenIntentResult,
   Unsupported,
 } from './LabMonitoring.types';
 
@@ -33,6 +34,8 @@ declare class LabMonitoringModule extends NativeModule<{}> {
   requestOverlayPermission(): Promise<OverlayPermissionResult>;
   hideInterruption(): Promise<void>;
   setHideOverlayWindows(hide: boolean): Promise<HideOverlayWindowsResult>;
+  sendFullScreenInterruption(delaySeconds: number): Promise<FullScreenIntentResult>;
+  requestFullScreenIntentPermission(): Promise<OverlayPermissionResult>;
   requestNotificationPermission(): Promise<NotificationPermissionResult>;
   sendTestAlert(): Promise<void>;
   stopUsageLimit(): Promise<void>;

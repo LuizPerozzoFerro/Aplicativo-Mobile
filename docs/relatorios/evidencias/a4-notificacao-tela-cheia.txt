@@ -1,0 +1,68 @@
+# A4 — notificação em tela cheia (full-screen intent) como alternativa
+# Galaxy S22, Android 16 / One UI 8, 20/09/2026, 11:48–11:52
+# Resultado: NÃO serve para interromper quem está usando o aparelho.
+
+## O que a documentação oficial diz (consultada em 20/09/2026)
+  Notification.Builder.setFullScreenIntent
+  https://developer.android.com/reference/android/app/Notification.Builder
+  - "A partir do Android 13, o sistema mostra um aviso flutuante em vez de
+    abrir a intent, enquanto o usuário está usando o aparelho." O texto é
+    explícito: com o aparelho em uso, a tela cheia não acontece.
+  - Com a permissão USE_FULL_SCREEN_INTENT concedida, esse aviso flutuante fica
+    persistente até o usuário dispensar ou o app cancelar; sem ela, dura 60 s.
+  - O canal precisa ser de importância alta ou maior.
+
+  Mudanças de comportamento do Android 14
+  https://developer.android.com/about/versions/14/behavior-changes-14
+  - Para apps que miram o Android 14+, a permissão fica restrita a apps de
+    chamada e despertador. O Google Play revoga a concessão automática de quem
+    não se encaixa (prazo de 31/05/2024). O app pode conferir com
+    NotificationManager.canUseFullScreenIntent e mandar o usuário aos Ajustes
+    com ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT.
+
+## Estado no aparelho de teste
+  android.permission.USE_FULL_SCREEN_INTENT: granted=true
+  appops USE_FULL_SCREEN_INTENT: "Default mode: default" (segue a permissão)
+  canUseFullScreenIntent() = true, e o laboratório mostra "concedido".
+  Vale lembrar que isto é um build instalado pelo cabo. Pela política do A10,
+  um app nosso publicado na loja NÃO teria essa permissão.
+
+## Rodada A — aparelho em uso (11:48)
+  Notificação com setFullScreenIntent apontando para a InterruptionActivity,
+  canal de importância alta, disparada com o laboratório na frente.
+  11:48:12  full_screen_intent_sent — permissao de tela cheia: concedida
+  topResumedActivity continuou sendo com.norte.lab.dev/.MainActivity
+  NENHUM interruption_shown da activity. Repetido duas vezes, mesmo resultado.
+  No `dumpsys notification` a notificação está lá, com
+  fullscreenIntent=PendingIntent{... startActivity ...} e importance=4: o
+  sistema recebeu o pedido e escolheu não abrir a tela.
+
+## Rodada B — aparelho bloqueado (11:51)
+  Disparo programado para 10 s depois do toque, e a tela desligada no intervalo.
+  11:51:39.867  full_screen_intent_sent (disparada 10s depois do toque)
+  11:51:40.482  interruption_shown — abordagem: activity   (615 ms depois)
+  mWakefulness=Awake: o aparelho acordou sozinho.
+  ResumedActivity: com.norte.lab.dev/...InterruptionActivity
+
+  Mas: mKeyguardOccluded=false, isKeyguardShowing=true. A tela mostrava **o
+  bloqueio**, não a nossa interrupção (conferido por captura na hora, não
+  versionada: é só o papel de parede do responsável). A activity subiu ATRÁS do
+  bloqueio; o usuário só a veria depois de desbloquear. Para aparecer por cima
+  seria preciso declarar showWhenLocked — o que, para este app, seria ruim:
+  exporia a interrupção a quem pegasse o aparelho bloqueado (princípio P7 do
+  documento 01).
+
+## Conclusão
+  A notificação em tela cheia **não abre a tela de interrupção enquanto a
+  pessoa está usando o aparelho**, que é exatamente o momento que interessa.
+  O que ela entrega nessa situação é um aviso flutuante — ou seja, o mesmo que
+  o alerta de nível 1 do A3 já faz. Não é alternativa à sobreposição nem à tela
+  própria.
+
+  Some-se a isso a barreira de loja (A10): a permissão é reservada a apps de
+  chamada e despertador, e o Play revoga a de quem não se encaixa. Ou seja,
+  mesmo o aviso flutuante persistente que a documentação promete não estaria
+  disponível para o app definitivo.
+
+  Onde ela funciona — aparelho bloqueado — é justamente onde não há uso de app
+  para interromper.

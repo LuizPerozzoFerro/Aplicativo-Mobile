@@ -53,6 +53,15 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+  <!--
+    A4: notificacao com intent de tela cheia, testada como alternativa a
+    sobreposicao (I-25). Desde o Android 14 ela nao e mais concedida na
+    instalacao para quem nao e app de chamada ou despertador: o usuario precisa
+    ligar em Ajustes, e o Google Play revoga por politica quem nao se encaixa
+    (A10). O protótipo checa com NotificationManager.canUseFullScreenIntent.
+  -->
+  <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+
   <!-- A9: religar o monitoramento depois de reiniciar o aparelho. -->
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 

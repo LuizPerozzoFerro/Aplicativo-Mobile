@@ -19,6 +19,7 @@ public class LabMonitoringModule: Module {
       return [
         "usageAccess": "unsupported", "notifications": "unsupported", "overlay": "unsupported",
         "vpn": "unsupported",
+        "fullScreenIntent": "unsupported",
       ]
     }
 
@@ -86,6 +87,14 @@ public class LabMonitoringModule: Module {
     // A4 / I-25: so existe no Android, onde a sobreposicao existe.
     AsyncFunction("setHideOverlayWindows") { (_: Bool) -> [String: Any] in
       ["supported": false, "hidden": false]
+    }
+
+    AsyncFunction("sendFullScreenInterruption") { () -> [String: Any] in
+      ["allowed": false]
+    }
+
+    AsyncFunction("requestFullScreenIntentPermission") { () -> [String: Any] in
+      ["settingsOpened": false]
     }
 
     AsyncFunction("sendTestAlert") {
