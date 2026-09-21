@@ -3,7 +3,8 @@
 # Executados com o responsável operando o aparelho; cada passo foi pedido por
 # escrito antes e conferido no log depois.
 # T9 não se aplica ao Android (é sobre iPhone desconectado do computador).
-# T6 roda em separado, em segundo plano, e será fechado quando a janela acabar.
+# T6 rodou em separado, fora do cabo, de 20/09 19:38 a 21/09 17:37, e foi
+# fechado em 21/09 com o aparelho de volta no cabo.
 
 Estado comum no início: limite de 2 min no Instagram, modo sobreposição, pausa
 de 2 min, VPN local em modo alerta, economia de energia ligada, aparelho no
@@ -83,6 +84,140 @@ foi atingido por uso real, não por saldo acumulado.
     alguém abrir o laboratório.
 
 =====================================================================
+## T6 — um dia com o monitoramento ligado   ✅ com ressalva (dia de uso leve)
+  Janela: cabo retirado em 20/09 às 19:38:48 e recolocado em 21/09 às 17:37:25,
+  21h 58m 37s na bateria. O batterystats zerou na retirada (RESET:TIME
+  2026-09-20-19-38-48-539), então o "since last charge" cobre exatamente a
+  janela. O responsável informou ~19:40 de memória.
+  Configuração: limite de 600 min no Instagram (sobreposição, pausa de 2 min),
+  VPN em modo alerta desde 19:32:51, economia de energia ligada. O laboratório
+  ficou fechado a janela inteira: esteve na frente só no 1 s da retirada
+  (-top=u0a162 às 19:38:48.768).
+
+  Como foi o dia (aparelho do laboratório, não o pessoal do responsável)
+    tela ligada            29m 01s (2,2%), 9 vezes. O usagestats do usuário 0
+                           dá as mesmas 9 sessões e 28m 54s
+    maior sessão           22:55:40–23:13:51 (18 min). A última da noite foi às
+                           23:17, e a tela só voltou às 13:26 de 21/09
+    Instagram na frente    11 s na janela inteira (22:55:43–22:55:54)
+    CPU acordada           58m 10s (4,4% da janela)
+    Doze profundo          21h 21m 50s (97,2%); maior trecho sem janela de
+                           manutenção: 6 h
+    economia de energia    ligada 100% da janela
+    bateria                100% → 78%; descarga 725 mAh (drain computado 702)
+
+  Falhas: nenhuma
+    serviço do limite  "Foreground services: 21h 58m 35s realtime (1 times)
+                       (running)": a janela inteira, sem recomeço. No fim: acesso
+                       a dados de uso 8 s antes da leitura (appops), e o
+                       laboratório mostrando serviço ativo, 600 min, limite não
+                       atingido
+    processo           nenhuma saída na janela. A última do ApplicationExitInfo é
+                       de 19:25:10 (a revogação de permissão do T10), e o PID é
+                       o mesmo desde então
+    VPN                a mesma instância desde 19:32:51 (createTime), conectada e
+                       VALIDATED no fim. Contadores da sessão, 19:32:51 → 17:47:
+                       601 consultas · 598 repassadas · 3 sem resposta (0,5%) ·
+                       0 da lista · 65 de rede social · 27 outros pacotes ·
+                       ida e volta média 26,4 ms
+                       O contador não guarda a hora das 3 sem resposta; a queda
+                       do Wi-Fi abaixo é a candidata natural, como no A8
+    queda do Wi-Fi     01:47:12.835  Wi-Fi desconectado (wifi_suppl=disconn)
+                       01:47:12.844  upstream_lost (9 ms depois)
+                       01:49:54.876  Wi-Fi reassociado (wifi_suppl=completed)
+                       01:49:56.504  upstream_changed, 192.168.1.1 (1,6 s depois)
+                       2m 43s sem Wi-Fi, e a VPN continuou de pé
+    crash              nenhum do protótipo. O buffer de crash só tem um app da
+                       operadora, às 19:13 de 20/09, antes da janela
+
+  Custo atribuído ao protótipo (UID u0a162), só o tempo na bateria
+    total                1,11 mAh de 702 = 0,16% do consumo do aparelho
+                         (0,03% da capacidade de 3590 mAh); 31º de 227 UIDs
+      tela               0,028 mAh (o 1 s do laboratório na retirada)
+      CPU                1,09 mAh: 0,40 nos 29 min de tela ligada e 0,69 nas
+                         21h30 de tela apagada
+      Wi-Fi              0,0007 mAh
+    tempo de CPU         u=24s 126ms + s=10s 668ms = 34,8 s em 79.117 s = 0,044%
+    wakelock parcial     nenhum. Só o full da janela do laboratório (1,1 s, na
+                         retirada)
+
+  Comparação com as janelas de 2 h
+    métrica                         A9           A8           T6
+    componentes                     serviço      + VPN        + VPN
+    duração                         2h05         2h10         21h59
+    uso                             parado       parado       leve (29 min)
+    Doze profundo                   ~91%         91,4%        97,2%
+    ciclo de CPU                    0,138%       0,366%       0,044%
+    mAh do UID, fora a tela         0,476        1,32         1,09
+    parte do consumo, fora a tela   0,65%        1,4%         0,15%
+    por dia                         ~5,5 proj.   ~11–15 proj. 1,2 medido
+
+  A projeção linear do A8, com os mesmos componentes, superestimou o dia em 9 a
+  12 vezes. Por hora, a CPU do A8 foi 8 vezes a do T6. Duas diferenças
+  conhecidas explicam parte: o laboratório foi aberto 3 vezes no A8 (1 min na
+  frente, e a tela do laboratório é a parte mais cara do processo), e lá o
+  aparelho passou menos tempo em Doze profundo. O serviço e o laço do dev client
+  agendam com Handler, que não acorda a CPU: o custo acompanha a CPU acordada, e
+  não o relógio.
+
+  Por hora de tela (conta, não medida): 0,82 mAh de CPU por hora de tela ligada
+  contra 0,032 mAh por hora de tela apagada. Um dia de 4 h de tela daria ~4 mAh,
+  ou 0,1% da bateria, ainda como teto.
+
+  O número é um TETO: o laço do dev client (P8) rodou a janela inteira
+    - consultas de DNS do nosso UID nos 9 min finais na bateria (o logcat só
+      guardava de 17:28:32 em diante): 222, uma a cada ~2 s. Com a tela apagada
+      elas continuam enquanto a CPU está acordada e param quando ela dorme
+      (17:33:28 → 17:34:09). Sem cabo, o Metro ficou inalcançável desde a
+      retirada (o metro.log para às 19:25 de 20/09), e ~22 h depois o laço
+      seguia: ele não desiste
+    - medição na bancada, depois da janela (17:50–17:51, no cabo, tela ligada,
+      laboratório atrás), CPU por thread em 60 s:
+        laço do dev client (2 threads OkHttp)  44 ticks = 0,44 s por minuto
+        verificação do limite                   4 ticks = 0,04 s por minuto
+                                                (3 verificações, ~13 ms cada)
+        thread principal                       15 ticks
+      Com a CPU acordada, o laço custa 10 vezes a verificação do limite.
+    - acumulado desde que o processo nasceu (19:25:10 de 20/09, 22,4 h), só das
+      threads vivas:
+        verificação do limite  4,04 s
+        leitura da VPN         0,66 s
+        laço do dev client     17,40 s
+        tela do laboratório    principal 187,6 s · render 39,7 s · JS 16,0 s,
+                               quase tudo fora da janela: antes da retirada (T10
+                               e a configuração) e na leitura de hoje
+    O custo do produto é uma fração dos 34,8 s. A divisão exata não se recupera
+    depois do fato: as threads de repasse de DNS nascem e morrem a cada
+    consulta, e parte do trabalho passa pela thread principal.
+
+  Ressalva de método: o batterystats cobra de cada UID a CPU das próprias
+  threads. O que o system_server gasta para responder às nossas consultas de uso
+  (queryEvents) é cobrado do sistema, e este dump não tem o componente
+  system_services, que redistribuiria esse custo. Vale para A8, A9 e T6.
+
+  Detecções: 27 social_domain_detected de instagram.com, espalhadas de 19:49 a
+  17:28, para 11 s de Instagram na frente:
+    23  "em primeiro plano: desconhecido": 22 com a tela apagada e 1 no instante
+        em que o Instagram abria (22:55:43.157; a consulta 1 ms depois já o viu)
+     1  com o Instagram na frente (22:55:43.158)
+     1  com o X na frente (22:56:04)
+     2  com a tela inicial na frente (23:13:43 e 17:28:53)
+  Nenhuma sessão de navegador, nenhum domínio da lista, nenhuma notificação
+  enviada. É o I-20 num dia inteiro: um detector só de domínio contaria 27
+  acessos onde houve 11 s de uso.
+
+  Bucket de standby no fim da janela: 20 (WORKING_SET). Não caiu para RARE em
+  22 h sem o laboratório ser aberto.
+
+  O que o T6 não cobre
+    - Um dia pesado. 29 min de tela é um dia leve, e o custo por hora de tela
+      acima é conta, não medida.
+    - O caminho do alerta: com 11 s de Instagram e limite de 600 min, nada
+      disparou. Ele foi coberto por T1, T2, T5 e T7.
+    - O custo de cada verificação cresce ao longo do dia, porque o queryEvents
+      relê o dia inteiro. Num dia com muita troca de app, cada uma custa mais.
+
+=====================================================================
 ## T7 — economia de bateria ligada   ✅
   A economia já estava ligada durante o T1 inteiro (low_power = 1), então a
   contagem, o disparo e a escalada do T1 já são o resultado do T7. A rodada de
@@ -153,7 +288,6 @@ foi atingido por uso real, não por saldo acumulado.
 
 =====================================================================
 ## Não executados nesta rodada
-  T6 — um dia de uso normal. Roda em separado, em segundo plano.
   T9 — repetir o T1 com o iPhone desconectado do computador. Depende do iOS.
   Todos os roteiros acima serão repetidos no iPhone quando a conta Apple
   Developer destravar.

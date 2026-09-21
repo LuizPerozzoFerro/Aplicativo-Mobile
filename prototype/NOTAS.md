@@ -7,7 +7,7 @@
 
 ## Estado atual e próximo passo
 
-> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 20/09/2026, 19:40.
+> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 21/09/2026, 18:10.
 
 **Branch:** `prototype/android-vpn`, criado a partir de `prototype/android-usage`
 (que ficou com A1–A5 e A9) para o grupo da VPN: A6, A7 e A8. Tudo commitado.
@@ -113,48 +113,57 @@ madrugada de 19/09, retomada às 14:27):
 - **Roteiros T rodados no Android em 20/09** (ver "Roteiros de teste manual"):
   T1, T2, T3, T4, T5, T7, T8 e T10. Sete passaram; o T10 é ⚠️, porque o app
   detecta a perda de permissão quando é perguntado mas **nunca avisa** (I-30).
-  O T5 mostrou que a VPN não volta depois do boot (I-29). **T6** está em
-  andamento em segundo plano e **T9** depende do iOS.
+  O T5 mostrou que a VPN não volta depois do boot (I-29). **T9** depende do iOS.
 
-**Próximo passo: fechar o T6.** O retrato de antes foi tirado às 19:33 com o
-aparelho no cabo. Quando o responsável **tirar o cabo**, o `batterystats` zera
-sozinho e a janela do T6 começa ali; no fim do dia, com o cabo de volta, ler o
-consumo do UID do protótipo e varrer o log do período atrás de falhas.
+**Feito em 21/09/2026:**
+- **T6 ✅ com ressalva** (ver "Roteiros de teste manual → O que o T6 mostrou"):
+  21h59 fora do cabo, de 20/09 19:38 a 21/09 17:37, com o serviço do limite e a
+  VPN ligados. **Nenhuma falha**: o serviço rodou a janela inteira sem recomeçar,
+  o processo não morreu, e a VPN atravessou uma queda de Wi-Fi de 2m43s. Custo:
+  **1,11 mAh, 0,16% do consumo do aparelho**, 0,044% de CPU, nenhum wakelock
+  parcial — e é teto, porque o laço do dev client (P8) rodou junto e, com a CPU
+  acordada, custa 10 vezes a verificação do limite. A ressalva: foi um dia leve,
+  29 min de tela e 11 s de Instagram, aceito assim pelo responsável.
 
-Depois dele: o **relatório de viabilidade** (entregável da Fase 1), o **iOS**
-quando a conta Apple Developer destravar — o que traz junto S2, S3, C1, T9 e a
-repetição dos roteiros T no iPhone —, e a medição de **apps de aposta e de
-banco** com a proteção do I-25, de olho na Fase 2.
+**Próximo passo: o relatório de viabilidade** (entregável da Fase 1), em
+`docs/relatorios/01-viabilidade-monitoramento.md`, na estrutura exata da seção 9
+da spec. Os roteiros Android estão fechados; T9 e a repetição no iPhone ficam
+para quando o iOS destravar.
+
+Depois dele: o **iOS** quando a conta Apple Developer destravar — o que traz
+junto S2, S3, C1, T9 e a repetição dos roteiros T no iPhone —, e a medição de
+**apps de aposta e de banco** com a proteção do I-25, de olho na Fase 2.
 
 **VPN no aparelho:** consentimento concedido (`appops ... ACTIVATE_VPN: allow`),
-VPN **ligada em modo alerta** desde 13:48 de 20/09, listas example.com e example.org (A6) e
+VPN **ligada em modo alerta** desde 19:32:51 de 20/09 (religada pelo laboratório
+depois do reinício do T5, que a deixou desligada — I-29), listas example.com e example.org (A6) e
 instagram.com e cdninstagram.com (A7). O Chrome está logado no Instagram (login
 feito pelo responsável em 19/09).
 
 **Para testar a interrupção de novo:** o limite no aparelho está em **600 min**
-(ver o estado abaixo). Baixar para 2 min na seção A2 e tocar em "Iniciar limite":
-o Instagram já passa de 20 min em 18/09, então o limite estoura no ciclo seguinte.
-Desde o A5, **cada** abertura do Instagram acima do limite e fora da pausa
-interrompe de novo. Ao terminar, subir o limite outra vez, para não atrapalhar o
-uso normal do aparelho.
+(ver o estado abaixo). Baixar para 2 min na seção A2 e tocar em "Iniciar limite";
+o uso do Instagram em 21/09 está perto de zero, então é preciso usá-lo 2 min
+para o limite estourar. Desde o A5, **cada** abertura do Instagram acima do
+limite e fora da pausa interrompe de novo. Ao terminar, subir o limite outra
+vez, para não atrapalhar o uso normal do aparelho.
 
-**Estado do aparelho em 20/09/2026, 17:00:** serviço do limite ativo (instância
-recriada pela reinstalação das 13:29, que trouxe o recuo progressivo e tirou o
-código da tela cheia), **limite de 600 min** no Instagram (acima do uso diário:
-o serviço segue rodando sem interromper), modo **sobreposição**, pausa de 2 min.
-VPN **ligada em modo alerta** desde 13:48 de 20/09. Todas as permissões concedidas
-(acesso a dados de uso, notificação, sobreposição, VPN e HIDE_OVERLAY_WINDOWS).
-Rotação automática ligada. **Modo economia de energia ligado**
-(`settings get global low_power` = 1): estava ligado durante toda a janela de
-bateria do A8, e o monitoramento funcionou assim mesmo. O DNS privado está em
+**Estado do aparelho em 21/09/2026, 17:56, conferido no fim do T6:** aparelho no
+cabo, sem reinício desde o T5 (boot às ~19:11 de 20/09). Processo do protótipo
+o mesmo desde 19:25:10 de 20/09. Serviço do limite ativo, **limite de 600 min**
+no Instagram (acima do uso diário: o serviço segue rodando sem interromper),
+modo **sobreposição**, pausa de 2 min, texto do alerta no padrão ("Você atingiu
+o tempo que definiu para hoje."). VPN **ligada em modo alerta**. Todas as
+permissões concedidas (acesso a dados de uso, notificação, sobreposição, VPN e
+HIDE_OVERLAY_WINDOWS). Rotação automática ligada. **Modo economia de energia
+ligado** (`low_power` = 1): esteve ligado nas janelas de bateria do A8 e do T6
+inteiras, e o monitoramento funcionou assim mesmo. O DNS privado está em
 `opportunistic` (o nome `dns.google` ficou guardado, sem uso) e o DNS seguro do
-Chrome voltou ao padrão. O relógio do PC está ~2 s adiantado em relação ao do
-aparelho.
+Chrome voltou ao padrão. Bucket de standby 20. O relógio do PC está ~1 s
+adiantado em relação ao do aparelho. **Sem `adb reverse` e sem Metro**: o dev
+client segue no laço de reconexão (P8) enquanto isso durar.
 
-**Configuração do laboratório conferida no fim do C2** (20/09, 17:10): limite de
-600 min, só o Instagram na lista, modo sobreposição, pausa de 2 min e o texto do
-alerta de volta ao padrão ("Você atingiu o tempo que definiu para hoje."). O
-ajuste "minimizar notificações" da Samsung foi religado pelo responsável.
+O ajuste "minimizar notificações" da Samsung foi religado pelo responsável no
+fim do C2 (20/09).
 
 **App de teste instalado:** `com.norte.labtarget` ("Alvo do laboratorio"), da
 rodada do I-25. Fonte em `prototype/labtarget/`. Não roda nada em segundo plano;
@@ -164,13 +173,13 @@ some com `adb uninstall com.norte.labtarget`.
 JavaScript antigo na memória. Subir o Metro não basta (P6): com o laboratório na
 frente, `adb shell input keyevent 46 46` recarrega.
 
-**Recomendação de trabalho:** a sessão de 18 a 20/09 do Claude Code foi
-encerrada aqui, com o C2 fechado. O responsável vai seguir com os **roteiros T**
-numa sessão nova, que parte deste arquivo: ele é a passagem.
+**Recomendação de trabalho:** a sessão de 21/09 fechou o T6 e, com ele, os
+roteiros Android. O relatório de viabilidade é trabalho de escrita, sobre este
+arquivo e as evidências: pode começar numa sessão nova, que parte daqui.
 
-**Pendências que dependem de tempo, e podem correr em paralelo:**
-- A9: "Apps em suspensão" da Samsung — dias sem abrir o protótipo.
-- T6: um dia inteiro de uso normal com o monitoramento ligado.
+**Pendência que depende de tempo, e pode correr em paralelo:**
+- A9: "Apps em suspensão" da Samsung — dias sem abrir o protótipo. O T6 não a
+  cobre: 22 h é pouco, e o bucket de standby terminou em 20 (WORKING_SET).
 
 **Antes de trabalhar:** seguir o "Procedimento de início de sessão" mais abaixo.
 
@@ -324,7 +333,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | A6 | ⚠️ Funciona com limitações | VPN local só de DNS. No Chrome, abrir example.com gerou `adult_domain_detected` e a notificação 15 ms depois, e a página carregou: critério cumprido. Modo bloqueio também funciona (`DNS_PROBE_FINISHED_NXDOMAIN`). Zero consultas sem resposta; ida e volta de 26 ms ao DNS da rede. Limitações: o pré-carregamento dispara o alerta sem visita, página guardada no navegador aparece mesmo bloqueada, só uma VPN por vez, e o sistema diz ao usuário que a VPN "permite monitorar o tráfego da rede". Revalidado em 20/09 no build de hoje: detecção e notificação em 10 ms, página carregando. Ver achado abaixo |
 | A7 | ⚠️ Funciona com limitações | Critério da spec cumprido: instagram.com no Chrome gerou `social_domain_detected` "via: navegador", e o app do Instagram saiu separado ("via: outro app"). A consulta de DNS não diz qual app perguntou; a separação vem do app em primeiro plano. Tempo no navegador, por heurística: 204 s estimados para 180,6 s reais (+13%) numa rodada de 5 min, mas com corte fora da faixa de 85–96 s o erro vai de −99% a +67%, e a resolução é de ~1 min. Ver achado abaixo |
 | A8 | ⚠️ | Navegação geral ok depois de corrigir o repasse (mediana de 2,6 s → 49 ms); apps de banco ok; outra VPN derruba a nossa, que não volta sozinha; **DNS privado estrito + nossa VPN deixa os apps sem DNS**; DNS seguro do Chrome ainda deixa ver o endereço principal; a VPN sobrevive à queda do Wi-Fi, ao Doze profundo e ao modo economia; bateria: 0,366% de CPU e ~1 mAh a cada 2 h com o aparelho parado. Ver achado abaixo |
-| A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. Faltam "Apps em suspensão" da Samsung (precisa de dias) e o roteiro T6 |
+| A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. O roteiro T6 (21/09) confirmou num dia inteiro: 21h59 fora do cabo sem o serviço recomeçar, 0,044% de CPU e 0,16% do consumo do aparelho. Falta "Apps em suspensão" da Samsung (precisa de dias) |
 | A10 | ⚠️ Tabela pronta, com riscos abertos | Pesquisa documental das políticas do Play em 19/09/2026. Tabela de permissão, exigência e risco no achado abaixo. `PACKAGE_USAGE_STATS` e a lista de apps são dado sensível: exigem divulgação destacada no app e política de privacidade. `specialUse` exige `<property>`, declaração no Play Console com vídeo e os cinco critérios de serviço em primeiro plano — o de "rodar só o tempo necessário" é o risco. `systemExempted` da VPN é isento desses critérios, mas só vale enquanto somos a VPN ativa. A política da `VpnService` pressupõe servidor remoto e criptografia até o túnel, que não existem no nosso desenho local. Achado novo, confirmado no aparelho na mesma noite: `setHideOverlayWindows` esconde a nossa sobreposição, com uma permissão de nível normal, e o nosso log não percebe (I-25, I-28). Ver achado abaixo |
 | C2 | ✅ Funciona | Os quatro textos de notificação do protótipo, lidos do registro do sistema, são neutros: nenhum cita tema, site, domínio ou o app monitorado. Os nomes de canal ("Monitoramento", "Alertas") também. O texto do alerta é configurável ponta a ponta. Na tela de bloqueio, com o ajuste da Samsung de "minimizar notificações" **desligado** (configuração mais exposta), o cartão mostra só o nosso título e texto, sem o nome do app nem o do canal. O que continua exposto — chave de VPN, ícone do app, aviso de "exibido sobre outros apps" — não vem do texto. Ver achado abaixo |
 
@@ -493,7 +502,8 @@ protótipo está bom, porque reaproveita a função já validada no A1. No app
 definitivo, o caminho é acumular incrementalmente, consultando só os eventos
 desde a última verificação.
 
-**Bateria ainda não medida.** Fica para o A9 e o roteiro T6.
+**Bateria ainda não medida.** Fica para o A9 e o roteiro T6. (Medida depois no
+A9, no A8 e no T6: ver "Roteiros de teste manual → O que o T6 mostrou".)
 
 #### Em aberto para o A9
 
@@ -1275,8 +1285,10 @@ primeiro plano, que o protótipo já faz, é o que separa os dois casos (I-20).
 - Outros navegadores com DNS seguro próprio (Firefox), não instalados.
 - A causa das consultas barradas de apps em segundo plano (`isBlocked=true`),
   que aparecem com e sem VPN.
-- **Bateria com uso de verdade**: fica para o roteiro T6 (um dia inteiro de uso
-  normal com o monitoramento ligado).
+- **Bateria com uso de verdade**: feito no roteiro T6 (21/09), num dia de uso
+  leve — ver "Roteiros de teste manual → O que o T6 mostrou". Com os mesmos
+  componentes, a projeção de ~11 a 15 mAh/dia desta janela superestimou o dia
+  medido (1,2 mAh) em 9 a 12 vezes.
 
 ### Achado A9 (parcial) — sobrevivência em segundo plano e custo
 
@@ -1396,7 +1408,8 @@ bateria nessa janela; o dado vale só como sobrevivência.
 
 - **"Apps em suspensão" da Samsung** e rebaixamento para bucket RARE/RESTRICTED:
   precisam de dias sem uso do app.
-- **Um dia inteiro de uso normal** (roteiro T6).
+- ~~Um dia inteiro de uso normal (roteiro T6).~~ Feito em 21/09: 21h59 fora do
+  cabo, serviço sem recomeçar e processo sem morrer. Ver "O que o T6 mostrou".
 - **Força-parada pelo usuário.** É comportamento conhecido do Android que um app
   força-parado deixa de receber broadcasts até ser aberto de novo — o que
   desligaria o religamento automático. Não testado aqui; exigiria outro reinício.
@@ -1609,8 +1622,9 @@ terceiros.
 ## Roteiros de teste manual (spec §7) — rodada Android
 
 **Rodados em 20/09/2026, das 18:11 às 19:33**, com o responsável operando o
-aparelho: cada passo foi pedido por escrito antes e conferido no log depois.
-Evidência completa, com os horários de cada evento, em
+aparelho: cada passo foi pedido por escrito antes e conferido no log depois. O
+T6 rodou em seguida, fora do cabo, de 20/09 19:38 a 21/09 17:37. Evidência
+completa, com os horários de cada evento, em
 `docs/relatorios/evidencias/t-roteiros-android.txt`.
 
 | # | Roteiro | Resultado |
@@ -1620,7 +1634,7 @@ Evidência completa, com os horários de cada evento, em
 | T3 | instagram.com no navegador com o limite ativo | ✅ com limitação. O acesso é detectado e atribuído ao navegador, mas **o limite não reage**: o Chrome não é app monitorado (I-21) |
 | T4 | Domínio da lista em modo alerta | ✅ Duas detecções (example.com e example.org) com notificação 7 a 9 ms depois, páginas carregando |
 | T5 | Reiniciar e repetir o T1 sem abrir o protótipo | ✅ com achado. Serviço volta ~2min50s depois do boot e interrompe sozinho; **a VPN não volta** (I-29) |
-| T6 | Um dia de uso normal | em andamento, em segundo plano |
+| T6 | Um dia de uso normal | ✅ com ressalva. 21h59 fora do cabo **sem nenhuma falha**: serviço sem recomeçar, processo sem morrer, VPN de pé numa queda de Wi-Fi de 2m43s. Custo de **1,11 mAh, 0,16% do consumo do aparelho**, e é teto (dev client no laço do P8). Ressalva: dia leve, 29 min de tela |
 | T7 | Economia de bateria ligada | ✅ O T1 inteiro já rodou com ela ligada; na comparação, a tela apareceu ~4 s depois com ela desligada e dentro de um ciclo com ela religada |
 | T8 | Outra VPN (Wi-Fi seguro da Samsung) | ✅ confirma o I-18. `vpn_revoked` no instante em que a outra subiu, e a nossa não volta sozinha |
 | T9 | iPhone desconectado do computador | pendente — depende do iOS |
@@ -1652,6 +1666,74 @@ sobreposição (o `pfl` da janela traz o bit `0x00080000`). Faz sentido, já que
 onde se concedem permissões — mas entra na lista dos apps que apagariam a nossa
 tela de interrupção, ao lado dos financeiros.
 
+#### O que o T6 mostrou (fechado em 21/09/2026)
+
+**Resultado: ✅ com ressalva.** O cabo saiu às 19:38:48 de 20/09 e voltou às
+17:37:25 de 21/09: 21h 58m 37s na bateria, com o `batterystats` zerado na
+retirada. Limite de 600 min no Instagram, VPN em modo alerta, economia de
+energia ligada a janela inteira, e o laboratório fechado.
+
+**O dia foi leve**, e isso é a ressalva: 29 min de tela em 9 acendimentos
+(`batterystats` e `usagestats` batem), 11 s de Instagram, 97,2% do tempo em Doze
+profundo e 58 min de CPU acordada. O aparelho não é o pessoal do responsável,
+que aceitou a janela como suficiente.
+
+**Falhas: nenhuma.**
+
+| Componente | O que mostra que não falhou |
+|---|---|
+| Serviço do limite | "Foreground services: 21h 58m 35s (1 times) (running)": a janela inteira, sem recomeçar. No fim, acesso a dados de uso 8 s antes da leitura |
+| Processo | Nenhuma saída na janela: a última do `ApplicationExitInfo` é das 19:25:10 de 20/09, a revogação do T10 |
+| VPN | A mesma instância desde 19:32:51, conectada e validada no fim. **601 consultas, 598 repassadas, 3 sem resposta (0,5%)**, ida e volta média de 26,4 ms |
+| Queda do Wi-Fi à 01:47 | `upstream_lost` 9 ms depois da queda, `upstream_changed` 1,6 s depois da reassociação; 2m43s sem Wi-Fi e a VPN de pé |
+| Crash | Nenhum do protótipo no buffer de crash |
+
+**Custo, do UID do protótipo, só na bateria:**
+
+| Métrica | A9 (2h05, parado) | A8 (2h10, parado) | T6 (21h59, uso leve) |
+|---|---|---|---|
+| Componentes | serviço | serviço + VPN | serviço + VPN |
+| Ciclo de CPU | 0,138% | 0,366% | **0,044%** |
+| mAh do UID, fora a tela | 0,476 | 1,32 | 1,09 |
+| Parte do consumo do aparelho, fora a tela | 0,65% | 1,4% | **0,15%** |
+| Por dia | ~5,5 (projeção) | ~11 a 15 (projeção) | **1,2 (medido)** |
+
+Com a tela, 1,11 mAh de 702 (0,16% do consumo, 0,03% da capacidade), 31º de 227
+UIDs. Nenhum wakelock parcial. Duas leituras disso:
+
+- **A projeção das janelas de 2 h superestimou o dia em 9 a 12 vezes** (A8, com
+  os mesmos componentes). O serviço agenda com `Handler`, que não acorda a CPU:
+  o custo acompanha o tempo de CPU acordada, não o relógio.
+- **Por hora de tela, por conta e não por medida:** 0,82 mAh por hora de tela
+  ligada contra 0,032 mAh por hora de tela apagada. Um dia de 4 h de tela daria
+  ~4 mAh, 0,1% da bateria, ainda como teto.
+
+**O número é teto, e o ruído do dev client é maior do que parecia.** O laço do
+P8 rodou a janela inteira: sem cabo o Metro ficou inalcançável desde a
+retirada, e no fim o laço ainda estava lá, com 222 consultas do nosso UID nos
+9 min finais que o logcat guardava. Medido na bancada depois da janela, com a
+CPU acordada, por thread: o laço gasta **0,44 s de CPU por minuto**; a
+verificação do limite,
+**0,04 s por minuto** (~13 ms por verificação). Desde que o processo nasceu, a
+thread da verificação acumulou 4,04 s e a leitura da VPN 0,66 s, contra 17,40 s
+da thread do laço. O custo do produto é uma fração do teto. A divisão exata não
+se recupera depois do fato: as threads de repasse de DNS nascem e morrem a cada
+consulta.
+
+**Ressalva de método**, que vale também para A8 e A9: o `batterystats` cobra de
+cada UID a CPU das próprias threads. O que o `system_server` gasta para
+responder às nossas consultas de uso (`queryEvents`) é cobrado do sistema, e
+este dump não tem o componente `system_services`, que redistribuiria esse custo.
+
+**O I-20 num dia inteiro:** 27 detecções de instagram.com, espalhadas de 19:49 a
+17:28, para 11 s de Instagram na frente. Só 1 com o app na tela; 22 com a tela
+apagada. Um detector só de domínio contaria 27 acessos.
+
+**O que o T6 não cobre:** um dia pesado (a conta por hora de tela é extrapolação);
+o caminho do alerta (nada disparou com 11 s de uso e limite de 600 min — ele foi
+coberto por T1, T2, T5 e T7); e o custo de cada verificação num dia com muita
+troca de app, que cresce porque o `queryEvents` relê o dia inteiro.
+
 ---
 
 
@@ -1671,7 +1753,7 @@ decidido fora do Claude Code.
 | I-6 | Sem a permissão de notificação o serviço roda, mas nenhum alerta chega — e nada avisa o usuário | Doc 01 §6.9, onboarding | O app precisa detectar e explicar o modo degradado |
 | I-7 | A tela de interrupção depende de `SYSTEM_ALERT_WINDOW`, e a documentação do Android enquadra "atividade sobre o app em uso" como **sequestro de interface**; a própria referência da permissão diz que pouquíssimos apps deveriam usá-la. A política de comportamento enganoso ainda proíbe imitar avisos do sistema (A10) | Doc 02 riscos; Doc 01 §6.5 | Risco de loja para a tela de interrupção; justificar no pedido e desenhar a tela para se identificar como nossa, sem parecer aviso do Android |
 | I-8 | A tela inicial do sistema aparece na lista de uso como se fosse um app | Doc 01 §6.8 | Filtrar lançadores das estatísticas |
-| I-9 | Custo medido do monitoramento: 0,138% de CPU e 0,65% do consumo do aparelho, incluindo ruído do ambiente de desenvolvimento | Doc 02 riscos (bateria) | O risco de bateria parece baixo; confirmar no roteiro T6 |
+| I-9 | Custo medido do monitoramento: 0,138% de CPU e 0,65% do consumo do aparelho, incluindo ruído do ambiente de desenvolvimento. **Confirmado no T6 (21/09)**, num dia de uso leve: 21h59 com o serviço e a VPN, 0,044% de CPU e 0,16% do consumo do aparelho, sem nenhuma falha | Doc 02 riscos (bateria) | O risco de bateria é baixo. Falta só um dia de uso pesado, e o custo por verificação cresce com os eventos do dia (acumular incrementalmente no app definitivo, A2) |
 | I-10 | Com a sobreposição, o app monitorado continua em primeiro plano por baixo: o tempo diante da tela de interrupção conta como uso dele | Doc 01 §6.2 e §6.8 | Descontar esse tempo das estatísticas e da streak de moderação |
 | I-11 | Enquanto a sobreposição está na tela, o Android publica "<nome do app> exibido sobre outros apps", com um toque para desativar a permissão. O app não pode suprimir | Doc 01 P7 (discrição), §6.5 | O nome do app aparece na gaveta durante a interrupção, e desligar a proteção fica a um toque no momento de vulnerabilidade |
 | I-12 | A sobreposição pede uma escolha antes de qualquer outro uso do aparelho: o voltar é ignorado, e ela continua por cima da tela inicial e de qualquer app | Doc 01 §6.5 | Não fere o princípio P4 ("Continuar" está sempre a um toque; leitura confirmada pelo responsável em 18/09/2026). Falta testar uma chamada recebida com a sobreposição na tela |
@@ -1686,7 +1768,7 @@ decidido fora do Claude Code.
 | I-21 | Redes sociais pelo navegador: o acesso é detectável (DNS + app em primeiro plano), mas o tempo de uso só se estima por heurística: +13% numa rodada de 5 min, resolução de ~1 min, e erro de −99% a +67% fora de uma faixa estreita de ajuste. A API do Chrome para o Bem-estar digital não é pública | Doc 01 §6.2 (limite de vídeos curtos), §6.8 (tempo de uso), risco R5 | Decidir se o limite conta o navegador (e com que precisão), ou se o navegador vira só gatilho de alerta depois que o limite do app estoura |
 | I-22 | **Com "DNS privado" no modo estrito (provedor com nome, comum para bloquear anúncios), ligar a VPN do app deixa os apps sem DNS**: o sistema não alcança o provedor pela rede da VPN, marca a rede como sem internet e avisa "Não é possível acessar o servidor DNS privado". A VPN também não vê nada nesse modo | Doc 01 §6.5, onboarding (§4); doc 02 riscos | O app precisa detectar o modo estrito antes de ligar a VPN (e depois, se mudar) e orientar o usuário, ou não ligar a VPN; nunca deixar o aparelho sem internet |
 | I-23 | O DNS do roteador doméstico perde consultas em rajadas de páginas pesadas, com ou sem VPN; um repasse ingênuo transforma essas perdas em atraso de 2 a 3 s para todas as consultas (medido e corrigido no A8) | Doc 02 riscos (qualidade da conexão com a VPN) | O repasse do app definitivo precisa de concorrência sem fila e nova tentativa curta, e de monitoramento de falhas |
-| I-24 | Custo da VPN somada ao serviço, com o aparelho parado (A8): 0,366% de CPU e ~1 mAh a cada 2 h, contra 0,138% e ~0,5 mAh do serviço sozinho (A9). Sem wakelock; atravessa Doze profundo e modo economia de energia. Projeção de 0,3% a 0,4% de bateria por dia, e o número é um teto (inclui ruído do ambiente de desenvolvimento) | Doc 02 riscos (bateria), roteiro T6 | O risco de bateria segue baixo, mas o número vale para aparelho parado: confirmar com um dia de uso real no T6 |
+| I-24 | Custo da VPN somada ao serviço, com o aparelho parado (A8): 0,366% de CPU e ~1 mAh a cada 2 h, contra 0,138% e ~0,5 mAh do serviço sozinho (A9). Sem wakelock; atravessa Doze profundo e modo economia de energia. Projeção de 0,3% a 0,4% de bateria por dia, e o número é um teto (inclui ruído do ambiente de desenvolvimento). **O T6 mediu o dia de verdade** (21/09, uso leve, 29 min de tela): 1,11 mAh em 21h59, 0,16% do consumo do aparelho e 0,03% da capacidade — a projeção acima superestimou em 9 a 12 vezes, porque o custo acompanha a CPU acordada e não o relógio. Ainda teto: o laço do dev client, com a CPU acordada, custa 10 vezes a verificação do limite | Doc 02 riscos (bateria) | O risco de bateria é baixo. Para o relatório, usar o número do T6, não as projeções de 2 h. Por conta, um dia de 4 h de tela ficaria em ~4 mAh (0,1% da bateria) |
 | I-25 | **Um app comum apaga a nossa tela de interrupção.** `Window.setHideOverlayWindows(true)` existe desde a API 31 e a permissão que ela exige é de nível normal, concedida na instalação sem consentimento. Medido em 19/09 no S22 com um app de teste de outro UID (A4): com ele na frente e protegido, a nossa sobreposição ficou `isVisible=false`; ao desligar a proteção, a mesma janela apareceu na hora. Varredura de 20/09: **nenhum dos seis apps-alvo** protege a tela de abertura, então hoje o risco é teórico para esse conjunto. Mas o **app de Ajustes do próprio Android protege as telas dele** (visto no T10), o que faz sentido: é onde se concedem permissões. **Mas os candidatos naturais a usar a proteção são os apps financeiros — bancos, carteiras e casas de aposta —, porque sobreposição é a técnica clássica de fraude em tela de pagamento. Isso atinge em cheio a Fase 2, que prevê apostas** | Doc 01 §6.5 (tela de interrupção), doc 02 riscos; escopo da Fase 2 | A sobreposição não é garantia. Manter a tela própria como reserva (I-13) — e, se o alvo for aposta, tratá-la como abordagem principal. Conferir a visibilidade (I-28), aceitar a notificação como rede de segurança, e medir uma amostra de apps de aposta e de banco antes de fechar o desenho |
 | I-26 | **A rota de notificação em tela cheia está fechada, por dois motivos.** Política: desde 22/01/2025, em apps que miram Android 14+, só apps de chamada ou despertador recebem `USE_FULL_SCREEN_INTENT` por padrão, e o Play revoga a de quem não se encaixa (A10). Comportamento, medido em 20/09 (A4): mesmo com a permissão concedida num build instalado pelo cabo, **com o aparelho em uso o sistema não abre a tela** — mostra um aviso flutuante, que é o que a notificação do A3 já faz. Com o aparelho bloqueado ela abre a activity, mas atrás do bloqueio | Doc 01 §6.5, doc 02 (alternativas de alerta de nível 2) | **Descartada como caminho técnico pelo responsável em 20/09**, e o código de teste removido do protótipo (fica no commit `6cd4c70`). Restam a sobreposição e a tela própria — esta sem atraso relevante, 31 ms entre o pedido e a tela —, com o alerta de nível 1 como rede de segurança das duas |
 | I-27 | Como **nada sai do aparelho**, a seção de segurança de dados do Play pode ser declarada **sem coleta** (a política define coletar como transmitir para fora do aparelho). Isso não dispensa política de privacidade, divulgação destacada no app, nem exclusão de conta dentro do app e na web — esta última passa a valer porque o app é por assinatura (A10) | Doc 01 §4 (onboarding) e §9 (privacidade), doc 02 fase 9 | Tratar "nenhum dado coletado" como diferencial de produto, e já prever política de privacidade, divulgação destacada e exclusão de conta no escopo do MVP |
@@ -1872,6 +1954,15 @@ origem.
 **Solução:** para medir bateria com honestidade, encerrar o Metro antes de tirar
 o cabo, ou tratar o número medido como teto e dizer isso no registro (foi o caso
 do A8). Vale para o roteiro T6.
+
+**Medido no T6 (21/09), e corrigindo a solução acima.** O laço rodou a janela
+inteira: 222 consultas do nosso UID nos 9 min finais na bateria, e ele seguia
+~22 h depois de o Metro sair do ar — não desiste. Com a CPU acordada, as threads dele
+gastam 0,44 s de CPU por minuto, **10 vezes a verificação do limite** (0,04 s).
+Encerrar o Metro antes de tirar o cabo não deve adiantar: o laço é a reação do
+dev client ao Metro inalcançável, e é isso que encerrar o Metro provoca. Um
+número limpo exige um build sem o dev client (release), o que não foi feito.
+Até lá, todo número de bateria do protótipo é teto.
 
 ## Tentativas malsucedidas
 
