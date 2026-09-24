@@ -138,6 +138,16 @@ madrugada de 19/09, retomada às 14:27):
   que o caminho agregado conta tempo de tela apagada, hipótese medida e retirada
   no A1. O motivo real de descartá-lo é o atraso de minutos e o vazamento da
   borda do dia.
+- **A9 fechado, à tarde, com o aparelho de volta no cabo** (ver "Achado A9 →
+  Três dias parado"). Depois de 2 dias e 19 h sem o laboratório ser aberto: a
+  Samsung **não** colocou o app para dormir (bucket ACTIVE, sem restrição de
+  segundo plano), os dois serviços seguiam vivos e houve detecção todos os dias.
+  Custo de 3d17h: 5,93 mAh, 0,3% do consumo do aparelho. **Achado novo (I-31):**
+  em 22/09 à 01:21 uma atualização do WebView matou o processo do protótipo, e
+  **2,5 s depois** o sistema recriou os dois serviços sozinho — inclusive a VPN,
+  sem pedir consentimento de novo. Também apareceu mais um ruído do dev client:
+  o acelerômetro do `ShakeDetector` ficou registrado 2,5 dias e respondeu por
+  1,03 dos 5,93 mAh.
 
 **Próximo passo: revisão do relatório com o responsável**, no chat de
 planejamento, e a atualização dos documentos 01 e 02 a partir da seção 8 dele —
@@ -147,12 +157,11 @@ Depois dela: o **iOS** quando a conta Apple Developer destravar — o que traz
 junto S2, S3, C1, T9 e a repetição dos roteiros T no iPhone —, e a medição de
 **apps de aposta e de banco** com a proteção do I-25, de olho na Fase 2.
 
-**Pendência com prazo, para a próxima vez que o aparelho estiver no cabo:** o
-protótipo não é aberto desde 21/09 às 17:47. São dias parados, que é exatamente
-a condição que falta para medir o **"Apps em suspensão" da Samsung e a queda do
-bucket de standby** (A9). Basta ligar o cabo e ler `am get-standby-bucket`, o
-estado do serviço e o log — sem abrir o laboratório antes, senão a janela se
-perde. Em 24/09 o aparelho não estava conectado.
+**O aparelho voltou ao cabo em 24/09 às 13:03**, e a leitura dos três dias
+parados foi feita antes de abrir o laboratório. Com isso o **A9 não tem mais
+pendência de tempo**. O que ainda depende do aparelho é a amostra de **apps de
+aposta e de banco** com a proteção do I-25, e um dia de uso pesado num build sem
+o dev client (P8).
 
 **VPN no aparelho:** consentimento concedido (`appops ... ACTIVATE_VPN: allow`),
 VPN **ligada em modo alerta** desde 19:32:51 de 20/09 (religada pelo laboratório
@@ -199,10 +208,9 @@ aparelho (A9 e a amostra de apps de aposta e de banco); o resto é revisão do
 relatório e decisão de produto, fora daqui. A Fase 1 só fecha de verdade com o
 iOS.
 
-**Pendência que depende de tempo, e pode correr em paralelo:**
-- A9: "Apps em suspensão" da Samsung — dias sem abrir o protótipo. O T6 não a
-  cobre: 22 h é pouco, e o bucket de standby terminou em 20 (WORKING_SET). Desde
-  21/09 às 17:47 o protótipo não é aberto: a janela está correndo agora.
+**Pendências que dependem do aparelho:**
+- Amostra de **apps de aposta e de banco** com a proteção do I-25 (Fase 2).
+- **Um dia de uso pesado**, com bateria medida num build sem o dev client (P8).
 
 **Antes de trabalhar:** seguir o "Procedimento de início de sessão" mais abaixo.
 
@@ -356,7 +364,7 @@ escrever no mesmo arquivo, cada um com seu próprio `source`.
 | A6 | ⚠️ Funciona com limitações | VPN local só de DNS. No Chrome, abrir example.com gerou `adult_domain_detected` e a notificação 15 ms depois, e a página carregou: critério cumprido. Modo bloqueio também funciona (`DNS_PROBE_FINISHED_NXDOMAIN`). Zero consultas sem resposta; ida e volta de 26 ms ao DNS da rede. Limitações: o pré-carregamento dispara o alerta sem visita, página guardada no navegador aparece mesmo bloqueada, só uma VPN por vez, e o sistema diz ao usuário que a VPN "permite monitorar o tráfego da rede". Revalidado em 20/09 no build de hoje: detecção e notificação em 10 ms, página carregando. Ver achado abaixo |
 | A7 | ⚠️ Funciona com limitações | Critério da spec cumprido: instagram.com no Chrome gerou `social_domain_detected` "via: navegador", e o app do Instagram saiu separado ("via: outro app"). A consulta de DNS não diz qual app perguntou; a separação vem do app em primeiro plano. Tempo no navegador, por heurística: 204 s estimados para 180,6 s reais (+13%) numa rodada de 5 min, mas com corte fora da faixa de 85–96 s o erro vai de −99% a +67%, e a resolução é de ~1 min. Ver achado abaixo |
 | A8 | ⚠️ | Navegação geral ok depois de corrigir o repasse (mediana de 2,6 s → 49 ms); apps de banco ok; outra VPN derruba a nossa, que não volta sozinha; **DNS privado estrito + nossa VPN deixa os apps sem DNS**; DNS seguro do Chrome ainda deixa ver o endereço principal; a VPN sobrevive à queda do Wi-Fi, ao Doze profundo e ao modo economia; bateria: 0,366% de CPU e ~1 mAh a cada 2 h com o aparelho parado. Ver achado abaixo |
-| A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. O roteiro T6 (21/09) confirmou num dia inteiro: 21h59 fora do cabo sem o serviço recomeçar, 0,044% de CPU e 0,16% do consumo do aparelho. Falta "Apps em suspensão" da Samsung (precisa de dias) |
+| A9 | ⚠️ Funciona com limitações | Sobreviveu a 2 h 05 min desconectado (~114 min em Doze profundo) e continuou detectando com 3 s de latência. Volta sozinho após reinício via `BOOT_COMPLETED`, mas só **~2,5 min depois do boot e só depois do usuário desbloquear a tela** — há uma janela cega. Custo: **0,138%** de CPU, 0,476 de 73,2 mAh, e esse número inclui ruído do dev client. O roteiro T6 (21/09) confirmou num dia inteiro: 21h59 fora do cabo sem o serviço recomeçar, 0,044% de CPU e 0,16% do consumo do aparelho. Em 24/09, com **três dias parado**, a Samsung não colocou o app para dormir (bucket ACTIVE, sem restrição de segundo plano) e o custo de 3d17h ficou em 5,93 mAh (0,3%). No meio, uma **atualização do WebView matou o processo** e o sistema religou os dois serviços em 2,5 s, inclusive a VPN (I-31) |
 | A10 | ⚠️ Tabela pronta, com riscos abertos | Pesquisa documental das políticas do Play em 19/09/2026. Tabela de permissão, exigência e risco no achado abaixo. `PACKAGE_USAGE_STATS` e a lista de apps são dado sensível: exigem divulgação destacada no app e política de privacidade. `specialUse` exige `<property>`, declaração no Play Console com vídeo e os cinco critérios de serviço em primeiro plano — o de "rodar só o tempo necessário" é o risco. `systemExempted` da VPN é isento desses critérios, mas só vale enquanto somos a VPN ativa. A política da `VpnService` pressupõe servidor remoto e criptografia até o túnel, que não existem no nosso desenho local. Achado novo, confirmado no aparelho na mesma noite: `setHideOverlayWindows` esconde a nossa sobreposição, com uma permissão de nível normal, e o nosso log não percebe (I-25, I-28). Ver achado abaixo |
 | C2 | ✅ Funciona | Os quatro textos de notificação do protótipo, lidos do registro do sistema, são neutros: nenhum cita tema, site, domínio ou o app monitorado. Os nomes de canal ("Monitoramento", "Alertas") também. O texto do alerta é configurável ponta a ponta. Na tela de bloqueio, com o ajuste da Samsung de "minimizar notificações" **desligado** (configuração mais exposta), o cartão mostra só o nosso título e texto, sem o nome do app nem o do canal. O que continua exposto — chave de VPN, ícone do app, aviso de "exibido sobre outros apps" — não vem do texto. Ver achado abaixo |
 
@@ -1427,10 +1435,72 @@ aberto. Às 13:19 do dia seguinte: `isForeground=true`, `createTime=-13h14m` —
 mesma instância, nunca recriada pelo sistema. Não houve instrumentação de
 bateria nessa janela; o dado vale só como sobrevivência.
 
+#### Três dias parado: sobreviveu, e um app comum derrubou o processo (24/09/2026)
+
+**Resultado: fecha a pendência do "Apps em suspensão", e traz um achado novo.**
+O aparelho ficou de 21/09 às 17:47 a 24/09 às 13:16 **sem o laboratório ser
+aberto** — 2 dias e 19 h —, com o serviço do limite e a VPN ligados. O
+`batterystats` nunca zerou desde 20/09, então a janela dele cobre 3d 16h 50m na
+bateria (99,1% do período; o cabo entrou por ~49 min no meio).
+
+**A Samsung não colocou o app para dormir.** Bucket de standby **10 (ACTIVE)**,
+`RUN_ANY_IN_BACKGROUND` sem restrição ("No operations. Default mode: allow"),
+os dois serviços vivos e `GET_USAGE_STATS` consultado 7 s antes da leitura. Em
+17/09 o bucket tinha caído para 30 (FREQUENT) em 2 h; não temos explicação
+medida para a diferença. O que dá para afirmar é que **não caiu** para RARE (40)
+nem RESTRICTED (45) em três dias. Ressalva: o app teve um serviço em primeiro
+plano rodando o tempo todo, que é o cenário do produto — não testamos um app
+realmente parado.
+
+**O achado novo: uma atualização do WebView matou o nosso processo.**
+
+| Momento | O que aconteceu |
+|---|---|
+| 22/09 01:21:39.365 | Processo morto. `ApplicationExitInfo`: `reason=16 (PACKAGE UPDATED)`, descrição `stop com.norte.lab.dev due to installPackageLI`, e o pacote em instalação era o **`com.google.android.webview`** |
+| 22/09 01:21:41.822 | `vpn_started` — "iniciada por: **sistema**" |
+| 22/09 01:21:41.842 | `service_started` — "limite 600 min, intervalo 20s" |
+| 22/09 01:21:41.849 | `upstream_changed` — wifi, 192.168.1.1 |
+
+**O monitoramento ficou fora do ar por 2,5 segundos** e voltou sozinho, pelos
+dois lados: o sistema recriou os serviços (são `START_STICKY`) e **a VPN se
+restabeleceu sem pedir consentimento de novo** — a autorização de VPN fica
+guardada. O `batterystats` confirma pelo outro lado: `Foreground services:
+3d 16h 50m 32s realtime (2 times)`, duas execuções para o período.
+
+Isso contrasta com o I-29 e esclarece a regra: **morte de processo o sistema
+conserta; reinício do aparelho, não.** Depois do boot não há serviço para o
+sistema recriar, e o nosso `BootReceiver` religa só o serviço do limite.
+
+O monitoramento seguiu funcionando nos dias seguintes: 24 detecções em 22/09,
+22 em 23/09 e 9 até as 13:16 de 24/09.
+
+**Bateria da janela longa** (3d 16h 50m na bateria, 30m 03s de tela em 15
+acendimentos — um minuto a mais que o T6 inteiro, ou seja, o aparelho ficou
+praticamente intocado; 99,3% em Doze profundo, economia de energia 100% do
+tempo, CPU acordada 2h 27m):
+
+| Métrica | Valor |
+|---|---|
+| Consumo do aparelho | 2062 mAh (computado 2010); 100% → 43% |
+| Nosso UID | **5,93 mAh = 0,3%** do consumo; 20º de 255 UIDs |
+| CPU | 4,87 mAh · u=1m17s571 + s=31s689 = 109,3 s = **0,034%** de ciclo |
+| Sensores | **1,03 mAh** — ver abaixo |
+| Wakelock parcial | 39 ms, uma vez (`NotificationManagerService:post`) |
+| Por dia | **1,6 mAh**, ou 1,3 mAh tirando o sensor |
+
+**O sensor é ruído do build de desenvolvimento, e é novo.** O `batterystats`
+mostra `Sensor 11: 2d 11h 41m blamed realtime (1 times)` no nosso UID, começando
+justamente na recriação do processo às 01:21 de 22/09. **Não há nenhuma linha de
+sensor no nosso Kotlin** (conferido). A origem provável é o `ShakeDetector` do
+React Native, que registra o acelerômetro para abrir o menu de desenvolvimento
+com uma chacoalhada; no processo anterior, criado junto com a tela, ele aparecia
+por 1,2 s, e no processo recriado sem tela nenhuma ficou ligado 2,5 dias. Mais
+um motivo para medir bateria num build sem o dev client (P8).
+
 #### Ainda não testado
 
-- **"Apps em suspensão" da Samsung** e rebaixamento para bucket RARE/RESTRICTED:
-  precisam de dias sem uso do app.
+- ~~"Apps em suspensão" da Samsung e rebaixamento para bucket RARE/RESTRICTED.~~
+  Medido em 24/09, acima: três dias parado e o app seguiu ACTIVE, sem restrição.
 - ~~Um dia inteiro de uso normal (roteiro T6).~~ Feito em 21/09: 21h59 fora do
   cabo, serviço sem recomeçar e processo sem morrer. Ver "O que o T6 mostrou".
 - **Força-parada pelo usuário.** É comportamento conhecido do Android que um app
@@ -1798,6 +1868,7 @@ decidido fora do Claude Code.
 | I-28 | **O evento que diz "interrompi" não provava que o usuário viu.** `interruption_shown` era gravado no `addView`, não quando a janela chegava à tela. **Corrigido no protótipo em 19 e 20/09:** a sobreposição confere quatro sondas (só o **foco de janela** denuncia a supressão) e grava `interruption_shown`, `interruption_suppressed` ou, passados **20 s** sem aparecer, `interruption_discarded`. Decisão do responsável: a janela suprimida é descartada em vez de surgir fora de contexto, e nenhuma outra ação é tomada — a notificação de nível 1 já enviada é a rede de segurança. Na tela própria, o serviço grava `interruption_requested` ao pedir a tela (A4) | Doc 01 §6.5 e §6.8 (estatísticas), doc 02 (telemetria local) | Levar as três regras para o app definitivo: confirmar a visibilidade, descartar depois do prazo e contar com a notificação. **Resolvido em 20/09:** recuo progressivo de 1, 2, 5 e 15 min depois de cada supressão, com volta à tentativa imediata quando a pessoa sai do app monitorado e entra de novo (medido: intervalo entre tentativas foi de 40 s para 100 s e 140 s) |
 | I-29 | **Depois de reiniciar o aparelho, a VPN não volta.** O religamento automático cobre só o serviço do limite: o `BootReceiver` do protótipo não religa a `LabVpnService`. Medido no T5 (20/09): serviço de volta ~2min50s depois do boot e interrompendo sozinho, zero eventos de VPN, nenhuma VPN conectada | Doc 01 §6.5 (detecção de conteúdo), doc 02 (ciclo de vida dos serviços) | No app definitivo, ou a VPN volta junto com o serviço depois do boot, ou o app precisa avisar que a detecção de domínios está desligada. Hoje ela fica cega em silêncio |
 | I-30 | **Perder uma permissão não gera aviso nenhum.** No T10: com a sobreposição revogada enquanto a tela de interrupção estava visível, o sistema a apagou (`mAppOpVisibility=false`), o protótipo continuou achando que estava mostrando e parou de tentar, sem registrar nada; com o acesso a dados de uso revogado, o serviço seguiu consultando e sendo negado (`rejectTime` avançando a cada ciclo), também sem registrar nada. O laboratório mostra "negado" nas três permissões quando é aberto — ou seja, o app **detecta quando perguntado, e não informa nunca** | Doc 01 §6.9 (modo degradado), §4 (onboarding); doc 02 (telemetria local) | O app definitivo precisa vigiar as permissões e avisar ativamente quando perder alguma, porque é exatamente aí que ele para de proteger. A conferência de visibilidade do I-28 também precisa virar acompanhamento, não um retrato em +500 ms |
+| I-31 | **A atualização de um pacote compartilhado mata o nosso processo — e, nesse caso, o sistema conserta sozinho.** Em 22/09 à 01:21 o Play atualizou o `com.google.android.webview` e o Android derrubou o processo do protótipo junto (`ApplicationExitInfo`: `PACKAGE UPDATED`). **2,5 s depois** o sistema recriou os dois serviços (`START_STICKY`) e a **VPN voltou sozinha, sem pedir consentimento de novo** — a autorização fica guardada. Medido em 24/09 (A9). Isso delimita o I-29: o sistema conserta morte de processo, mas **não** conserta reinício do aparelho, quando não há serviço para recriar | Doc 02 (ciclo de vida dos serviços), doc 01 §6.9 | O app não pode supor que o processo vive para sempre: todo estado fica em disco (já é assim no protótipo) e o caminho de recriação precisa ser tratado como normal, não como exceção. A recuperação automática cobre o caso comum; o que falta cobrir é o boot (I-29) |
 
 ## Comandos
 
@@ -1986,6 +2057,13 @@ Encerrar o Metro antes de tirar o cabo não deve adiantar: o laço é a reação
 dev client ao Metro inalcançável, e é isso que encerrar o Metro provoca. Um
 número limpo exige um build sem o dev client (release), o que não foi feito.
 Até lá, todo número de bateria do protótipo é teto.
+
+**Segundo ruído do dev client, achado em 24/09 (A9):** com o processo recriado
+pelo sistema, sem tela nenhuma, o acelerômetro ficou registrado por 2,5 dias e
+custou 1,03 dos 5,93 mAh da janela. Não há sensor no nosso Kotlin; a origem
+provável é o `ShakeDetector` do React Native, que escuta o acelerômetro para
+abrir o menu de desenvolvimento com uma chacoalhada. Some ao laço do Metro na
+lista de motivos para medir bateria num build sem o dev client.
 
 ## Tentativas malsucedidas
 

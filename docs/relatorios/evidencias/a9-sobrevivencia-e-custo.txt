@@ -86,3 +86,66 @@ com a tela ligada com frequência, mais verificações rodam de fato.
   Ou seja, os 0,138% de CPU e 0,476 mAh INCLUEM esse ruído de
   desenvolvimento. O custo do serviço em si é menor. O número medido é um
   teto, não um piso, no que diz respeito a este componente.
+
+## Três dias parado (leitura de 24/09/2026, 13:16, antes de abrir o laboratório)
+
+Janela: de 21/09 17:47 (última vez que o laboratório foi aberto) a 24/09 13:16,
+2 dias e 19 h sem ninguém tocar no app. Serviço do limite e VPN ligados.
+O batterystats não zerou desde 20/09, então a janela dele é maior: 3d 16h 50m
+na bateria (99,1% do período; o cabo entrou por ~49 min no meio).
+
+### A Samsung NÃO colocou o app para dormir
+  bucket de standby            10 (ACTIVE)
+  RUN_ANY_IN_BACKGROUND        No operations. Default mode: allow
+  GET_USAGE_STATS              allow; time=+7s174ms ago   <- consultando agora
+  UsageLimitService            isForeground=true, createTime=-3d18h2m
+  LabVpnService                isForeground=true, createTime=-3d17h43m
+  VPN ativa                    VPN:com.norte.lab.dev
+  deteccoes                    24 em 22/09, 22 em 23/09, 9 ate 13:16 de 24/09
+
+  Em 17/09 o bucket tinha caido para 30 (FREQUENT) em 2 h; nao temos explicacao
+  medida para a diferenca. O que da para afirmar: nao caiu para RARE (40) nem
+  RESTRICTED (45) em tres dias. Ressalva: o app manteve um servico em primeiro
+  plano o tempo todo, que e o cenario do produto -- um app de fato parado nao
+  foi testado.
+
+### Achado novo: a atualizacao do WebView matou o processo (I-31)
+  22/09 01:21:39.365  ApplicationExitInfo: reason=16 (PACKAGE UPDATED)
+                      description=stop com.norte.lab.dev due to installPackageLI
+                      pacote em instalacao: com.google.android.webview
+  22/09 01:21:41.822  vpn_started      "iniciada por: sistema"
+  22/09 01:21:41.842  service_started  "limite 600 min, intervalo 20s"
+  22/09 01:21:41.849  upstream_changed "rede: wifi · 192.168.1.1"
+
+  2,5 s fora do ar. O sistema recriou os dois servicos (START_STICKY) e a VPN
+  se restabeleceu SEM pedir consentimento de novo. O batterystats confirma pelo
+  outro lado: "Foreground services: 3d 16h 50m 32s realtime (2 times)".
+
+  Delimita o I-29: morte de processo o sistema conserta; reinicio do aparelho,
+  nao -- depois do boot nao ha servico para recriar, e o BootReceiver religa so
+  o servico do limite.
+
+### Bateria da janela longa
+  tela ligada            30m 03s (0,6%), 15 vezes -- 1 min a mais que o T6
+                         inteiro: o aparelho ficou praticamente intocado
+  CPU acordada           2h 27m 40s (2,8%)
+  Doze profundo          3d 16h 11m (99,3%); economia de energia 100% do tempo
+  consumo do aparelho    2062 mAh (computado 2010); 100% -> 43%
+
+  UID u0a162: 5.93 fg: 0.133 bg: 0.00948 fgs: 5.75 (3d 17h 38m 15s)
+    CPU        4,87 mAh   u=1m17s571ms + s=31s689ms = 109,3 s = 0,034% de ciclo
+    sensores   1,03 mAh   <- ver abaixo
+    tela       0,0285 mAh (o 1 s do laboratorio em 20/09)
+    wakelock   39 ms parcial, uma vez (NotificationManagerService:post)
+    posicao    20o de 255 UIDs; 0,3% do consumo do aparelho
+    por dia    1,6 mAh, ou 1,3 mAh tirando o sensor
+
+### O sensor e ruido do build de desenvolvimento
+  Sensor 11: 2d 11h 41m 30s blamed realtime (1 times)
+
+  Comeca na recriacao do processo as 01:21 de 22/09 e nao para mais. NAO existe
+  nenhuma linha de sensor no Kotlin do modulo (conferido). A origem provavel e o
+  ShakeDetector do React Native, que registra o acelerometro para abrir o menu
+  de desenvolvimento com uma chacoalhada: no processo anterior, criado junto com
+  a tela, ele aparecia por 1,2 s; no processo recriado sem tela nenhuma, ficou
+  2,5 dias ligado. Segundo motivo para medir bateria num build sem dev client.

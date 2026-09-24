@@ -1,6 +1,6 @@
 # Relatório de Viabilidade — Monitoramento
 
-> **Versão 0.1 · 24/09/2026 ·** entregável da Fase 1, na estrutura da seção 9 da
+> **Versão 0.2 · 24/09/2026 ·** entregável da Fase 1, na estrutura da seção 9 da
 > `docs/specs/spec-00-prototipo-monitoramento.md`.
 >
 > **Cobertura:** Android completo — S1, S4, A1 a A10, C2 e os roteiros T1 a T8 e
@@ -85,7 +85,7 @@ tentado e não funcionou, estão em `prototype/NOTAS.md`.
 | A6 | ⚠️ Funciona com limitações | `a6-vpn-dns.txt` | VPN local só de DNS, sem biblioteca (D5). Detecção e notificação em 10 a 15 ms, com a página carregando; modo bloqueio devolve `NXDOMAIN`. Limitações do próprio DNS (I-20) e do sistema: só uma VPN por vez, chave na barra de status, e a caixa de consentimento diz que a VPN "permite monitorar o tráfego da rede" (I-17) |
 | A7 | ⚠️ Funciona com limitações | `a7-instagram-navegador.txt` | Acesso detectado e atribuído ao navegador pelo cruzamento com o app em primeiro plano — a consulta de DNS não diz quem perguntou. Tempo estimado por heurística: 204 s para 180,6 s reais (+13%), resolução de ~1 min, e o acerto depende de um corte numa faixa estreita (I-21) |
 | A8 | ⚠️ Funciona com limitações | `a8-impacto-vpn.txt` | Navegação geral e apps de banco ok (mediana de 49 ms com VPN, contra 15 a 38 ms sem, depois de corrigido o repasse — I-23). **Outra VPN derruba a nossa, que não volta sozinha** (I-18). **DNS privado estrito + nossa VPN deixa os apps sem DNS** (I-22). DNS seguro do Chrome ainda deixa ver o endereço principal. Atravessa Doze profundo e economia de energia |
-| A9 | ⚠️ Funciona com limitações | `a9-sobrevivencia-e-custo.txt`, `t-roteiros-android.txt` (T6) | 2 h 05 desconectado sem recriação do serviço e detecção em 3 s; noite inteira armado. Volta após reinício via `BOOT_COMPLETED`, com janela cega (I-5). Custo confirmado no T6. **Falta** o "Apps em suspensão" da Samsung, que precisa de dias sem abrir o protótipo |
+| A9 | ⚠️ Funciona com limitações | `a9-sobrevivencia-e-custo.txt`, `t-roteiros-android.txt` (T6) | 2 h 05 desconectado sem recriação do serviço e detecção em 3 s; noite inteira armado. Volta após reinício via `BOOT_COMPLETED`, com janela cega (I-5). Custo confirmado no T6 e numa janela de 3d17h. Com **três dias sem o app ser aberto**, a Samsung não o colocou para dormir (bucket ACTIVE, sem restrição de segundo plano). No meio deles, uma atualização do WebView matou o processo e o sistema recriou os dois serviços em 2,5 s, inclusive a VPN (I-31) |
 | A10 | ⚠️ Tabela pronta, riscos abertos | `a10-politicas-google-play.txt` | Pesquisa documental nas páginas oficiais em 19/09/2026. Resultado na seção 5. Achado técnico no caminho: `setHideOverlayWindows` (I-25). Rotas fechadas pela política: notificação em tela cheia, serviço de acessibilidade e isenção de otimização de bateria |
 
 ### 3.3 iOS
@@ -174,18 +174,28 @@ passa a valer por ser assinatura.
 
 ### 6.1 Bateria
 
-Três janelas medidas com o `batterystats` zerado na retirada do cabo, sempre com
-o modo economia de energia ligado:
+Quatro janelas medidas com o `batterystats`, sempre com o modo economia de
+energia ligado:
 
-| Métrica | A9 · 2h05, parado | A8 · 2h10, parado | **T6 · 21h59, dia de uso leve** |
-|---|---|---|---|
-| Componentes ligados | serviço do limite | serviço + VPN | serviço + VPN |
-| Doze profundo | ~91% | 91,4% | 97,2% |
-| Ciclo de trabalho de CPU | 0,138% | 0,366% | **0,044%** |
-| mAh do UID, fora a tela | 0,476 | 1,32 | **1,09** |
-| Parte do consumo do aparelho | 0,65% | 1,4% | **0,15%** |
-| Por dia | ~5,5 mAh (projeção) | ~11 a 15 mAh (projeção) | **1,2 mAh (medido)** |
-| Wakelock parcial | nenhum | nenhum | nenhum |
+| Métrica | A9 · 2h05, parado | A8 · 2h10, parado | **T6 · 21h59, dia de uso leve** | **A9 · 3d17h, parado** |
+|---|---|---|---|---|
+| Componentes ligados | serviço do limite | serviço + VPN | serviço + VPN | serviço + VPN |
+| Doze profundo | ~91% | 91,4% | 97,2% | 99,3% |
+| Ciclo de trabalho de CPU | 0,138% | 0,366% | **0,044%** | **0,034%** |
+| mAh do UID, fora a tela | 0,476 | 1,32 | **1,09** | 5,90 |
+| Parte do consumo do aparelho | 0,65% | 1,4% | **0,15%** | **0,3%** |
+| Por dia | ~5,5 mAh (projeção) | ~11 a 15 mAh (projeção) | **1,2 mAh (medido)** | **1,6 mAh (medido)** |
+| Wakelock parcial | nenhum | nenhum | nenhum | 39 ms, uma vez |
+
+A última coluna é a janela mais longa: de 20/09 às 19:38 a 24/09 às 13:16, com o
+aparelho praticamente intocado (30 min de tela em quase quatro dias, dos quais 29
+são do próprio T6, que está contido nela). Ela custou **5,93 mAh, 0,3% dos
+2010 mAh que o aparelho gastou**, e traz um detalhe novo: **1,03 mAh vieram de
+sensores**. Não há uma linha de sensor no módulo Kotlin do protótipo; a origem
+provável é o detector de chacoalhada do React Native, que registra o acelerômetro
+para abrir o menu de desenvolvimento — mais uma peça do ambiente de
+desenvolvimento, que não existirá em produção. Sem ela, a conta cai para 1,3 mAh
+por dia.
 
 **O custo é desprezível, e menor do que as janelas curtas faziam supor.** A
 projeção linear do A8 superestimou o dia real em 9 a 12 vezes. A razão é que
@@ -219,6 +229,22 @@ queda em 9 ms e pegou a rede de volta 1,6 s depois da reassociação. Das 601
 consultas de DNS da janela, 598 foram repassadas e 3 ficaram sem resposta (0,5%).
 Nenhum crash.
 
+**O que aconteceu nos três dias seguintes, sem ninguém abrir o app (A9).** Duas
+respostas e um achado:
+
+- **A Samsung não colocou o app para dormir.** Depois de 2 dias e 19 h sem o
+  protótipo ser aberto, o bucket de standby estava em ACTIVE, sem restrição de
+  segundo plano, com os dois serviços vivos e detecção todos os dias. Ressalva: o
+  app manteve um serviço em primeiro plano o tempo todo, que é o cenário do
+  produto — não foi testado um app de fato parado.
+- **Uma atualização do WebView matou o nosso processo** às 01:21 de 22/09. O
+  Play atualizou um pacote compartilhado e o Android derrubou o protótipo junto.
+- **O sistema consertou em 2,5 segundos.** Os dois serviços foram recriados
+  sozinhos, e **a VPN voltou sem pedir consentimento de novo** — a autorização
+  fica guardada. Isso delimita o I-29: **morte de processo o sistema conserta;
+  reinício do aparelho, não**, porque depois do boot não há serviço para recriar
+  e o nosso receptor religa só o serviço do limite (I-31).
+
 **O que falha, e precisa de tratamento no app definitivo:**
 
 | # | Falha | Consequência |
@@ -230,13 +256,13 @@ Nenhum crash.
 | I-30 | Perder uma permissão não gera aviso nenhum | O app para de proteger exatamente quando mais precisa, e ninguém fica sabendo |
 | I-25 | Qualquer app esconde a sobreposição | A tela de interrupção pode simplesmente não aparecer |
 | I-28 | O evento de interrupção não provava que a janela apareceu | Estatísticas de alertas seriam falsas. Corrigido no protótipo; levar as três regras (conferir visibilidade, descartar em 20 s, recuar progressivamente) para o produto |
+| I-31 | O processo morre quando um pacote compartilhado do sistema é atualizado | O sistema recria os serviços em segundos, mas o app não pode supor que o processo vive para sempre: todo estado precisa estar em disco, e a recriação é caminho normal, não exceção |
 
 **Comportamento em Doze e economia de energia:** o monitoramento sobrevive aos
 dois, sem isenção de otimização de bateria — que, aliás, a política do Play não
 permite pedir no nosso caso. Em Doze profundo as verificações ficam adiadas, o
-que é o comportamento desejável. **O bucket de standby** terminou o T6 em
-WORKING_SET; a queda para RARE e o "Apps em suspensão" da Samsung precisam de
-dias e continuam por medir.
+que é o comportamento desejável: se o aparelho está dormindo, não há uso de app
+para detectar.
 
 **Limites da medição:** um único aparelho, um fabricante, uma versão de Android.
 O doc 02 já prevê que restrições de bateria de outros fabricantes podem
@@ -408,10 +434,12 @@ mudanças são decisão do responsável, fora do Claude Code.**
 
 ### 9.3 Android: o que ficou por medir
 
-- **"Apps em suspensão" da Samsung** e queda do bucket para RARE: precisam de
-  dias sem abrir o protótipo (A9).
 - **Um dia de uso pesado**, com bateria medida num build sem o cliente de
-  desenvolvimento (T6, P8).
+  desenvolvimento — que hoje entra na conta por dois caminhos, o laço de
+  reconexão e o acelerômetro (T6, A9).
+- **Um app de fato parado**, sem serviço em primeiro plano, para saber se a
+  Samsung o colocaria para dormir. Não é o cenário do produto, mas é o que
+  faltou para fechar a pergunta.
 - **Apps de aposta e de banco** com a proteção do I-25 — o mais importante para a
   Fase 2.
 - **Chamada recebida** com a sobreposição na tela: é hipótese, e é segurança.
@@ -449,3 +477,4 @@ mudanças são decisão do responsável, fora do Claude Code.**
 | Versão | Data | Alterações |
 |---|---|---|
 | 0.1 | 24/09/2026 | Primeira versão. Android completo; iOS não iniciado |
+| 0.2 | 24/09/2026 | Fecha o A9 com os três dias parados: a Samsung não suspendeu o app, e uma atualização do WebView matou o processo, com os serviços recriados em 2,5 s (I-31). Acrescenta a janela de bateria de 3d17h |
