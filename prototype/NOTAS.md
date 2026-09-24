@@ -7,7 +7,7 @@
 
 ## Estado atual e próximo passo
 
-> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 21/09/2026, 18:10.
+> Seção de passagem entre sessões. **Ler primeiro.** Atualizada em 24/09/2026.
 
 **Branch:** `prototype/android-vpn`, criado a partir de `prototype/android-usage`
 (que ficou com A1–A5 e A9) para o grupo da VPN: A6, A7 e A8. Tudo commitado.
@@ -125,14 +125,34 @@ madrugada de 19/09, retomada às 14:27):
   acordada, custa 10 vezes a verificação do limite. A ressalva: foi um dia leve,
   29 min de tela e 11 s de Instagram, aceito assim pelo responsável.
 
-**Próximo passo: o relatório de viabilidade** (entregável da Fase 1), em
-`docs/relatorios/01-viabilidade-monitoramento.md`, na estrutura exata da seção 9
-da spec. Os roteiros Android estão fechados; T9 e a repetição no iPhone ficam
-para quando o iOS destravar.
+**Feito em 24/09/2026:**
+- **Relatório de viabilidade escrito**, versão 0.1, em
+  `docs/relatorios/01-viabilidade-monitoramento.md`, na estrutura exata da seção
+  9 da spec. Cobre o Android inteiro e diz, em cada seção, que o **iOS não foi
+  iniciado**. Ele não traz achado novo: é a consolidação deste arquivo e das
+  evidências, com as respostas de Q1 a Q9, a tabela de lojas do A10, a seção de
+  bateria com as três janelas (A8, A9 e T6) e a lista de impactos nos documentos
+  01 e 02, organizada como a spec pede (funcionalidades, onboarding, telas,
+  planos, riscos e fases).
+- Corrigido um comentário obsoleto em `src/monitoring/types.ts`: ele ainda dizia
+  que o caminho agregado conta tempo de tela apagada, hipótese medida e retirada
+  no A1. O motivo real de descartá-lo é o atraso de minutos e o vazamento da
+  borda do dia.
 
-Depois dele: o **iOS** quando a conta Apple Developer destravar — o que traz
+**Próximo passo: revisão do relatório com o responsável**, no chat de
+planejamento, e a atualização dos documentos 01 e 02 a partir da seção 8 dele —
+decisão que acontece **fora do Claude Code** (`CLAUDE.md` §3).
+
+Depois dela: o **iOS** quando a conta Apple Developer destravar — o que traz
 junto S2, S3, C1, T9 e a repetição dos roteiros T no iPhone —, e a medição de
 **apps de aposta e de banco** com a proteção do I-25, de olho na Fase 2.
+
+**Pendência com prazo, para a próxima vez que o aparelho estiver no cabo:** o
+protótipo não é aberto desde 21/09 às 17:47. São dias parados, que é exatamente
+a condição que falta para medir o **"Apps em suspensão" da Samsung e a queda do
+bucket de standby** (A9). Basta ligar o cabo e ler `am get-standby-bucket`, o
+estado do serviço e o log — sem abrir o laboratório antes, senão a janela se
+perde. Em 24/09 o aparelho não estava conectado.
 
 **VPN no aparelho:** consentimento concedido (`appops ... ACTIVATE_VPN: allow`),
 VPN **ligada em modo alerta** desde 19:32:51 de 20/09 (religada pelo laboratório
@@ -173,13 +193,16 @@ some com `adb uninstall com.norte.labtarget`.
 JavaScript antigo na memória. Subir o Metro não basta (P6): com o laboratório na
 frente, `adb shell input keyevent 46 46` recarrega.
 
-**Recomendação de trabalho:** a sessão de 21/09 fechou o T6 e, com ele, os
-roteiros Android. O relatório de viabilidade é trabalho de escrita, sobre este
-arquivo e as evidências: pode começar numa sessão nova, que parte daqui.
+**Recomendação de trabalho:** com o relatório escrito, o trabalho do Claude Code
+na Fase 1 está no fim. O que resta no Android são medições que dependem do
+aparelho (A9 e a amostra de apps de aposta e de banco); o resto é revisão do
+relatório e decisão de produto, fora daqui. A Fase 1 só fecha de verdade com o
+iOS.
 
 **Pendência que depende de tempo, e pode correr em paralelo:**
 - A9: "Apps em suspensão" da Samsung — dias sem abrir o protótipo. O T6 não a
-  cobre: 22 h é pouco, e o bucket de standby terminou em 20 (WORKING_SET).
+  cobre: 22 h é pouco, e o bucket de standby terminou em 20 (WORKING_SET). Desde
+  21/09 às 17:47 o protótipo não é aberto: a janela está correndo agora.
 
 **Antes de trabalhar:** seguir o "Procedimento de início de sessão" mais abaixo.
 

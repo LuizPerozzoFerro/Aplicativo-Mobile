@@ -115,8 +115,10 @@ export interface MonitoringModule {
 
   /**
    * Segunda via de leitura do uso, reconstruida a partir do fluxo de eventos.
-   * Depois do teste no aparelho, esta e a via recomendada: o getUsageToday conta
-   * tempo de tela apagada (ver "Achado A1" em NOTAS.md).
+   * Depois do teste no aparelho, esta e a via recomendada: o getUsageToday
+   * atrasa varios minutos e atribui uso de ontem ao dia seguinte, o que o
+   * inviabiliza como gatilho de alerta (ver "Achado A1" em NOTAS.md). A hipotese
+   * de que ele contava tempo de tela apagada foi medida e retirada.
    */
   getUsageTodayFromEvents(): Promise<UsageEntry[] | Unsupported>;
 
