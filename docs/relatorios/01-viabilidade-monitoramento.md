@@ -151,12 +151,12 @@ submeter.
 | Android | `FOREGROUND_SERVICE_SPECIAL_USE` + tipo `specialUse` | `<property>` no manifesto com justificativa em texto livre lida por **revisor humano**, mais declaração no Play Console (descrição, impacto se a tarefa for adiada, vídeo) e os cinco critérios da política de serviços em primeiro plano | **Alto de execução.** O quinto critério é "rodar só o tempo necessário", e o monitoramento roda o dia inteiro. Os outros quatro dão defesa: o usuário liga, a notificação é perceptível, ele desliga quando quiser, e adiar significa não avisar na hora do risco (I-2) |
 | Android | `FOREGROUND_SERVICE_SYSTEM_EXEMPTED` + tipo `systemExempted` (VPN) | O Android só libera esse tipo para casos listados, entre eles apps de VPN; fora deles, exceção em tempo de execução. Em troca, a política **isenta** esse tipo dos cinco critérios | **Médio.** A isenção só vale enquanto somos a VPN ativa. Se outra VPN revogar a nossa (A8), subir o serviço de novo pode estourar exceção |
 | Android | `SYSTEM_ALERT_WINDOW` (sobreposição) | Permissão especial: mandar o usuário aos Ajustes sem manipulação, só para funcionalidade central promovida na ficha. A política de comportamento enganoso proíbe imitar avisos do sistema. A própria referência do Android diz que pouquíssimos apps deveriam usá-la | **Alto.** Some-se que a documentação enquadra "atividade sobre o app em uso" como sequestro de interface (I-7). A tela precisa se identificar como nossa, sem parecer aviso do Android |
-| Android | `VpnService` | Funcionalidade central de VPN **ou** uma das exceções, que incluem "acompanhamento de uso de apps". Documentar na ficha, **criptografar os dados até o ponto final do túnel**, e preencher formulário no Play Console com dois vídeos de até 90 s | **Alto.** A seção de VPN vale desde 01/01/2026 e pressupõe servidor remoto e túnel, que **não existem** num desenho local. Há leitura favorável ("App usage tracking" é opção do formulário, e a nossa privacidade é maior do que a política pressupõe), mas a decisão é de um revisor humano (I-19) |
+| Android | `VpnService` | Funcionalidade central de VPN **ou** uma das exceções, que incluem "acompanhamento de uso de apps". Documentar na ficha, **criptografar os dados até o ponto final do túnel**, e preencher formulário no Play Console com dois vídeos de até 90 s. Na página de tipos de conta, o Google recomenda conta de **organização** para apps aprovados a usar o VpnService ([tipos de conta](https://support.google.com/googleplay/android-developer/answer/13634885)) | **Alto.** A seção de VPN vale desde 01/01/2026 e pressupõe servidor remoto e túnel, que **não existem** num desenho local. Há leitura favorável ("App usage tracking" é opção do formulário, e a nossa privacidade é maior do que a política pressupõe), mas a decisão é de um revisor humano (I-19). A releitura do texto integral em 24/09/2026 confirma que as exceções pressupõem servidor remoto e que a criptografia vai até o ponto final do túnel ([política](https://support.google.com/googleplay/android-developer/answer/16558241)) |
 | Android | `POST_NOTIFICATIONS` | Permissão de runtime comum; degradar com elegância se negada | **Baixo**, já tratado (I-6) |
 | Android | `RECEIVE_BOOT_COMPLETED` | Nível normal, sem declaração | Nenhum |
 | Android | `HIDE_OVERLAY_WINDOWS` | Nível normal, concedida na instalação | Nenhum para nós — o problema é que **qualquer outro app** a tem (I-25) |
 | iOS | Entitlement Family Controls (Distribution), bundle IDs de extensões, regras do Screen Time | **Não pesquisado** (I14). O que se sabe vem do doc 02: o entitlement é exigido para TestFlight e App Store, por bundle ID e por extensão (T2) | **Não avaliado** |
-| Ambas | Tema sensível: classificação indicativa, o que pode aparecer em texto e imagens, cobrança | **Não pesquisado.** É a lacuna mais importante que sobra do A10 | **Não avaliado** (R6 do doc 01) |
+| Android | Tema sensível, saúde, idade e cobrança (Google Play) | **Conteúdo sexual:** a política proíbe apps que contenham ou promovam pornografia, inclusive texto explícito e palavras adultas na ficha e no app ([Inappropriate Content](https://support.google.com/googleplay/android-developer/answer/9878810)). Não achei menção a apps de bloqueio ou recuperação. **Saúde:** o app deve entrar na política de apps de saúde, que inclui o bem-estar mental ([categorias](https://support.google.com/googleplay/android-developer/answer/13996367)); isso é dedução, ainda não confirmada. Nesse caso são exigidos a declaração no Play Console, a política de privacidade na loja e no app e, com afirmações de saúde, o aviso de que não é dispositivo médico ([Health Content and Services](https://support.google.com/googleplay/android-developer/answer/16679511)). **Cobrança:** assinatura exige o Google Play Billing e proíbe levar o usuário a outro meio de pagamento ([Payments](https://support.google.com/googleplay/android-developer/answer/9858738)). Assinaturas pagam 15% no Brasil ([taxas](https://support.google.com/googleplay/android-developer/answer/112622)). Preço, renovação, teste e cancelamento têm regras próprias ([Subscriptions](https://support.google.com/googleplay/android-developer/answer/9900533)). **Idade:** o Digital ECA obriga apps voltados a menores, ou provavelmente acessados por eles, a usar a faixa etária fornecida pelas lojas. O Play bloqueia ou filtra apps classificados 18+ para menores no Brasil, e cabe ao desenvolvedor decidir como a lei se aplica ao app ([requisitos por país](https://support.google.com/googleplay/android-developer/answer/6223646)). **Classificação e declarações:** todo app precisa responder ao questionário de classificação (IARC), que só aparece dentro do Play Console. O resultado inclui a nota da ClassInd no Brasil, a resposta precisa ser exata e a autoridade pode alterar a nota ([classificação](https://support.google.com/googleplay/android-developer/answer/9859655)). A declaração de recursos financeiros é obrigatória mesmo para apps sem esses recursos ([declaração](https://support.google.com/googleplay/android-developer/answer/13849271)). A política de jogos de azar trata de apps que permitem ou facilitam apostar com dinheiro, o que o nosso não faz ([política](https://support.google.com/googleplay/android-developer/answer/9877032)). **Recebimento no Brasil:** o vendedor precisa informar dados da empresa e dos responsáveis, e empresas brasileiras enviam CPF e CNPJ (mesma página dos requisitos por país) | **Médio, controlável.** Depende da redação da ficha, das telas e dos vídeos e das declarações. O questionário de classificação só pode ser lido dentro do Play Console, e a política de jogos de azar não se aplica ao que o app faz. Tema na App Store não pesquisado (R6 do doc 01) |
 
 **O que o desenho local paga a favor.** A política define "coletar" como
 transmitir dado para fora do aparelho, e dado processado **apenas** no aparelho
@@ -417,12 +417,16 @@ mudanças são decisão do responsável, fora do Claude Code.**
 
 - [x] Experimentos Android com resultado registrado, inclusive limitações e
       tentativas malsucedidas.
-- [ ] **Experimentos iOS** — nenhum iniciado.
+- [ ] **Experimentos iOS** — nenhum iniciado. Fora do critério de saída da Fase 1
+      (decisão de 24/09/2026): passam para a fase iOS, depois da primeira versão
+      Android.
 - [x] Roteiros T1 a T8 e T10 executados no aparelho real.
-- [ ] **T9 e a repetição de T1–T8 e T10 no iPhone.**
+- [ ] **T9 e a repetição dos roteiros no iPhone** — fora do critério de saída da
+      Fase 1, pelo mesmo motivo.
 - [ ] **Q1 a Q9 respondidas para as duas plataformas** — hoje só para o Android.
-- [x] Relatório de viabilidade escrito (este documento, versão 0.1).
-- [ ] Revisão no chat de planejamento e atualização dos docs 01 e 02.
+      O critério da Fase 1 passa a exigir só o Android.
+- [x] Relatório de viabilidade escrito.
+- [ ] Revisão no chat de planejamento e atualização dos documentos 01 e 02.
 
 ### 9.2 Bloqueado por terceiros
 
@@ -452,23 +456,71 @@ mudanças são decisão do responsável, fora do Claude Code.**
 
 ### 9.4 Pesquisa que falta
 
-- Regras das lojas para o **tema**: classificação indicativa, conteúdo sexual, o
-  que pode aparecer em texto e imagens (R6). É a lacuna mais importante do A10.
-- **Google Play Billing** obrigatório para a assinatura.
+- **Tema (Google Play):** feito em 24/09/2026, com o resultado na seção 5. Falta
+  a checagem jurídica de como o Digital ECA se aplica ao app. O questionário de
+  classificação só pode ser respondido dentro do Play Console.
+- **Google Play Billing:** feito em 24/09/2026. É obrigatório para a assinatura,
+  e o Brasil paga 15%. Falta confirmar no Play Console se há cobrança
+  alternativa para o Brasil, porque as fontes divergem.
 - Políticas equivalentes da **App Store**, incluindo o pedido de Family Controls
   (Distribution) e casos de rejeição (I14).
 
-### 9.5 Decisões que dependem do responsável
+### 9.5 A preparar para a submissão ao Google Play
 
-1. **Submeter ou não uma VPN local ao Google Play** (I-19). A alternativa é tirar
-   a detecção de domínios do MVP, o que enfraquece a compulsão de pornografia
-   justamente no Android.
-2. **O navegador conta no limite?** Recomendação: não contar tempo, usar como
-   gatilho de alerta (I-21).
-3. **Duração da pausa, saídas que pausam e teto diário de interrupções** (I-16).
-4. **"Ir para a tela inicial" conta como vitória** nas estatísticas? (I-15)
-5. **Como tratar o nome e o ícone** visíveis o dia inteiro na barra de status,
-   dado o princípio P7 (I-1, I-11).
+- **Conta de desenvolvedor:** decisão pendente entre pessoa física e empresa. O
+  Google recomenda conta de organização para apps com VpnService, e a
+  organização exige CNPJ e número D-U-N-S.
+- **Verificação de desenvolvedor Android:** a partir de 30/09/2026, no Brasil, os
+  apps precisam estar registrados por um desenvolvedor verificado para instalar
+  em aparelhos certificados. Instalação por adb não é afetada.
+- **Três vídeos:** dois para a VPN, de até 90 s cada (o app com a VPN em uso, e a
+  divulgação destacada com os fluxos de consentimento e de recusa), e um para o
+  serviço em primeiro plano.
+- **Declarações no Play Console:** VpnService, serviço em primeiro plano,
+  recursos financeiros (sem recursos), questionário de classificação e, se
+  confirmado, apps de saúde.
+- **Verificação de vendedor no Brasil:** dados da empresa e dos responsáveis, com
+  CPF e CNPJ para empresas brasileiras.
+- **Google Play Billing** na assinatura, com as regras de assinatura da seção 5.
+- **Redação da ficha e das telas** sem termos explícitos nem nomes de sites, e
+  domínio de teste neutro nos vídeos.
+- **Build sem VPN** como plano B, sem substituir a revisão do Google.
+
+### 9.6 Decisões do responsável (24/09/2026)
+
+Decididas em 24/09/2026, em conversa com o Claude sobre este relatório. Elas
+respondem às cinco perguntas que estavam em aberto e registram as definições que
+surgiram na conversa.
+
+| Tema | Decisão |
+|---|---|
+| Ordem de lançamento | Android primeiro. O iOS segue depois de publicada a primeira versão Android |
+| VPN local no Google Play | Direção: submeter a VPN local ao Google Play. Formato: build com VPN declarada e uma variante sem VPN como plano B (ver abaixo) |
+| Navegador | Não conta no limite. O acesso a domínios da lista pelo navegador só gera alerta |
+| O que conta como interrupção | Toda tela de interrupção exibida. "Emergência" não conta |
+| Teto de interrupções | Depois da terceira interrupção, a tela oferece o botão "Ignorar o limite por hoje" |
+| Reprovação do dia | Só reprovam o dia, zerando o streak: "Ignorar o limite por hoje" e o terceiro "Continuar mesmo assim" |
+| Depois de ignorar | Nenhum alerta adicional no resto do dia |
+| Duração da pausa | 5 minutos depois de "Continuar mesmo assim" |
+| "Ir para a tela inicial" | Conta como vitória, porque o usuário interrompeu o uso da rede social |
+| Notificação de motivação | Enviar uma notificação especial no começo do dia seguinte à quebra do streak |
+| Ícone e nome visíveis | Manter o atual por enquanto, neutro e sem esconder. O teste de importância mínima do canal pode ser reavaliado no beta |
+
+**Confirmadas pelo responsável em 24/09/2026.** Propostas feitas na conversa e
+aceitas:
+
+- Depois do terceiro "Continuar mesmo assim", o app também deixa de interromper
+  até a meia-noite, como no "Ignorar o limite por hoje".
+- Avisar na tela, antes do terceiro "Continuar mesmo assim", que ele encerra a
+  meta do dia.
+- Só "Continuar mesmo assim" pausa. "Ir para a tela inicial" e "Emergência" não
+  pausam, como no protótipo.
+- Notificação do dia seguinte: texto neutro, enviada só quando havia streak a
+  perder, com agendamento que sobreviva ao reinício do aparelho.
+- VPN em build separado, com uma variante sem VPN como plano B. Isso não
+  substitui a revisão do Google, e o build com VPN é sempre declarado.
+- Redefinir o critério de saída da Fase 1 para Android, registrar o iOS como fase
+  posterior e refletir as decisões acima nos documentos 01 e 02.
 
 ---
 
