@@ -1,6 +1,6 @@
 # Relatório de Viabilidade — Monitoramento
 
-> **Versão 0.2 · 24/09/2026 ·** entregável da Fase 1, na estrutura da seção 9 da
+> **Versão 0.3 · 24/09/2026 ·** entregável da Fase 1, na estrutura da seção 9 da
 > `docs/specs/spec-00-prototipo-monitoramento.md`.
 >
 > **Cobertura:** Android completo — S1, S4, A1 a A10, C2 e os roteiros T1 a T8 e
@@ -530,3 +530,4 @@ aceitas:
 |---|---|---|
 | 0.1 | 24/09/2026 | Primeira versão. Android completo; iOS não iniciado |
 | 0.2 | 24/09/2026 | Fecha o A9 com os três dias parados: a Samsung não suspendeu o app, e uma atualização do WebView matou o processo, com os serviços recriados em 2,5 s (I-31). Acrescenta a janela de bateria de 3d17h |
+| 0.3 | 24/09/2026 | Seção 5: conta de organização recomendada para o `VpnService` e releitura da política de VPN; o tema sensível deixa de ser lacuna, com conteúdo sexual, saúde, cobrança, idade e classificação no Google Play. Seção 9: o critério de saída da Fase 1 passa a ser só Android, entra "A preparar para a submissão ao Google Play" e as decisões do responsável viram tabela |
