@@ -29,21 +29,27 @@ for pkg in "$@"; do
   sleep "$WAIT"
 
   # Linhas da janela do pacote: cabecalho "Window #N Window{... u0 pkg/Activity}:"
-  # seguido, algumas linhas abaixo, de "mAttrs={... fl=... pfl=...}".
+  # seguido de "mAttrs={...}". No Android 16 (medido em 25/10/2026) o fl e o pfl
+  # vem em linhas separadas, abaixo do mAttrs ("      fl=81810100" e
+  # "      pfl=100888c0"); em versoes antigas vinham na mesma linha. Os dois casos
+  # sao tratados.
   out=$(adb shell dumpsys window windows | tr -d '\r' | awk -v pkg="$pkg" '
     /Window #[0-9]+ Window\{/ {
-      cur = ""
+      cur = ""; fl = ""
       if (index($0, " u0 " pkg "/") > 0) {
         cur = $0
         sub(/.* u0 /, "", cur); sub(/\}:?$/, "", cur)
       }
     }
-    cur != "" && /mAttrs=/ {
-      fl = ""; pfl = ""
-      if (match($0, / fl=[0-9a-fx]+/))  { fl  = substr($0, RSTART + 4, RLENGTH - 4) }
-      if (match($0, / pfl=[0-9a-fx]+/)) { pfl = substr($0, RSTART + 5, RLENGTH - 5) }
-      print cur "|" fl "|" pfl
-      cur = ""
+    cur != "" {
+      if (match($0, /(^|[ \t])fl=[0-9a-fx]+/)) {
+        s = substr($0, RSTART, RLENGTH); sub(/.*fl=/, "", s); fl = s
+      }
+      if (match($0, /(^|[ \t])pfl=[0-9a-fx]+/)) {
+        s = substr($0, RSTART, RLENGTH); sub(/.*pfl=/, "", s)
+        print cur "|" fl "|" s
+        cur = ""
+      }
     }')
 
   if [ -z "$out" ]; then

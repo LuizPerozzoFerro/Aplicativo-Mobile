@@ -1,0 +1,42 @@
+I-25 — varredura de apps financeiros e de aposta (25/10/2026, 23:1x–23:3x)
+=====================================================================
+Aparelho: Galaxy S22, Android 16, no cabo. Script: prototype/scripts/i25-scan.sh
+(bit 0x00080000 do pfl em `dumpsys window windows` = HIDE_NON_SYSTEM_OVERLAY_WINDOWS).
+Só a tela de abertura de cada app, sem login, sem conta, sem captura de tela.
+Registrados apenas pacote, activity e flags. Nada de saldo ou dado pessoal.
+
+Validação do script antes de medir os apps (mesmo aparelho, mesmo dia):
+  controle  com.norte.labtarget  MainActivity   protegida=SIM  pfl=100888c0
+  controle  com.android.chrome   Main           protegida=NAO  pfl=10008840
+  Coerente com a varredura de 20/09 (alvo protege, Chrome não).
+  O script precisou de correção: no Android 16 o `fl` e o `pfl` vêm em linhas
+  separadas abaixo de `mAttrs={`, e a primeira versão esperava tudo na mesma linha
+  (devolveu pfl vazio). Corrigido e revalidado nos dois controles.
+
+Resultado (espera de 9 s por app, 20 s no Nubank):
+
+  app                  pacote                               tela medida                       protegida  FLAG_SECURE
+  Nubank               com.nu.production                    LegacySplashActivity              SIM        nao
+  Inter                br.com.intermedium                   login.ui.LoginActivity            nao        nao
+  Caixa                br.com.gabba.Caixa                   HomeActivity_                     nao        nao
+  FGTS (Caixa)         br.gov.caixa.fgts.trabalhador        BoasVindasLoginActivity           nao        nao
+  Clear (XP)           br.com.xpinc.clear.app.android       CommonsFlutterFragmentActivity    nao        nao
+  Bet365               com.bet365Wrapper.Bet365_Application sportsbook.MainActivity           nao        nao
+  Binance              com.binance.dev                      NezhaNormalActivity (+2 janelas)  nao        nao
+
+Nubank, conferido de novo:
+  - Segunda rodada, 20 s de espera: mesma activity, pfl=10088840, protegida=SIM.
+  - Com o app aberto por 12 s, `topResumedActivity` seguia em LegacySplashActivity
+    e o pfl da janela era 10088840 (bit ligado). Ou seja, a janela principal que o
+    usuário vê no momento da medição é a protegida; não é só uma abertura passageira.
+  - FALTA provar o EFEITO: a flag ligada deveria apagar a nossa sobreposição, como
+    no app de teste (19/09), mas isso só se confirma monitorando o Nubank com um
+    limite curto e vendo `interruption_suppressed` no log.
+
+Não instalados no aparelho (não medidos): Itaú, Bradesco, Banco do Brasil,
+Santander, C6, PicPay, Mercado Pago, Betano, Superbet, Sportingbet e as demais casas
+de aposta. `pm list packages` ainda avisou "Shell does not have permission to access
+user 150": há outro perfil de usuário (provavelmente Pasta Segura); apps instalados
+nele não foram varridos.
+
+Cobertura: 7 apps financeiros (1 protege). Apenas 1 casa de aposta (meta: 4+).

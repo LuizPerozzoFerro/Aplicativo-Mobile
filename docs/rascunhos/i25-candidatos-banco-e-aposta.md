@@ -127,16 +127,39 @@ com.exemplo.banco | com.exemplo.banco.Main | protegida=NAO | FLAG_SECURE=sim | p
 Valores possíveis de `protegida`: `SIM` (apaga a nossa sobreposição), `NAO`, ou a
 linha inteira como `NAO INSTALADO` / `SEM JANELA`.
 
-**Estado do script:** a sintaxe foi checada e a extração do `pfl` foi testada
-contra um trecho sintético de `dumpsys`. **Ainda não rodou em aparelho** real:
-o primeiro uso pode exigir ajuste de formato, por exemplo se o Android 16 imprimir
-`mAttrs` de outro jeito.
+**Estado do script:** rodou no S22 (Android 16) em 25/10/2026. A primeira versão
+falhou: o Android 16 imprime `fl` e `pfl` em linhas separadas abaixo de `mAttrs`,
+e o script devolveu `pfl` vazio. Corrigido e validado contra os dois controles do
+dia (app de teste: `SIM`; Chrome: `NAO`), iguais aos de 20/09.
 
-## Tabela de resultado (preencher)
+## Resultado da primeira rodada (25/10/2026)
 
-| App | Pacote | Tela medida | Protegida? | FLAG_SECURE | Observação |
-|---|---|---|---|---|---|
-| | | | | | |
+Evidência em `docs/relatorios/evidencias/i25-bancos-e-apostas.txt`. Só a tela de
+abertura, sem login e sem conta. Medidos os apps que **já estavam instalados**.
+
+| App | Pacote | Tela medida | Protegida? | FLAG_SECURE |
+|---|---|---|---|---|
+| **Nubank** | `com.nu.production` | `LegacySplashActivity` | **SIM** | não |
+| Inter | `br.com.intermedium` | `LoginActivity` | não | não |
+| Caixa | `br.com.gabba.Caixa` | `HomeActivity_` | não | não |
+| FGTS (Caixa) | `br.gov.caixa.fgts.trabalhador` | `BoasVindasLoginActivity` | não | não |
+| Clear (XP) | `br.com.xpinc.clear.app.android` | `CommonsFlutterFragmentActivity` | não | não |
+| Bet365 | `com.bet365Wrapper.Bet365_Application` | `MainActivity` | não | não |
+| Binance | `com.binance.dev` | `NezhaNormalActivity` | não | não |
+
+**Leitura:**
+- **1 de 7 protege** (Nubank), e a janela principal que o usuário vê é a protegida
+  (conferido duas vezes, até 20 s depois de abrir). É o primeiro app real, fora
+  do nosso app de teste, que liga a proteção. O risco do I-25 deixa de ser só
+  teórico.
+- **O efeito ainda não foi provado.** A flag ligada deveria apagar a nossa
+  sobreposição, como no app de teste de 19/09. Falta monitorar o Nubank com um
+  limite curto e ver `interruption_suppressed` no log.
+- **Só 1 casa de aposta medida** (Bet365: não protege, tela de abertura). A meta
+  era 4 ou mais; **a conclusão sobre apostas ainda não vale.**
+- Não instalados: Itaú, Bradesco, Banco do Brasil, Santander, C6, PicPay, Mercado
+  Pago e as outras casas de aposta. Apps no outro perfil do aparelho (usuário 150,
+  provavelmente Pasta Segura) não foram varridos.
 
 ## Como ler o resultado
 
