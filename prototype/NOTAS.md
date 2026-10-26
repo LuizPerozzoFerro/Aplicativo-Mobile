@@ -221,6 +221,11 @@ iOS.
 
 **Pendências que dependem do aparelho:**
 - Amostra de **apps de aposta e de banco** com a proteção do I-25 (Fase 2).
+  **Preparada em 25/10/2026, ainda não medida:** lista de candidatos e regras em
+  `docs/rascunhos/i25-candidatos-banco-e-aposta.md`, script em
+  `prototype/scripts/i25-scan.sh` (sintaxe e extração testadas contra texto
+  sintético; **nunca rodou em aparelho**). Faltam os nomes de pacote
+  confirmados no aparelho.
 - **Um dia de uso pesado**, com bateria medida num build sem o dev client (P8).
 
 **Antes de trabalhar:** seguir o "Procedimento de início de sessão" mais abaixo.
