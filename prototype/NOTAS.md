@@ -153,7 +153,12 @@ madrugada de 19/09, retomada às 14:27):
 desenvolvedor do Google Play criada, **aguardando aprovação da documentação**.
 Foco **100% no Android** por enquanto. Decisão **D6**: a primeira versão
 publicada sai **sem a VPN** (ver Decisões). Rascunho das justificativas de
-permissão em `docs/rascunhos/play-console-justificativas.md`.
+permissão em `docs/rascunhos/play-console-justificativas.md`. Também em
+`docs/rascunhos/`: `politica-de-privacidade.md` (PT e EN),
+`privacidade-e-seguranca-de-dados.md` (respostas do formulário; corrige que o
+app definitivo **tem** coleta pequena, de RevenueCat e Sentry) e
+`roteiro-video-servico-primeiro-plano.md`. Todos são rascunhos: dependem de nome
+do app, empresa, escolha de analytics e revisão jurídica.
 
 **Próximo passo: revisão do relatório com o responsável**, no chat de
 planejamento, e a atualização dos documentos 01 e 02 a partir da seção 8 dele —
