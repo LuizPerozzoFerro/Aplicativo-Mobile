@@ -152,9 +152,13 @@ abertura, sem login e sem conta. Medidos os apps que **já estavam instalados**.
   (conferido duas vezes, até 20 s depois de abrir). É o primeiro app real, fora
   do nosso app de teste, que liga a proteção. O risco do I-25 deixa de ser só
   teórico.
-- **O efeito ainda não foi provado.** A flag ligada deveria apagar a nossa
-  sobreposição, como no app de teste de 19/09. Falta monitorar o Nubank com um
-  limite curto e ver `interruption_suppressed` no log.
+- **O efeito foi provado no mesmo dia (23:51–23:57).** Com o Nubank na frente e
+  limite de 2 min, o limite estourou e a notificação chegou, mas a sobreposição
+  foi **suprimida duas vezes** (`interruption_suppressed`: janela adicionada e
+  desenhada, **sem foco**), descartada em 20 s e reagendada pelo recuo de 1 e 2
+  min. Mesma assinatura do app de teste de 19/09. **Nesse app, a sobreposição
+  não entrega a interrupção; só a notificação chega.** Evidência no fim de
+  `i25-bancos-e-apostas.txt`. Sem confirmação visual do responsável.
 - **Só 1 casa de aposta medida** (Bet365: não protege, tela de abertura). A meta
   era 4 ou mais; **a conclusão sobre apostas ainda não vale.**
 - Não instalados: Itaú, Bradesco, Banco do Brasil, Santander, C6, PicPay, Mercado

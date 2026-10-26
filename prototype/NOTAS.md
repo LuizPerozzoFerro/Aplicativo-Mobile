@@ -223,9 +223,11 @@ iOS.
 - Amostra de **apps de aposta e de banco** com a proteção do I-25 (Fase 2).
   **Primeira rodada em 25/10/2026:** 7 apps financeiros já instalados, só a tela
   de abertura. **Nubank protege (SIM)**; Inter, Caixa, FGTS, Clear, Binance e
-  Bet365 não. Primeiro app real a ligar a proteção, mas o efeito sobre a nossa
-  sobreposição **ainda não foi provado**, e só 1 casa de aposta foi medida (meta:
-  4+). Lista e regras em `docs/rascunhos/i25-candidatos-banco-e-aposta.md`,
+  Bet365 não. Primeiro app real a ligar a proteção, e **o efeito foi provado no
+  mesmo dia** (23:51–23:57): com o Nubank na frente e limite de 2 min, a
+  notificação chegou mas a sobreposição foi suprimida duas vezes (sem foco, mesma
+  assinatura do app de teste); só uma casa de aposta foi medida (meta: 4+).
+  Laboratório restaurado em 600 min no Instagram. Lista e regras em `docs/rascunhos/i25-candidatos-banco-e-aposta.md`,
   evidência em `docs/relatorios/evidencias/i25-bancos-e-apostas.txt`, script em
   `prototype/scripts/i25-scan.sh` (corrigido: no Android 16 `fl` e `pfl` vêm em
   linhas separadas).

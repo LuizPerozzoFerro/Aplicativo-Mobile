@@ -40,3 +40,35 @@ user 150": há outro perfil de usuário (provavelmente Pasta Segura); apps insta
 nele não foram varridos.
 
 Cobertura: 7 apps financeiros (1 protege). Apenas 1 casa de aposta (meta: 4+).
+
+=====================================================================
+## Prova do efeito no Nubank (25/10/2026, 23:51–23:57)
+  Laboratório monitorando só com.nu.production, limite de 2 min, modo
+  sobreposição, pausa de 2 min. Nubank aberto e deixado na frente (a tela de
+  abertura, LegacySplashActivity), sem login. Eventos do log compartilhado:
+
+  23:51:46  limit_configured   2 min para 1 app(s) · abordagem: overlay
+  23:53:25  threshold_reached  2 min de uso para limite de 2 min
+  23:53:25  notification_sent  (nível 1, A3: a notificação CHEGA)
+  23:53:45  interruption_suppressed
+            abordagem: sobreposicao · foco: nao · janela visivel: sim ·
+            isShown: sim · desenhou: sim
+  23:54:05  interruption_discarded   suprimida por 20 s
+  23:54:05  interruption_backoff     supressão 1 · próxima tentativa em 1 min
+  23:55:26  interruption_suppressed  (mesma assinatura)
+  23:55:46  interruption_discarded   suprimida por 20 s
+  23:55:46  interruption_backoff     supressão 2 · próxima tentativa em 2 min
+  23:57:25  interruption_backoff_reset  saiu do app monitorado
+
+  Leitura: a janela foi adicionada e desenhada (isShown, desenhou, visivel: sim),
+  mas **não recebeu foco**, que é a assinatura que a correção do I-28 identificou
+  para a sobreposição apagada por setHideOverlayWindows (19/09, app de teste). O
+  recuo progressivo de 1, 2, 5 e 15 min funcionou como projetado.
+  Duas tentativas, as duas suprimidas. A notificação do A3 foi a única coisa que
+  chegou ao usuário.
+
+  Não houve confirmação visual do responsável no momento do teste; a prova é a do
+  log (foco) mais o pfl da janela (bit ligado, rodada anterior).
+
+  Restaurado ao fim: limite de 600 min no Instagram, modo sobreposição
+  (23:57:49 limit_configured). Metro encerrado.
