@@ -1598,6 +1598,20 @@ o app definitivo vai precisar por ser assinatura.
 - Obrigatoriedade do Google Play Billing para a assinatura.
 - Políticas equivalentes da App Store, que ficam com o grupo do iOS.
 
+#### Revalidação em 25/10/2026
+
+Páginas oficiais relidas (serviço em primeiro plano, `VpnService`, dados
+sensíveis). Tudo o que está acima segue valendo, com **uma correção de
+leitura na VPN**: a lista de exceções (inclusive *App usage tracking*) é
+introduzida por "apps que exigem um servidor remoto para a funcionalidade
+central". A "leitura favorável" de 19/09 fica **mais fraca**: o nosso desenho
+local não é o caso descrito, e a página não menciona VPN local. Se a opção for
+*None of the above*, o app é rejeitado salvo explicação detalhada. Mais um
+achado: a `<property>` do `specialUse` está em português no manifesto e é lida
+por revisor do Google; trocar para inglês antes de publicar. Textos prontos e
+tabela de respostas do formulário em
+`docs/rascunhos/play-console-justificativas.md`.
+
 ### Achado C2 ✅ — os textos são neutros, e o que vaza não vem deles
 
 **Conferido em 20/09/2026, das 16:25 às 16:55**, com o responsável operando os
