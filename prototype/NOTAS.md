@@ -1646,6 +1646,19 @@ por revisor do Google; trocar para inglês antes de publicar. Textos prontos e
 tabela de respostas do formulário em
 `docs/rascunhos/play-console-justificativas.md`.
 
+#### Regras da loja para o tema, a ficha e a cobrança (25/10/2026)
+
+A lacuna "o que não foi pesquisado" ficou **fechada em parte**, em
+`docs/rascunhos/regras-da-loja-tema-e-cobranca.md`. O tema não é proibido (a
+política veda apps que *contêm ou promovem* conteúdo sexual), mas a ficha
+precisa de linguagem neutra, o que tira o app das buscas pelo termo explícito.
+Há declaração de saúde obrigatória, aviso de "não é dispositivo médico",
+Play Billing para a assinatura e, no Brasil, verificação de comerciante, ECA
+Digital e filtro de apps 18+ para menores. **A questão que mais pesa e que
+só o jurídico responde:** o app ser procurado por adolescentes. Ficaram sem
+confirmar as perguntas do questionário IARC, a data do filtro 18+ e as regras de
+divulgação de assinatura.
+
 ### Achado C2 ✅ — os textos são neutros, e o que vaza não vem deles
 
 **Conferido em 20/09/2026, das 16:25 às 16:55**, com o responsável operando os
