@@ -149,6 +149,12 @@ madrugada de 19/09, retomada às 14:27):
   o acelerômetro do `ShakeDetector` ficou registrado 2,5 dias e respondeu por
   1,03 dos 5,93 mAh.
 
+**Atualização de 25/10/2026:** projeto retomado após um mês parado. Conta de
+desenvolvedor do Google Play criada, **aguardando aprovação da documentação**.
+Foco **100% no Android** por enquanto. Decisão **D6**: a primeira versão
+publicada sai **sem a VPN** (ver Decisões). Rascunho das justificativas de
+permissão em `docs/rascunhos/play-console-justificativas.md`.
+
 **Próximo passo: revisão do relatório com o responsável**, no chat de
 planejamento, e a atualização dos documentos 01 e 02 a partir da seção 8 dele —
 decisão que acontece **fora do Claude Code** (`CLAUDE.md` §3).
@@ -309,6 +315,29 @@ Decidido com o responsável em 18/09/2026, antes da implementação.
   dois.
 - **Sem biblioteca** (§8.2): o mínimo de IPv4, UDP e DNS foi escrito à mão.
 - **Domínios de teste:** example.com e example.org, reservados pela IANA.
+
+### D6 — Primeira versão publicada sem VPN (decidido em 25/10/2026)
+Decisão do responsável, depois da revalidação das políticas do Play (ver
+"Achado A10 → Revalidação em 25/10/2026").
+
+- **A primeira versão publicada não inclui a VPN local.** O `VpnService`, o
+  formulário de declaração com dois vídeos e a divulgação destacada específica
+  ficam para uma versão posterior.
+- **Motivo:** as exceções da política de `VpnService` pressupõem servidor remoto;
+  o nosso desenho local não é o caso descrito e não há precedente escrito. Pôr a
+  VPN na primeira submissão arriscaria a aprovação do resto (uso de apps, limite
+  e interrupção), que não depende dela.
+- **O que fica:** A1, A2, A3, A4 e A5 (uso de apps, serviço em primeiro plano,
+  alerta, interrupção e pausa). A6, A7 e A8 continuam registrados como
+  resultado de viabilidade (⚠️): a tecnologia funciona, a distribuição pela loja
+  é que ficou para depois.
+- **Consequência:** o monitoramento de domínios (pornografia pelo navegador, A6,
+  e rede social pelo navegador, A7) **não existe** na primeira versão. Isso
+  atinge o escopo do documento 01 e é decisão de produto, a registrar na seção de
+  impactos do relatório e a tratar fora do Claude Code (`CLAUDE.md` §3).
+- **Código:** o protótipo mantém a VPN; a remoção só vale para o app
+  definitivo, na Fase 2. Do build publicado também saem `HIDE_OVERLAY_WINDOWS` e
+  `FOREGROUND_SERVICE_SYSTEM_EXEMPTED`, que só serviam à VPN e ao I-25.
 
 ---
 

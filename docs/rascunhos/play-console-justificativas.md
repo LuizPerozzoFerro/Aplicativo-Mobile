@@ -42,7 +42,11 @@ Consequências práticas:
 - Mudar o uso da API depois obriga a reenviar o formulário, e uso não declarado
   pode levar a suspensão.
 
-**Recomendação:** tratar a VPN como o componente mais frágil para a loja. O
+**Decisão do responsável (25/10/2026, D6 em `prototype/NOTAS.md`): a primeira
+versão publicada sai sem a VPN.** As partes sobre `VpnService` neste rascunho
+ficam guardadas para uma versão posterior.
+
+**Recomendação que levou a isso:** tratar a VPN como o componente mais frágil para a loja. O
 caminho de monitoramento por uso de apps (A1/A2) não depende dela; a VPN só
 entrega a parte de domínios (A6/A7). Vale decidir, no produto, se a VPN entra na
 primeira versão publicada ou numa versão posterior, para não pôr em risco a
