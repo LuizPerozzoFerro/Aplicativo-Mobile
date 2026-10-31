@@ -160,6 +160,11 @@ app definitivo **tem** coleta pequena, de RevenueCat e Sentry) e
 `roteiro-video-servico-primeiro-plano.md`. Todos são rascunhos: dependem de nome
 do app, empresa, escolha de analytics e revisão jurídica.
 
+**Atualização de 31/10/2026:** conta do Google Play **autenticada**. Relatório de
+viabilidade na **versão 0.4** (I-25 no Nubank, D6 e rascunhos de loja). Aguardando
+o responsável definir **nome e identificador do app** para criar o app no Console
+e abrir a Fase 2.
+
 **Próximo passo: revisão do relatório com o responsável**, no chat de
 planejamento, e a atualização dos documentos 01 e 02 a partir da seção 8 dele —
 decisão que acontece **fora do Claude Code** (`CLAUDE.md` §3).

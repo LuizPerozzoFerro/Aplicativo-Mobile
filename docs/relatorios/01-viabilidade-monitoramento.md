@@ -1,7 +1,12 @@
 # Relatório de Viabilidade — Monitoramento
 
-> **Versão 0.3 · 24/09/2026 ·** entregável da Fase 1, na estrutura da seção 9 da
+> **Versão 0.4 · 31/10/2026 ·** entregável da Fase 1, na estrutura da seção 9 da
 > `docs/specs/spec-00-prototipo-monitoramento.md`.
+>
+> **Novo na 0.4:** o I-25 passou de risco teórico a **fato medido em app real**
+> (o Nubank apaga a nossa sobreposição, seção 3.2); a decisão **D6** tira a VPN da
+> primeira versão publicada (seção 9.6); e a conta de desenvolvedor do Google Play
+> está autenticada (seção 9.5).
 >
 > **Cobertura:** Android completo — S1, S4, A1 a A10, C2 e os roteiros T1 a T8 e
 > T10. **O iOS não foi iniciado:** a conta Apple Developer pessoal não destravou,
@@ -34,8 +39,16 @@ principal: a política de VPN pressupõe servidor remoto e criptografia até o
 túnel, que não existem num desenho local (I-19), e tanto a sobreposição quanto o
 serviço `specialUse` dependem de revisão humana (I-7, I-2). A tela de
 interrupção não é garantida: qualquer app a esconde com uma linha de código
-(I-25). E a detecção por DNS é indício, não prova (I-20) — o tempo de rede
-social no navegador só se estima por aproximação (I-21).
+(I-25), e **isso já acontece em app real**: em 25/10/2026 o Nubank suprimiu duas
+vezes a nossa sobreposição, e só a notificação chegou ao usuário. E a detecção
+por DNS é indício, não prova (I-20) — o tempo de rede social no navegador só se
+estima por aproximação (I-21).
+
+**Consequência já decidida (D6, 25/10/2026): a primeira versão publicada sai sem
+a VPN.** A política do Play para `VpnService` pressupõe servidor remoto, e
+arriscar a aprovação do uso de apps, do limite e da interrupção por causa da
+detecção de domínios não compensa. Sem a VPN, **não há monitoramento de domínios
+na primeira versão**, o que atinge o escopo do doc 01 (seção 9.6).
 
 **O iOS não foi iniciado**, porque a conta Apple Developer não destravou. R1, R2
 e T7 seguem sem resposta: este relatório autoriza decisões de produto no Android
@@ -48,14 +61,14 @@ e nenhuma no iOS.
 | ID | Resposta iOS | Resposta Android | Impacto no produto |
 |---|---|---|---|
 | **Q1** — detectar tempo de uso e agir no limite, com o app fechado | **Não testado.** Depende de S2, S3 e I1–I6; R1 segue aberto | **✅ Sim.** `queryEvents` coincide com a contabilidade do sistema (A1) e o serviço em primeiro plano detecta o limite com o protótipo fechado em 3 a 9 s, num ciclo de 20 s (A2, A9) | Exige serviço em primeiro plano com **notificação permanente** o dia inteiro (I-1), contra o princípio P7. Não existe API de aviso de limite: `registerAppUsageObserver` não é pública, então só resta perguntar periodicamente |
-| **Q2** — detectar conteúdo adulto e **alertar sem bloquear** | **Não testado.** R2 aberto | **⚠️ Sim, com limitações.** VPN local só de DNS: `adult_domain_detected` e notificação 10 a 15 ms depois, com a página carregando normalmente (A6). O modo bloqueio também funciona | O DNS é indício, não prova (I-20): pré-carregamento alerta sem visita, página em cache abre sem consulta, e o próprio app da rede social consulta em segundo plano. **Nunca tratar detecção como recaída automática.** Risco alto de loja (I-19) |
-| **Q3** — tela de interrupção com motivação e "continuar mesmo assim" | **Não testado.** R4 aberto no iOS | **⚠️ Sim, com limitações.** As duas abordagens cumprem o critério (A4): a tela aparece sobre o Instagram com o protótipo fechado, mostra a motivação, e "Continuar" grava `continue_tapped` e devolve ao mesmo post | A sobreposição é a única em que "continuar" é de fato uma escolha (o voltar não escapa dela), mas **qualquer app pode escondê-la** (I-25) e o evento não prova que o usuário viu (I-28, corrigido no protótipo). A tela própria é a reserva — e vira a principal se o alvo for aposta |
+| **Q2** — detectar conteúdo adulto e **alertar sem bloquear** | **Não testado.** R2 aberto | **⚠️ Sim, com limitações.** VPN local só de DNS: `adult_domain_detected` e notificação 10 a 15 ms depois, com a página carregando normalmente (A6). O modo bloqueio também funciona | O DNS é indício, não prova (I-20): pré-carregamento alerta sem visita, página em cache abre sem consulta, e o próprio app da rede social consulta em segundo plano. **Nunca tratar detecção como recaída automática.** Risco alto de loja (I-19). **Fora da primeira versão publicada (D6, 25/10/2026)** |
+| **Q3** — tela de interrupção com motivação e "continuar mesmo assim" | **Não testado.** R4 aberto no iOS | **⚠️ Sim, com limitações.** As duas abordagens cumprem o critério (A4): a tela aparece sobre o Instagram com o protótipo fechado, mostra a motivação, e "Continuar" grava `continue_tapped` e devolve ao mesmo post | A sobreposição é a única em que "continuar" é de fato uma escolha (o voltar não escapa dela), mas **qualquer app pode escondê-la** (I-25) e o evento não prova que o usuário viu (I-28, corrigido no protótipo). **O Nubank já a esconde** (medido em 25/10/2026, 1 de 7 apps financeiros). A tela própria é a reserva — e vira a principal se o alvo for aposta ou banco |
 | **Q4** — monitorar redes sociais pelo **navegador** | **Não testado** | **⚠️ Em parte.** O acesso a instagram.com pelo Chrome é detectado e separado do uso pelo app (A7). O **tempo**, só por estimativa: +13% numa rodada de 5 min, resolução de ~1 min, e erro de −99% a +67% fora de uma faixa estreita de ajuste | Decidir entre contar o navegador no limite com precisão baixa ou usá-lo só como **gatilho de alerta** depois que o limite do app estoura (recomendado, seção 7). Hoje o limite não reage ao navegador, porque o Chrome não é app monitorado (T3, I-21) |
 | **Q5** — mostrar minutos de uso na nossa interface | **Não testado.** O doc 02 §4 prevê extensão de relatório isolada; é o risco T3 | **✅ Sim, sem restrição.** A leitura coincidiu com o sistema no mesmo minuto (A1) | Cards e estatísticas podem usar o dado à vontade no Android. Duas correções obrigatórias: calcular a **borda do dia** explicitamente (I-4) e **descontar** o tempo diante da tela de interrupção, que conta como uso do app monitorado (I-10) |
 | **Q6** — sobrevive em segundo plano, após reinício e com economia de bateria | **Não testado** (é o T9/I12) | **✅ Sim, com ressalvas.** 2 h 05 desconectado, 114 min em Doze profundo, detecção em 3 s (A9); **um dia inteiro sem nenhuma falha** (T6); economia de energia ligada em todas as janelas (T7). Volta sozinho após o reinício (T5) | Há **janela cega** a cada reinício: ~2,5 min até o `BOOT_COMPLETED` e só depois do primeiro desbloqueio (I-5). E **a VPN não volta** depois do boot (I-29): a detecção de domínios fica desligada em silêncio. O app precisa religá-la e avisar quando não conseguir |
 | **Q7** — build de desenvolvimento no iPhone desconectado dispara eventos do Screen Time | **Não testado.** É o T9; depende da conta Apple | Não se aplica | O risco T7 do doc 02 segue aberto, e é ele que decide se dá para desenvolver o iOS sem Mac ou se será preciso antecipar o entitlement de distribuição / Mac na nuvem |
 | **Q8** — biblioteca pronta ou módulo próprio | **Em aberto** (I13, não avaliado) | **Módulo próprio** (decisão D2). A biblioteca candidata cobria só o A1; serviço, notificação, sobreposição e VPN precisaram ser escritos de qualquer forma | O módulo do protótipo é base direta para a Fase 4 do doc 02, com as correções da seção 7. O build local (32 s incrementais) foi o que tornou a iteração viável (D1) |
-| **Q9** — permissões, declarações e risco de rejeição | **Não pesquisado** (I14) | Tabela completa na seção 5 (A10): dois riscos **altos** (VpnService e sobreposição) e um alto de execução (`specialUse`) | O desenho local paga bem: a seção de segurança de dados pode ser declarada **sem coleta** (I-27). Mas duas aprovações dependem de revisor humano, e a decisão de submeter uma VPN local precisa ser tomada antes da Fase 9 |
+| **Q9** — permissões, declarações e risco de rejeição | **Não pesquisado** (I14) | Tabela completa na seção 5 (A10): dois riscos **altos** (VpnService e sobreposição) e um alto de execução (`specialUse`) | O desenho local paga bem: a seção de segurança de dados pode ser declarada **sem coleta** (I-27). Mas duas aprovações dependem de revisor humano. A decisão sobre a VPN local foi tomada em 25/10/2026 (D6): fica fora da primeira versão |
 
 ---
 
@@ -81,6 +94,7 @@ tentado e não funcionou, estão em `prototype/NOTAS.md`.
 | A2 | ✅ Funciona | `a2-deteccao-de-limite.txt` | `threshold_reached` com o protótipo fora dos recentes, 9 s após cruzar o limite (ciclo de 20 s); 3 s na rodada após 2 h de Doze. Tipo de serviço `specialUse`, único disponível para "observar o uso de outros apps" |
 | A3 | ⚠️ Funciona com limitações | `a3-alerta-notificacao.txt` | Notificação disparada pelo Kotlin **14 ms** após a detecção, flutuando sobre o Instagram, com texto neutro configurável. **O botão "Emergência" só aparece se a notificação for expandida** — dois toques, contra o princípio P3 (I-3) |
 | A4 | ⚠️ Funciona com limitações | `a4-tela-de-interrupcao.txt`, `a4-instrumentacao-e-botao-inicio.txt`, `a4-protecao-contra-sobreposicao.txt`, `a4-notificacao-tela-cheia.txt` | Sobreposição e tela própria comparadas ponta a ponta. Sobreposição: o voltar não escapa, mas o sistema publica "exibido sobre outros apps" e o app monitorado segue em primeiro plano por baixo (I-10, I-11). Tela própria: o voltar dispensa sem escolha (I-13). **I-25: um app comum apaga a sobreposição**; **I-28: o evento não provava que a janela apareceu** — corrigido com quatro sondas, descarte em 20 s e recuo progressivo de 1, 2, 5 e 15 min. Notificação em tela cheia testada e **descartada** (I-26) |
+| A4 · I-25 em apps reais | ⚠️ Risco confirmado | `i25-bancos-e-apostas.txt` | Em 25/10/2026, a varredura de 7 apps financeiros já instalados (tela de abertura, sem login): **só o Nubank liga a proteção**; Inter, Caixa, FGTS, Clear (XP), Binance e Bet365 não. Com o Nubank na frente e limite de 2 min, o limite estourou e a notificação chegou, mas a sobreposição foi **suprimida duas vezes** (janela desenhada, sem foco), descartada em 20 s e reagendada pelo recuo de 1 e 2 min. **Limites:** só uma casa de aposta (meta: 4+), só a tela de abertura e um retrato das versões de hoje. O `i25-scan.sh` precisou de correção no Android 16 (`fl` e `pfl` em linhas separadas) |
 | A5 | ✅ Funciona | `a5-pausa.txt` | Pausa de 2 min após "Continuar": nenhum alerta em 6 verificações, notificação no fim e tela no ciclo seguinte. O fim da pausa é notado com até 20 s de atraso (medido: 14 s). "Tela inicial" e "Emergência" não pausam. A pausa sobreviveu à recriação do serviço |
 | A6 | ⚠️ Funciona com limitações | `a6-vpn-dns.txt` | VPN local só de DNS, sem biblioteca (D5). Detecção e notificação em 10 a 15 ms, com a página carregando; modo bloqueio devolve `NXDOMAIN`. Limitações do próprio DNS (I-20) e do sistema: só uma VPN por vez, chave na barra de status, e a caixa de consentimento diz que a VPN "permite monitorar o tráfego da rede" (I-17) |
 | A7 | ⚠️ Funciona com limitações | `a7-instagram-navegador.txt` | Acesso detectado e atribuído ao navegador pelo cruzamento com o app em primeiro plano — a consulta de DNS não diz quem perguntou. Tempo estimado por heurística: 204 s para 180,6 s reais (+13%), resolução de ~1 min, e o acerto depende de um corte numa faixa estreita (I-21) |
@@ -151,7 +165,7 @@ submeter.
 | Android | `FOREGROUND_SERVICE_SPECIAL_USE` + tipo `specialUse` | `<property>` no manifesto com justificativa em texto livre lida por **revisor humano**, mais declaração no Play Console (descrição, impacto se a tarefa for adiada, vídeo) e os cinco critérios da política de serviços em primeiro plano | **Alto de execução.** O quinto critério é "rodar só o tempo necessário", e o monitoramento roda o dia inteiro. Os outros quatro dão defesa: o usuário liga, a notificação é perceptível, ele desliga quando quiser, e adiar significa não avisar na hora do risco (I-2) |
 | Android | `FOREGROUND_SERVICE_SYSTEM_EXEMPTED` + tipo `systemExempted` (VPN) | O Android só libera esse tipo para casos listados, entre eles apps de VPN; fora deles, exceção em tempo de execução. Em troca, a política **isenta** esse tipo dos cinco critérios | **Médio.** A isenção só vale enquanto somos a VPN ativa. Se outra VPN revogar a nossa (A8), subir o serviço de novo pode estourar exceção |
 | Android | `SYSTEM_ALERT_WINDOW` (sobreposição) | Permissão especial: mandar o usuário aos Ajustes sem manipulação, só para funcionalidade central promovida na ficha. A política de comportamento enganoso proíbe imitar avisos do sistema. A própria referência do Android diz que pouquíssimos apps deveriam usá-la | **Alto.** Some-se que a documentação enquadra "atividade sobre o app em uso" como sequestro de interface (I-7). A tela precisa se identificar como nossa, sem parecer aviso do Android |
-| Android | `VpnService` | Funcionalidade central de VPN **ou** uma das exceções, que incluem "acompanhamento de uso de apps". Documentar na ficha, **criptografar os dados até o ponto final do túnel**, e preencher formulário no Play Console com dois vídeos de até 90 s. Na página de tipos de conta, o Google recomenda conta de **organização** para apps aprovados a usar o VpnService ([tipos de conta](https://support.google.com/googleplay/android-developer/answer/13634885)) | **Alto.** A seção de VPN vale desde 01/01/2026 e pressupõe servidor remoto e túnel, que **não existem** num desenho local. Há leitura favorável ("App usage tracking" é opção do formulário, e a nossa privacidade é maior do que a política pressupõe), mas a decisão é de um revisor humano (I-19). A releitura do texto integral em 24/09/2026 confirma que as exceções pressupõem servidor remoto e que a criptografia vai até o ponto final do túnel ([política](https://support.google.com/googleplay/android-developer/answer/16558241)) |
+| Android | `VpnService` — **fora da primeira versão publicada (D6, 25/10/2026)** | Funcionalidade central de VPN **ou** uma das exceções, que incluem "acompanhamento de uso de apps". Documentar na ficha, **criptografar os dados até o ponto final do túnel**, e preencher formulário no Play Console com dois vídeos de até 90 s. Na página de tipos de conta, o Google recomenda conta de **organização** para apps aprovados a usar o VpnService ([tipos de conta](https://support.google.com/googleplay/android-developer/answer/13634885)) | **Alto.** A seção de VPN vale desde 01/01/2026 e pressupõe servidor remoto e túnel, que **não existem** num desenho local. Há leitura favorável ("App usage tracking" é opção do formulário, e a nossa privacidade é maior do que a política pressupõe), mas a decisão é de um revisor humano (I-19). A releitura do texto integral em 24/09/2026 confirma que as exceções pressupõem servidor remoto e que a criptografia vai até o ponto final do túnel ([política](https://support.google.com/googleplay/android-developer/answer/16558241)) |
 | Android | `POST_NOTIFICATIONS` | Permissão de runtime comum; degradar com elegância se negada | **Baixo**, já tratado (I-6) |
 | Android | `RECEIVE_BOOT_COMPLETED` | Nível normal, sem declaração | Nenhum |
 | Android | `HIDE_OVERLAY_WINDOWS` | Nível normal, concedida na instalação | Nenhum para nós — o problema é que **qualquer outro app** a tem (I-25) |
@@ -290,8 +304,8 @@ interromper o monitoramento; isso continua sem validação.
 | Funcionalidade | Recomendação | Correções obrigatórias vindas da Fase 1 |
 |---|---|---|
 | **Limite de uso** | `queryEvents` com a regra de pendências do `STOPPED`, dentro de serviço em primeiro plano `specialUse`, com verificação periódica | Acumular incrementalmente em vez de reler o dia (custo cresce ao longo do dia); calcular a borda do dia explicitamente (I-4); filtrar lançadores (I-8); descontar o tempo de interrupção (I-10); contador de verificações no serviço, que hoje não existe |
-| **Conteúdo adulto** | VPN local só de DNS, **em modo alerta**, com lista local | Detectar DNS privado estrito **antes** de ligar e enquanto estiver ligada (I-22); religar após o boot (I-29); perceber a revogação por outra VPN e avisar (I-18); repasse concorrente com nova tentativa curta (I-23); tratar detecção como indício, nunca recaída (I-20) |
-| **Tela de interrupção** | **Sobreposição como principal**, tela própria como reserva — e **tela própria como principal se o alvo for aposta** (I-25) | Fundo opaco; voltar tratado explicitamente e testado com o voltar preditivo (I-14); `taskAffinity=""` e retrato fixo na tela própria; conferir visibilidade, descartar em 20 s e recuar progressivamente (I-28); aceitar a notificação de nível 1 como rede de segurança |
+| **Conteúdo adulto** | VPN local só de DNS, **em modo alerta**, com lista local. **Não entra na primeira versão publicada (D6)**; as correções abaixo valem para a versão em que ela voltar | Detectar DNS privado estrito **antes** de ligar e enquanto estiver ligada (I-22); religar após o boot (I-29); perceber a revogação por outra VPN e avisar (I-18); repasse concorrente com nova tentativa curta (I-23); tratar detecção como indício, nunca recaída (I-20) |
+| **Tela de interrupção** | **Sobreposição como principal**, tela própria como reserva — e **tela própria como principal se o alvo for aposta ou banco** (I-25, já medido no Nubank) | Fundo opaco; voltar tratado explicitamente e testado com o voltar preditivo (I-14); `taskAffinity=""` e retrato fixo na tela própria; conferir visibilidade, descartar em 20 s e recuar progressivamente (I-28); aceitar a notificação de nível 1 como rede de segurança |
 | **Navegador** | **Gatilho de alerta, não contagem de tempo:** detectar o acesso ao domínio e alertar depois que o limite do app estourou | Não prometer minutos de navegador nas estatísticas; se um dia for necessário, o erro da heurística precisa entrar na decisão de produto (I-21) |
 | **Exibir minutos de uso** | Livre no Android, direto do módulo | As mesmas correções de borda de dia e desconto de interrupção |
 | **Permissões** | Vigilância ativa: o app confere periodicamente e **avisa** quando perder alguma | É o I-30, hoje o buraco mais visível do protótipo |
@@ -383,9 +397,12 @@ mudanças são decisão do responsável, fora do Claude Code.**
 - **R2** (alertar sem bloquear no iOS): **continua aberto**.
 - **R3** (VPN local no Android): **confirmado e agravado.** Não é só revisão
   rigorosa: a política pressupõe servidor remoto e criptografia até o túnel, que
-  não existem no nosso desenho (I-19).
+  não existem no nosso desenho (I-19). **Mitigado por decisão (D6, 25/10/2026):**
+  a VPN fica fora da primeira versão publicada.
 - **R4** (tela de interrupção): **validado com ressalva grave.** Funciona, mas
-  qualquer app pode escondê-la (I-25).
+  qualquer app pode escondê-la (I-25), e **o Nubank já a esconde** (medido em
+  25/10/2026). A reserva (tela própria) precisa ser tratada como principal para
+  apps financeiros.
 - **R5** (navegador): **confirmado.** Acesso sim, tempo não (I-21).
 - **R7** (excesso de notificações): ganha um caso concreto — acima do limite e
   fora da pausa, cada reabertura interrompe (I-16).
@@ -406,8 +423,10 @@ mudanças são decisão do responsável, fora do Claude Code.**
 - **Fase 9 (publicação):** preparar os dois vídeos da VpnService, a justificativa
   em texto livre do `specialUse` e a divulgação destacada. Decidir **antes** se
   vale submeter uma VPN local.
-- **Fase 2 (escopo de apostas):** medir uma amostra de apps de aposta e de banco
-  com a proteção do I-25 antes de fechar o desenho da tela de interrupção.
+- **Fase 2 (escopo de apostas):** a primeira rodada de medição (7 apps, 25/10/2026)
+  já mostrou um protegido, o Nubank. Falta ampliar a amostra de casas de aposta
+  (só a Bet365 foi medida, não protege) antes de fechar o desenho da tela de
+  interrupção.
 
 ---
 
@@ -445,7 +464,11 @@ mudanças são decisão do responsável, fora do Claude Code.**
   Samsung o colocaria para dormir. Não é o cenário do produto, mas é o que
   faltou para fechar a pergunta.
 - **Apps de aposta e de banco** com a proteção do I-25 — o mais importante para a
-  Fase 2.
+  Fase 2. **Primeira rodada feita em 25/10/2026** (7 apps; Nubank protege). Falta
+  instalar pela Play Store bancos tradicionais (Itaú, Bradesco, Banco do Brasil,
+  Santander), outras carteiras e **pelo menos 3 casas de aposta**, e medir também
+  a tela depois do login. Apps instalados no outro perfil do aparelho (usuário
+  150) não foram varridos.
 - **Chamada recebida** com a sobreposição na tela: é hipótese, e é segurança.
 - **Voltar preditivo** ligado: tudo o que medimos do gesto de voltar passou pelo
   caminho antigo (I-14).
@@ -467,15 +490,27 @@ mudanças são decisão do responsável, fora do Claude Code.**
 
 ### 9.5 A preparar para a submissão ao Google Play
 
-- **Conta de desenvolvedor:** decisão pendente entre pessoa física e empresa. O
-  Google recomenda conta de organização para apps com VpnService, e a
-  organização exige CNPJ e número D-U-N-S.
+- **Conta de desenvolvedor:** **criada e autenticada**, informado pelo responsável
+  em 31/10/2026. Confirmar no Console o tipo da conta (pessoal ou organização) e
+  as regras de teste fechado que valem para ela. Falta definir **nome e
+  identificador do app** para criar o app no Console.
 - **Verificação de desenvolvedor Android:** a partir de 30/09/2026, no Brasil, os
   apps precisam estar registrados por um desenvolvedor verificado para instalar
   em aparelhos certificados. Instalação por adb não é afetada.
-- **Três vídeos:** dois para a VPN, de até 90 s cada (o app com a VPN em uso, e a
-  divulgação destacada com os fluxos de consentimento e de recusa), e um para o
-  serviço em primeiro plano.
+- **Vídeos:** para a **primeira versão (sem VPN, D6)**, um só, do serviço em
+  primeiro plano. O roteiro está em `docs/rascunhos/roteiro-video-servico-primeiro-plano.md`
+  e a gravação final é do build definitivo. Quando a VPN voltar, mais dois, de
+  até 90 s cada (o app com a VPN em uso, e a divulgação destacada com os fluxos
+  de consentimento e de recusa).
+- **Rascunhos prontos em `docs/rascunhos/`:** justificativas de permissão,
+  política de privacidade (PT e EN), Segurança de Dados e pesquisa das regras da
+  loja. Todos dependem de nome do app, empresa, escolha de analytics e revisão
+  jurídica.
+- **Segurança de Dados:** o app definitivo **tem coleta**, ainda que pequena
+  (RevenueCat, Sentry e, se houver, analytics). A declaração "sem coleta" vale só
+  para o protótipo; o que nunca sai do aparelho (uso dos outros apps, lista de
+  apps, limites, motivação) só continua fora da declaração se nenhuma ferramenta
+  externa receber esses dados.
 - **Declarações no Play Console:** VpnService, serviço em primeiro plano,
   recursos financeiros (sem recursos), questionário de classificação e, se
   confirmado, apps de saúde.
@@ -484,7 +519,11 @@ mudanças são decisão do responsável, fora do Claude Code.**
 - **Google Play Billing** na assinatura, com as regras de assinatura da seção 5.
 - **Redação da ficha e das telas** sem termos explícitos nem nomes de sites, e
   domínio de teste neutro nos vídeos.
-- **Build sem VPN** como plano B, sem substituir a revisão do Google.
+- **Build sem VPN:** era o plano B e **passou a ser o plano principal** (D6,
+  25/10/2026), sem substituir a revisão do Google. Do build publicado também saem
+  `HIDE_OVERLAY_WINDOWS` e `FOREGROUND_SERVICE_SYSTEM_EXEMPTED`, que só serviam ao
+  experimento do I-25 e à VPN. A `<property>` do `specialUse` precisa estar em
+  **inglês**: é lida por revisor do Google.
 
 ### 9.6 Decisões do responsável (24/09/2026)
 
@@ -495,8 +534,8 @@ surgiram na conversa.
 | Tema | Decisão |
 |---|---|
 | Ordem de lançamento | Android primeiro. O iOS segue depois de publicada a primeira versão Android |
-| VPN local no Google Play | Direção: submeter a VPN local ao Google Play. Formato: build com VPN declarada e uma variante sem VPN como plano B (ver abaixo) |
-| Navegador | Não conta no limite. O acesso a domínios da lista pelo navegador só gera alerta |
+| VPN local no Google Play | ~~Direção: submeter a VPN local ao Google Play, com variante sem VPN como plano B.~~ **Revisada em 25/10/2026 (D6): a primeira versão publicada sai sem a VPN** (ver abaixo) |
+| Navegador | Não conta no limite. O acesso a domínios da lista pelo navegador só gera alerta. **Sem a VPN, esse alerta não existe na primeira versão** (D6) |
 | O que conta como interrupção | Toda tela de interrupção exibida. "Emergência" não conta |
 | Teto de interrupções | Depois da terceira interrupção, a tela oferece o botão "Ignorar o limite por hoje" |
 | Reprovação do dia | Só reprovam o dia, zerando o streak: "Ignorar o limite por hoje" e o terceiro "Continuar mesmo assim" |
@@ -522,6 +561,36 @@ aceitas:
 - Redefinir o critério de saída da Fase 1 para Android, registrar o iOS como fase
   posterior e refletir as decisões acima nos documentos 01 e 02.
 
+### 9.7 Decisão D6 do responsável (25/10/2026)
+
+**A primeira versão publicada sai sem a VPN.** Decidida depois de reler as
+políticas do Play: as exceções do `VpnService` (inclusive *App usage tracking*)
+são introduzidas por "apps que exigem um servidor remoto para a funcionalidade
+central", e a página não menciona VPN local nem processamento no aparelho. Se a
+categoria escolhida fosse *None of the above*, o app seria rejeitado, salvo
+explicação detalhada. Pôr a VPN na primeira submissão arriscaria a aprovação do
+resto (uso de apps, limite, interrupção), que não depende dela.
+
+| Fica na primeira versão | Fica para uma versão posterior |
+|---|---|
+| A1 a A5: uso de apps, serviço em primeiro plano, alerta, interrupção e pausa | A6, A7 e A8: monitoramento de domínios por VPN local |
+| Notificação de nível 1 como rede de segurança | Alerta de acesso a domínios da lista pelo navegador |
+
+**Impactos que dependem de decisão do responsável nos docs 01 e 02:**
+
+- O **monitoramento de pornografia por domínio** não existe na primeira versão.
+  O app cobre o uso de apps (inclusive redes sociais pelo app) e a rotina de
+  abstinência, mas não detecta o acesso a sites. Isso afeta o escopo e a promessa
+  do produto no doc 01.
+- A decisão de 24/09 sobre o navegador ("só gera alerta") fica sem efeito na
+  primeira versão.
+- A decisão de 24/09 de ter "build com VPN declarada e uma variante sem VPN"
+  vira **um build sem VPN** agora, e o build com VPN volta numa versão posterior.
+- **A6, A7 e A8 continuam registrados como ⚠️ de viabilidade**: a tecnologia
+  funciona, mas a distribuição pela loja não foi resolvida.
+- **Código:** o protótipo mantém a VPN. A remoção vale para o app definitivo, na
+  Fase 2.
+
 ---
 
 ## Histórico de versões
@@ -530,4 +599,5 @@ aceitas:
 |---|---|---|
 | 0.1 | 24/09/2026 | Primeira versão. Android completo; iOS não iniciado |
 | 0.2 | 24/09/2026 | Fecha o A9 com os três dias parados: a Samsung não suspendeu o app, e uma atualização do WebView matou o processo, com os serviços recriados em 2,5 s (I-31). Acrescenta a janela de bateria de 3d17h |
+| 0.4 | 31/10/2026 | I-25 medido em apps reais: o Nubank apaga a sobreposição (seções 1, 3.2, 8.5, 9.3). Decisão D6: a primeira versão publicada sai sem a VPN (seções 1, 5, 7.2, 9.5 e nova 9.7), que substitui a direção de 24/09. Conta do Google Play autenticada; rascunhos de loja em `docs/rascunhos/` |
 | 0.3 | 24/09/2026 | Seção 5: conta de organização recomendada para o `VpnService` e releitura da política de VPN; o tema sensível deixa de ser lacuna, com conteúdo sexual, saúde, cobrança, idade e classificação no Google Play. Seção 9: o critério de saída da Fase 1 passa a ser só Android, entra "A preparar para a submissão ao Google Play" e as decisões do responsável viram tabela |
