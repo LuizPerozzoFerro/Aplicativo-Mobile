@@ -72,6 +72,7 @@
     "modulePathIgnorePatterns": [
       "<rootDir>/prototype/"
     ],
+    "globalSetup": "<rootDir>/jest.global-setup.js",
     "setupFiles": [
       "<rootDir>/jest.setup.ts"
     ],
