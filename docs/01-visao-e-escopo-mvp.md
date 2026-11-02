@@ -1,6 +1,6 @@
 # 01 — Visão do Produto e Escopo do MVP
 
-> **Status:** revisado v0.5 · **Última atualização:** 01/11/2026
+> **Status:** revisado v0.6 · **Última atualização:** 02/11/2026
 > **Nome do app:** **Quedo** (decidido em 01/11/2026, ver seção 7.4 e o documento de decisão do nome no Project)
 > **Documentos relacionados:** `02-plano-tecnico.md` (v0.5) · `relatorios/01-viabilidade-monitoramento.md` (v0.4, resultado da Fase 1 no Android)
 > Este documento descreve **o que** o app faz e **por quê**. Decisões de arquitetura, stack e padrões de código ficam em documentos técnicos próprios e no `CLAUDE.md`.
@@ -69,7 +69,7 @@ Cada compulsão possui:
 | Compulsão | Mecânica | O que é monitorado (Android) | Regra de streak |
 |---|---|---|---|
 | Pornografia | Abstinência | Tempo de uso em redes sociais de risco (ex.: X, Reddit), ver 6.5.6. Acesso a **domínios adultos** por VPN local *(versão posterior, D6)* | Dias sem recaída |
-| Vídeos curtos / redes sociais | Moderação | Tempo de uso por app (ex.: Instagram, TikTok, YouTube, Kwai). O acesso às versões web pelo navegador **não conta no limite** e só é detectado com a VPN *(versão posterior, D6)* | Dia é reprovado apenas pelas ações da seção 6.5.4 |
+| Vídeos curtos / redes sociais | Moderação | Tempo de uso nos apps escolhidos (ex.: Instagram, TikTok, YouTube, Kwai), **somado num limite diário único** (ver 6.5.4). O acesso às versões web pelo navegador **não conta no limite** e só é detectado com a VPN *(versão posterior, D6)* | Dia é reprovado apenas pelas ações da seção 6.5.4 |
 
 ### 3.2 Primeira versão sem VPN (decisão D6, 25/10/2026)
 A **primeira versão publicada não inclui a VPN local**. A política do Google Play para `VpnService` pressupõe servidor remoto, e o desenho local do Quedo não é o caso descrito; incluir a VPN arriscaria a aprovação do resto do app, que não depende dela.
@@ -103,7 +103,7 @@ Configurar o plano personalizado do usuário e obter as permissões necessárias
 1. **Boas-vindas** e proposta do app, com linguagem acolhedora e sem julgamento, e **confirmação de idade (18 anos ou mais)**, ver 7.6.
 2. **Escolha das compulsões:** pornografia, vídeos curtos/redes sociais ou ambas.
 3. **Configuração por compulsão:**
-   - Vídeos curtos: quais apps monitorar e limite diário aceitável;
+   - Vídeos curtos: quais apps monitorar e **um** limite diário aceitável, que vale para a soma de todos eles;
    - Pornografia: há quanto tempo está sem recair (opcional, para iniciar a streak), quais redes sociais de risco monitorar e, **para cada uma, se o usuário costuma consumir esse tipo de conteúdo nela** (define se haverá tela de interrupção, ver 6.5.6).
 4. **Gatilhos:**
    - Horários de vulnerabilidade (ex.: depois do trabalho, antes de dormir);
@@ -157,7 +157,7 @@ A barra inferior é **igual para todos os usuários**, independentemente de quan
 ### 6.1 Início
 - **Um card por compulsão ativa**, contendo:
   - Streak atual;
-  - Status do dia (ex.: "42 min de 60 no Instagram" para moderação; "Dia 12" para abstinência);
+  - Status do dia (ex.: "42 min de 60 hoje" para moderação, somando todos os apps; "Dia 12" para abstinência);
   - Próximo marco do calendário.
 - Tocar no card abre a aba **Progresso filtrada naquela compulsão** (evitar tela duplicada).
 - **Botão de emergência** sempre visível.
@@ -226,6 +226,8 @@ Requisitos da tela:
   2. O **terceiro** "Continuar mesmo assim" do dia na compulsão.
 - Depois de qualquer um dos dois, **nenhum alerta adicional** daquela compulsão no resto do dia (até a meia-noite).
 - Ultrapassar o limite, por si só, não reprova o dia: dispara as interrupções.
+- **Limite somado (decisão de 02/11/2026):** a moderação tem **um único limite diário por compulsão**, que vale para a **soma** do tempo em todos os apps escolhidos. Estourado o limite, a interrupção vale em qualquer um desses apps. Motivo: com limite por app, o usuário trocaria de um app para outro sem nunca ser interrompido. O detalhamento por app aparece nas Estatísticas.
+- Os apps de risco da pornografia seguem com **10 minutos por app** (6.5.6).
 
 #### 6.5.5 Regras gerais
 - Uso dentro de uma **janela de gatilho declarada** justifica um alerta mais enfático.
@@ -265,7 +267,7 @@ Fluxo:
 4. Pergunta final: "A vontade passou?" → resposta positiva é registrada como vitória nas estatísticas.
 
 ### 6.8 Estatísticas
-- Tempo de uso por dia e semana (vídeos curtos), **somente dos apps**: minutos no navegador não são exibidos;
+- Tempo de uso por dia e semana (vídeos curtos), no total e detalhado por app, **somente dos apps**: minutos no navegador não são exibidos;
 - Horários de maior uso;
 - Alertas respeitados vs. ignorados ("Ir para a tela inicial" é respeitado; "Continuar mesmo assim" e "Ignorar o limite por hoje" são ignorados);
 - Uso do botão de emergência e vitórias;
@@ -432,6 +434,7 @@ Situação atualizada com o relatório de viabilidade (Fase 1, Android).
 - [x] Limite diário global: **6 notificações proativas** (01/11/2026)
 - [x] Janela cega após reinício: **avisar no onboarding** (01/11/2026)
 - [x] Idade mínima: **18+** (01/11/2026)
+- [x] Limite da moderação: **somado entre os apps**, um por compulsão (02/11/2026)
 - [x] VPN na primeira versão: **não** (D6, 25/10/2026, seção 3.2)
 
 **Ainda em aberto**
@@ -474,3 +477,4 @@ Situação atualizada com o relatório de viabilidade (Fase 1, Android).
 | 0.3 | 01/11/2026 | Resultados da Fase 1 (Android) e decisões de 24/09/2026: Android primeiro; navegador só alerta; detecção de domínio como indício; tela de interrupção com quatro botões, pausa de 5 min e regras de reprovação do dia; notificação de recomeço; permissões no onboarding; estado do monitoramento e modo degradado; desligamento do monitoramento no fim do teste; contas como pessoa física na validação; nome Quedo; riscos atualizados (R10 a R12); questões em aberto revisadas. "Fase 2" do produto passa a se chamar "segunda etapa" para não confundir com as fases do plano técnico |
 | 0.4 | 01/11/2026 | Decisões de 01/11/2026: "Ignorar o limite por hoje" a partir da terceira tela; contagens por compulsão; regras da pornografia (apps de risco após 10 min, interrupção só com declaração no onboarding, domínio adulto só notificação); navegador só notifica depois do limite do app; plano gratuito só com pornografia e pausa de vídeos curtos no fim do teste; limite de 6 notificações proativas; aviso da janela cega no onboarding; app 18+ (seção 7.6) |
 | 0.5 | 01/11/2026 | Decisão D6 (25/10/2026): primeira versão publicada sem VPN (nova seção 3.2; itens dependentes da VPN marcados como versão posterior); I-25 medido no Nubank (R4 e R11); segurança de dados deixa de ser "sem coleta" por causa de RevenueCat e Sentry; referência ao relatório v0.4 |
+| 0.6 | 02/11/2026 | Limite da moderação somado entre os apps escolhidos, um por compulsão (6.5.4); card do Início e Estatísticas ajustados |
