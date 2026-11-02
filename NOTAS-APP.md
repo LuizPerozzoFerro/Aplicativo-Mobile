@@ -709,14 +709,25 @@ do app):
 - `src/data/migrations.ts`: `runMigrations(db)` usa o `migrate` do Drizzle
   para Expo. Ele só depende do dialeto e da sessão, então o mesmo código roda
   no app e nos testes.
-- `src/data/bootstrap.ts` (só no app):
+- `src/data/bootstrap.ts` (só no app), em `initializeDatabase()`:
   - abre `app.db`, nome neutro, no armazenamento privado;
   - liga `PRAGMA foreign_keys = ON`;
-  - aplica as migrações e conecta a flag do onboarding ao banco.
+  - aplica as migrações e conecta a flag do onboarding ao banco;
+  - `getRepositories()` dá acesso aos repositórios depois disso (lança erro
+    se o banco ainda não foi aberto).
 - O layout raiz só desenha a navegação com o banco pronto (sem piscar o
-  onboarding antes das abas). Se as migrações falharem, mostra "Não foi
-  possível abrir seus dados" (texto do i18n). O erro técnico vai para o
-  console, sem dados do usuário.
+  onboarding antes das abas). Se a abertura ou as migrações falharem, mostra
+  "Não foi possível abrir seus dados" (texto do i18n). O erro técnico vai
+  para o console, sem dados do usuário.
+- **Abertura dentro do tratamento de erro (pedido do responsável,
+  02/11/2026, feito no início do passo 8):** na primeira versão, o
+  `openDatabaseSync` e o `PRAGMA` rodavam na importação do módulo. Uma falha
+  ali (arquivo corrompido, disco cheio) lançaria erro antes do React montar e
+  fecharia o app. Agora rodam dentro de `initializeDatabase()`, no mesmo
+  `catch` das migrações. Testado em `bootstrap.test.ts` (falha na abertura,
+  no `PRAGMA` e nas migrações → tela de erro; sucesso → flag ligada ao banco).
+  Mutação de controle: com a abertura de volta na importação, a suíte inteira
+  quebra ao carregar.
 - `onboardingStatus.connect(storage)`: a flag é lida do banco na abertura e
   gravada a cada mudança. A gravação vem **antes** de mudar a tela: se falhar,
   a navegação não muda.
@@ -791,6 +802,108 @@ só estrutura e flags.
   desenvolvimento depois (`pm clear`).
 - Depois de `npm run db:generate`, rodar o app e os testes. O Jest lê os
   `.sql` do disco; o Metro reconstrói o bundle porque o `migrations.js` muda.
+
+### Pontos para as próximas fases (responsável, 02/11/2026)
+
+1. **Fase 3 · "Apagar meus dados" também zera o onboarding.** O
+   `deleteAllData()` apaga as tabelas, mas o `onboardingStatus` fica em
+   memória com `completed = true`, e o app continuaria nas abas. A ação
+   precisa chamar `onboardingStatus.setCompleted(false)` (que grava no banco
+   e troca a navegação), voltando às boas-vindas. Testar as duas coisas: banco
+   vazio e tela de boas-vindas.
+2. **Fase 7 · decisão pendente: criptografar o banco ou não.** Opções:
+   - **SQLCipher:** o `expo-sqlite` tem a opção `useSQLCipher` no plugin de
+     configuração. Protege o arquivo mesmo com acesso de root ou de backup de
+     fábrica. Custos: biblioteca nativa maior, guardar a chave (Android
+     Keystore, via `expo-secure-store`), migração do banco já existente nos
+     aparelhos e o que fazer se a chave se perder;
+   - **proteção do Android:** o banco já fica no armazenamento privado do
+     app, inacessível a outros apps, com a criptografia de disco do sistema e
+     fora do backup (`allowBackup: false`).
+   A decisão é do chat de planejamento.
+
+## Passo 8 · Domínio e interface de monitoramento (02/11/2026)
+
+Nenhuma biblioteca nova.
+
+### Domínio (`src/domain/`)
+
+- `compulsion.ts`: `Mechanic` (`abstinence` | `moderation`) e
+  `COMPULSION_DEFINITIONS`, com a mecânica e os papéis de app permitidos:
+  pornografia → abstinência, só `risk`; vídeos curtos → moderação, só
+  `short_video`. Helpers `getCompulsionDefinition` e `isAppRoleAllowed`.
+  **Para a Fase 3:** usar `isAppRoleAllowed` ao gravar apps monitorados (o
+  repositório ainda não confere o papel).
+- `day.ts`, a borda do dia:
+  - `startOfDay`, `startOfNextDay`, `getDayBounds` (intervalo `[start, end)`),
+    `isSameDay`, `toDayKey` (`AAAA-MM-DD`) e `calendarDaysBetween`;
+  - usa o horário local do `Date`, que segue o fuso do aparelho;
+  - o dia seguinte vem do calendário, nunca de "+24 h": com horário de verão
+    o dia tem 23 ou 25 horas.
+- Nada de streak, alerta ou reprovação do dia (spec 4.7).
+
+### Fuso fixo nos testes
+
+- Trocar `process.env.TZ` dentro de um teste **não tem efeito** no Jest
+  (testado). O `jest.global-setup.js` fixa `America/Sao_Paulo` antes dos
+  workers, então o resultado é o mesmo no computador e no CI (que roda em
+  UTC). Conferido com `TZ=UTC npx jest src/domain/day.test.ts`.
+- São Paulo teve horário de verão até 2019, **com a troca à meia-noite**, o
+  caso mais difícil:
+  - 04/11/2018: a meia-noite não existiu; o dia começou à 01:00 e teve 23 h;
+  - 16/02/2019: a hora 23:00–24:00 se repetiu; o dia teve 25 h.
+- Um teste confere o fuso e falha se o global setup não for aplicado.
+- Mutação de controle: com o dia seguinte calculado como "início + 24 h",
+  falham os testes de 23 e 25 horas.
+
+### Cuidado para a Fase 4
+
+O JS do app roda no Hermes, e o módulo Kotlin calcula a própria borda do dia
+(correção I-4). Conferir no aparelho que os dois concordam, e que o Hermes
+resolve a meia-noite inexistente como o V8 (para o primeiro instante do dia).
+Hoje o Brasil não tem horário de verão, mas o app deve funcionar se voltar.
+
+### Interface de monitoramento (`src/monitoring/`)
+
+- `types.ts`: `MonitoringModule`, baseada na spec 00 §5.2 e no relatório §7:
+  - permissões `usageAccess`, `notifications` e `overlay` (sem VPN, D6);
+    `overlay` é `unsupported` no iOS;
+  - **seleção opaca:** `TargetId` é uma string com marca de tipo; no Android
+    é o pacote, no iOS será o token da Apple. `listTargets()` (lista
+    própria, Android) e `pickTargets()` (seletor da Apple, iOS); cada uma
+    responde `unsupported` na outra plataforma. O nome do app é opcional
+    (`label`, nulo no iOS);
+  - limite por **regras** (`UsageRule`): apps, minutos por dia e se mostra
+    tela de interrupção. Uma regra por app ou uma para vários: quem monta
+    decide (o doc 01 não fecha se o limite da moderação é por app ou somado);
+  - `getUsageToday()` é `unsupported` no iOS;
+  - `startDomainWatch`/`stopDomainWatch` respondem `unsupported` (flag
+    `domainMonitoring` desligada). O nome é neutro de propósito;
+  - log de eventos (`limit_reached`, `notification_sent`,
+    `interruption_shown`, `permission_lost`) lido por `getEvents()`;
+  - `MonitoringError` com `code` (`permission_required`, `invalid_config`)
+    para erros explícitos.
+- `FakeMonitoringModule`: tudo em memória, com `platform` `android` ou `ios`
+  para simular as respostas de cada um. Por fora da interface:
+  `simulatePermission` (perder permissão grava `permission_lost`) e
+  `simulateUsage` (grava `limit_reached` uma vez por dia por regra; o uso
+  zera na virada do dia, pela `getDayBounds`).
+  - Apps de exemplo `com.example.*`, nomes inofensivos. O lint acusou o
+    `label` como texto visível; desligado só nessa lista, com o motivo no
+    comentário (é nome de app, vem do sistema no aparelho).
+- `getMonitoring()` (`index.ts`): instância única; nesta fase sempre o falso.
+- O formato pode mudar na Fase 4, quando o módulo nativo (base: protótipo)
+  for portado. Textos da notificação e da tela de interrupção ainda não estão
+  na configuração: entram com o nativo.
+
+### Testes
+
+- `compulsion.test.ts`, `day.test.ts` (12 testes) e
+  `FakeMonitoringModule.test.ts` (20 testes): permissões nas duas
+  plataformas, seleção opaca, regras inválidas, `limit_reached` uma vez,
+  virada da meia-noite, `unsupported` dos domínios e `getMonitoring()`.
+- `bootstrap.test.ts` (abertura do banco no tratamento de erro, ver passo 7).
+- Total: 16 suítes, 156 testes.
 
 ## Problemas
 
