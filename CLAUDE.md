@@ -9,6 +9,7 @@ Instruções permanentes para o Claude Code neste repositório. Leia este arquiv
 **Quedo** é um app mobile por assinatura que ajuda pessoas a se livrarem de compulsões digitais. No MVP: **pornografia** (abstinência) e **vídeos curtos/redes sociais** (moderação). O diferencial é ser **proativo**: monitorar o uso do aparelho e **alertar** o usuário no momento de risco, sem bloquear.
 
 - **Android primeiro.** O iOS vem depois da primeira versão Android publicada (Fase 10). Não teste nem configure iOS agora, mas não faça nada que impeça o iOS depois.
+- **Primeira versão sem VPN** (decisão D6, doc 01 seção 3.2). Não implementar nada da VPN nem declarar suas permissões.
 - Público adulto (18+), Brasil, 100% em português no lançamento.
 
 ## 2. Fase atual
@@ -43,7 +44,7 @@ Os documentos em `docs/` são a fonte da verdade. **Não altere `docs/01`, `docs
 | Item | Detalhe |
 |---|---|
 | Sistema | **Windows** (sem Mac, sem Xcode) |
-| Android | Samsung Galaxy S22, Android 16 / One UI 8. Emulador só se a virtualização da BIOS for ligada |
+| Android | Samsung Galaxy S22, Android 16 / One UI 8. Emulador disponível (virtualização ligada) |
 | Builds | **Build local** do Android para desenvolvimento (development build, **nunca Expo Go**). EAS para builds de loja |
 | Identificadores | `br.com.quedo.app` (produção), `.dev` (desenvolvimento), `.preview` (preview). **O de produção não pode mudar depois do primeiro envio ao Google Play** |
 | Conta Google Play | Pessoa física, ativa. Não enviar nada à loja sem pedido do responsável |
@@ -55,7 +56,7 @@ Os documentos em `docs/` são a fonte da verdade. **Não altere `docs/01`, `docs
 - expo-sqlite com camada tipada e migrações
 - Módulos nativos: Kotlin (Android) via Expo Modules; Swift (iOS) na Fase 10
 - Jest + React Native Testing Library; Maestro para fluxos ponta a ponta
-- Sentry (com filtro de privacidade) a partir da Fase 2, se o responsável criar a conta
+- Sentry (com filtro de privacidade) antes do teste fechado (Fase 8). Não instalar antes
 - Supabase (Fase 5) e RevenueCat sobre o Google Play Billing (Fase 6). **Não adicionar antes da fase correspondente**
 - Proibido: analytics, qualquer SDK que envie dados do usuário, e bibliotecas não justificadas
 
@@ -124,14 +125,16 @@ Preencher e manter atualizado na Fase 2.
 
 | Ação | Comando |
 |---|---|
-| Instalar dependências | *a definir* |
-| Build local de desenvolvimento (Android) | *a definir* |
-| Iniciar servidor de desenvolvimento | *a definir* |
-| Verificar tipos | *a definir* |
+| Instalar dependências | `npm install` (novas bibliotecas: `npx expo install <pacote>`) |
+| Gerar o projeto Android (`android/`) | `npm run android:prebuild` (com `APP_ENV=preview` ou `production` para as outras variantes) |
+| Build local de desenvolvimento (Android) | `npm run android:install` (exige caminhos longos ligados e CMake 3.31.6 no SDK: `NOTAS-APP.md`, AP1) |
+| Iniciar servidor de desenvolvimento | `npx expo start --dev-client --port 8081`, desacoplado, e depois `adb reverse tcp:8081 tcp:8081` (refazer após reinstalar ou reiniciar) |
+| Abrir o app no Metro pelo cabo | `adb shell am start -a android.intent.action.VIEW -d "quedo-dev://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081" br.com.quedo.app.dev` |
+| Verificar tipos | `npx tsc --noEmit` (script `typecheck` no passo 3) |
 | Lint | *a definir* |
 | Testes | *a definir* |
 | Fluxo Maestro | *a definir* |
-| Gerar variante sem VPN | *a definir* |
+| Verificar permissões proibidas no manifesto | `node scripts/check-manifest.js` (depois de um build) |
 
 ## 11. Ao final de cada fase
 
