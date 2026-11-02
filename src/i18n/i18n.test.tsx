@@ -1,13 +1,25 @@
 import '@/i18n';
 
 import { render, screen } from '@testing-library/react-native';
-import i18n, { t } from 'i18next';
-import { useTranslation } from 'react-i18next';
+import i18n, { getFixedT, t } from 'i18next';
 import { Text } from 'react-native';
 
+// Textos só do teste, para exercitar plural e interpolação sem pôr chaves
+// falsas nos textos do app. Fora da tipagem de chaves de propósito.
+const TEST_NS = 'i18nTest';
+i18n.addResourceBundle('pt-BR', TEST_NS, {
+  greeting: 'Olá, {{name}}',
+  days_zero: '{{count}} dias',
+  days_one: '{{count}} dia',
+  days_other: '{{count}} dias',
+});
+const testT = getFixedT('pt-BR', TEST_NS as never) as unknown as (
+  key: string,
+  options?: Record<string, unknown>,
+) => string;
+
 function Days({ count }: { count: number }) {
-  const { t } = useTranslation('common');
-  return <Text>{t('foundation.days', { count })}</Text>;
+  return <Text>{testT('days', { count })}</Text>;
 }
 
 describe('i18n configurado', () => {
@@ -16,9 +28,14 @@ describe('i18n configurado', () => {
     expect(i18n.language).toBe('pt-BR');
   });
 
-  it('renderiza textos do pt-BR com interpolação', () => {
-    expect(t('foundation.environment', { environment: 'preview' })).toBe('Ambiente: preview');
+  it('entrega os textos reais do pt-BR, inclusive de outro namespace', () => {
+    expect(t('actions.continue')).toBe('Continuar');
     expect(t('tabs:home')).toBe('Início');
+    expect(t('onboarding:exit.leave')).toBe('Sair');
+  });
+
+  it('interpola valores', () => {
+    expect(testT('greeting', { name: 'Ana' })).toBe('Olá, Ana');
   });
 
   it('aplica as regras de plural do português num componente', async () => {

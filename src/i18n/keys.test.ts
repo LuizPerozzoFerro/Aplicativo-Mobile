@@ -33,7 +33,11 @@ describe('chaves de tradução usadas no código', () => {
   const usages = results.flatMap((r) => r.usages);
 
   it('encontra chaves no código (a varredura não está vazia)', () => {
-    expect(usages.map(describeUsage)).toContain('app/index.tsx: common:foundation.title');
+    const found = usages.map(describeUsage);
+    expect(found).toContain('app/(tabs)/_layout.tsx: tabs:home');
+    expect(found).toContain(
+      'src/features/onboarding/OnboardingStepScreen.tsx: common:actions.back',
+    );
   });
 
   it('existem todas no pt-BR', () => {
@@ -105,8 +109,9 @@ describe('scanSource', () => {
 describe('keyExists', () => {
   it('encontra textos simples e plurais, e recusa o que falta', () => {
     expect(keyExists(ptBR.common, 'actions.back')).toBe(true);
-    expect(keyExists(ptBR.common, 'foundation.days')).toBe(true);
-    expect(keyExists(ptBR.common, 'foundation.missing')).toBe(false);
+    expect(keyExists(ptBR.common, 'actions.missing')).toBe(false);
     expect(keyExists(ptBR.common, 'actions')).toBe(false);
+    const plural = { group: { days_zero: '0', days_one: '1', days_other: 'n' } };
+    expect(keyExists(plural, 'group.days')).toBe(true);
   });
 });

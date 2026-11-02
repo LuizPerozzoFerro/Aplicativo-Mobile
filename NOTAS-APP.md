@@ -428,8 +428,9 @@ JavaScript, e as fontes de ícone carregam pelo `expo-font`, que já vem com o
   (`background`, `surface`, `surfaceMuted`, `text`, `textMuted`, `primary`,
   `onPrimary`, `divider`, `outline`, `danger`, `onDanger`); nenhum componente
   usa hexadecimal direto.
-- **Contraste** (`contrast.ts`): razão WCAG 2.x. O teste confere 11 pares em
-  cada tema: texto com 4,5:1; contorno de controle com 3:1. Valores:
+- **Contraste** (`contrast.ts`): razão WCAG 2.x. O teste confere 14 pares em
+  cada tema (eram 11; os 3 últimos da tabela entraram no passo 6, a pedido do
+  responsável): texto com 4,5:1; contorno de controle com 3:1. Valores:
 
   | Par | Claro | Escuro |
   |---|---|---|
@@ -440,6 +441,12 @@ JavaScript, e as fontes de ícone carregam pelo `expo-font`, que já vem com o
   | onPrimary / primary (botão principal) | 7,8 | 9,4 |
   | onDanger / danger | 6,9 | 7,7 |
   | outline / surface (botão secundário) | 4,1 | 5,0 |
+  | textMuted / surfaceMuted | 5,9 | 6,2 |
+  | danger / background (texto de erro) | 6,4 | 7,7 |
+  | danger / surface | 6,9 | 6,9 |
+
+  **Cuidado (responsável, 02/11/2026):** todo par de cores novo usado por um
+  componente entra na lista `PAIRS` do `contrast.test.ts`.
 
 - **Tipografia**: fonte do sistema; variantes `display`, `title`, `heading`,
   `body`, `bodyStrong`, `caption` e `label`. Nenhum componente desliga o
@@ -512,6 +519,137 @@ O token `text: '#13212A'` caiu na regra de texto fora do JSX (propriedade
   02/11/2026** ("Conferi, está ok"), na tela provisória com todos os
   componentes. Não alterei configurações do aparelho. O V7 e o V8 completos
   continuam no roteiro do passo 10, já com as telas reais da navegação.
+
+### Cuidado para a Fase 3: teclado na `Screen`
+
+**Responsável, 02/11/2026.** Quando entrar o campo de texto da motivação
+pessoal (onboarding, Fase 3), a `Screen` precisa tratar o teclado: o campo e o
+botão "Continuar" não podem ficar escondidos atrás dele.
+- Avaliar o `KeyboardAvoidingView` do React Native e o comportamento do
+  Android 15+ (o app desenha de ponta a ponta, e o redimensionamento da janela
+  pelo teclado mudou).
+- Conferir no S22 com a fonte no máximo.
+- Ao tocar fora do campo, o teclado deve fechar
+  (`keyboardShouldPersistTaps="handled"` no `ScrollView`).
+
+## Passo 6 · Navegação (02/11/2026)
+
+### Ícones das abas: `expo-symbols` (decisão do responsável)
+
+O responsável pediu "a opção oficial do Expo, sem código nativo novo, com
+ícones genéricos e neutros". Opções levantadas, abrindo cada pacote
+(`npm pack --dry-run`):
+
+| Opção | Oficial Expo | Código nativo no Android | Situação |
+|---|---|---|---|
+| **`expo-symbols` ~58.0.4** (escolhida) | sim, listada no SDK 58 | **nenhum**: só tem Swift para iOS; no Android desenha Material Symbols por uma fonte do `expo-font` | Atual. Empacota só o peso regular (~0,8 MB); `symbols.json` com os nomes (~100 KB) |
+| `@expo/vector-icons` ^15 | sim | nenhum (as fontes vão pelo `expo-font`) | **O guia de ícones do Expo diz que será descontinuado e não é recomendado** |
+| `@react-native-vector-icons/*` 14 | não (comunidade) | sim: pacote Kotlin por família de ícones | Descartada |
+
+- Conferido com `expo-modules-autolinking resolve --platform android`: o
+  `expo-symbols` **não entra** no build nativo do Android.
+- Ícones: Início `home`, Estatísticas `bar_chart`, Progresso `flag`, Perfil
+  `person` (no iOS: `house`, `chart.bar`, `flag` e `person`). Cor do tema:
+  `primary` ativo e `textMuted` inativo.
+
+### `expo-asset` instalado na raiz
+
+No preset Android do Jest, o `expo-symbols` carrega o `expo-font`, que não
+achava o `expo-asset`. O npm tinha deixado o `expo-asset` aninhado em
+`node_modules/expo/node_modules`. O Metro no aparelho cairia no mesmo erro ao
+abrir as abas. Solução: `npx expo install expo-asset` (~58.0.19, a versão
+indicada pelo SDK). O código nativo dele **já estava** no app, como dependência
+do `expo` (o autolinking já o listava), então não é código nativo novo.
+
+### Rotas (`app/`)
+
+- `_layout.tsx`: `Stack.Protected` (com `redirectTo`, do SDK 58).
+  - Sem onboarding concluído, só o grupo `(onboarding)`; tentar `/stats` ou
+    `/about` leva a `/welcome`.
+  - Concluído, só `(tabs)` e `about`; tentar `/welcome` leva a `/`.
+  - A troca apaga o histórico, então não se volta ao onboarding pelo "voltar".
+- `(onboarding)/`: `welcome`, `compulsions`, `setup`, `triggers`,
+  `motivation`, `permissions` e `summary`, na ordem do doc 01 (§4.2).
+  - Cada tela usa `OnboardingStepScreen`, com título, texto provisório,
+    "Continuar" e "Voltar".
+  - A última grava "concluído" e as rotas protegidas levam às abas.
+- Voltar do Android: na primeira tela, `BackHandler` + `Alert.alert`
+  confirmam ("Sair do app?", "Continuar aqui"/"Sair"); nas demais, volta uma
+  tela. O botão "Voltar" da primeira tela também confirma.
+- `(tabs)/`: `index` (Início), `stats`, `progress` e `profile`, com título e
+  estado vazio. O Perfil tem "Sobre o app" e, **só em `development`**,
+  "Refazer onboarding", que zera a flag.
+- `about.tsx`: provisória até o passo 9.
+- Namespace novo de textos: `about`. As chaves provisórias `foundation.*`
+  saíram; o teste do i18n usa um pacote de textos próprio para plural e
+  interpolação.
+
+### Estado do onboarding: em memória até o passo 7
+
+`src/features/onboarding/onboardingStatus.ts` (`isCompleted`, `setCompleted`
+e `subscribe`, lidos com `useSyncExternalStore`). Por enquanto o estado fica em
+memória. **O V4 (fechar e reabrir direto no Início) só passa no passo 7**,
+quando esta interface passar a ler e gravar `settings.onboarding_completed`.
+
+### Rotas tipadas no typecheck
+
+O `.expo/types/router.d.ts` só é regerado quando o Metro sobe. Com rotas
+novas, o `tsc` acusava `/about` e `/welcome` como inválidas. O guia de rotas
+tipadas manda rodar `npx expo customize tsconfig.json` antes do `tsc`, inclusive
+no CI. Script `typegen` criado, e `typecheck` passou a ser
+`npm run typegen && tsc --noEmit`. O `tsconfig.json` não muda.
+
+### Testes da navegação (`__tests__/navigation.test.tsx`)
+
+`renderRouter('./app')` do `expo-router/testing-library`, sobre as **rotas
+reais**. Cobre:
+- abre em `/welcome` sem onboarding concluído; link direto para as abas é
+  barrado;
+- as 7 telas em ordem, voltar duas e avançar de novo (V3);
+- a última leva a `/` sem volta (V4, parte da navegação);
+- "Voltar" na primeira tela pede confirmação;
+- com o onboarding concluído: abre no Início e barra `/welcome`; as 4 abas em
+  ordem e a troca entre elas (V5); Perfil leva a `/about`; "Refazer
+  onboarding" volta às boas-vindas (V6).
+
+Mutação de controle: com a proteção das abas desligada (`guard={true}`), 5
+testes falham.
+
+**Problemas encontrados nos testes:**
+- O caminho deve ser conferido com `waitFor`, porque a navegação é
+  assíncrona. Os toques usam `findByRole`.
+- `act(...)` sem `await` no `beforeEach` estragava o ambiente dos testes
+  seguintes (o caminho ficava em `/`). Entre testes não há tela montada, então
+  o estado muda direto, sem `act`.
+- `userEvent` vem de `@testing-library/react-native`: o
+  `expo-router/testing-library` só o exporta como tipo.
+- **Preset do Jest trocado para `jest-expo/android`.** O padrão simula iOS.
+  No iOS, a barra de abas recebe papel `button` e um rótulo em inglês gerado
+  pela biblioteca ("Início, tab, 1 of 4"). No Android, recebe papel `tab` e o
+  nome vem do próprio texto. Os testes passam a simular a plataforma-alvo.
+- Total: 10 suítes, 94 testes, sem aviso no console.
+
+### Cuidado para a Fase 10 (iOS)
+
+A barra de abas do Expo Router gera no iOS o rótulo de acessibilidade em
+inglês `"<label>, tab, N of M"` quando `tabBarAccessibilityLabel` não é
+definido (`BottomTabBar.js`). Na Fase 10, definir
+`tabBarAccessibilityLabel` com `t()` em cada aba. A regra de lint já exige que
+o valor venha do `t()`.
+
+### No aparelho (S22)
+
+Só JavaScript mudou para o Android, então não houve recompilação: Metro com
+`--clear` e `Android Bundled ... (1366 modules)`. Pelo `adb` (toques só dentro
+do app):
+- abriu em "Boas-vindas" (tema claro), com "Continuar" e "Voltar";
+- 7 toques em "Continuar" levaram ao Início, com a barra de 4 abas e ícones
+  Material Symbols;
+- Perfil → "Refazer onboarding" voltou a "Boas-vindas";
+- o Voltar do Android abriu "Sair do app?" ("Você pode continuar a
+  configuração depois.", "CONTINUAR AQUI"/"SAIR"); "Continuar aqui" manteve o
+  app aberto;
+- `logcat` (`ReactNativeJS`) sem aviso nem erro durante o percurso.
 
 ## Problemas
 
