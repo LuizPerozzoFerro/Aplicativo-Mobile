@@ -2,5 +2,11 @@
   "actions": {
     "back": "Voltar",
     "continue": "Continuar"
+  },
+  "errors": {
+    "database": {
+      "title": "Não foi possível abrir seus dados",
+      "description": "Feche o app e abra de novo. Seus dados continuam guardados neste aparelho."
+    }
   }
 }

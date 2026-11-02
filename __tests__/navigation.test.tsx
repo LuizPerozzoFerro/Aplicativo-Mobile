@@ -2,8 +2,14 @@ import { userEvent } from '@testing-library/react-native';
 import { renderRouter, screen, testRouter, waitFor } from 'expo-router/testing-library';
 import { Alert } from 'react-native';
 
+import type { DatabaseState } from '@/data/bootstrap';
 import { onboardingStatus } from '@/features/onboarding/onboardingStatus';
 import { ONBOARDING_STEPS } from '@/features/onboarding/steps';
+
+// O banco nativo (expo-sqlite) não roda no Jest; a camada de dados tem testes
+// próprios com sql.js. Aqui o banco é simulado e a flag fica em memória.
+const mockDatabaseState = jest.fn<DatabaseState, []>(() => ({ status: 'ready' }));
+jest.mock('@/data/bootstrap', () => ({ useDatabase: () => mockDatabaseState() }));
 
 // Navegação inicial (spec 01, seções 4.4 e 4.10) sobre as rotas reais de app/.
 const APP_DIR = './app';
@@ -102,5 +108,25 @@ describe('com onboarding concluído', () => {
     await pressButton('Refazer onboarding, Só no ambiente de desenvolvimento');
     expect(onboardingStatus.isCompleted()).toBe(false);
     await expectPath('/welcome');
+  });
+});
+
+describe('abertura do banco', () => {
+  afterEach(() => mockDatabaseState.mockReturnValue({ status: 'ready' }));
+
+  it('enquanto as migrações rodam, não mostra nenhuma tela', async () => {
+    mockDatabaseState.mockReturnValue({ status: 'loading' });
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+    expect(screen.queryByRole('header')).toBeNull();
+    expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  it('se as migrações falharem, mostra o erro em vez do app', async () => {
+    mockDatabaseState.mockReturnValue({ status: 'error' });
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+    expect(
+      await screen.findByRole('header', { name: 'Não foi possível abrir seus dados' }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText('Boas-vindas')).toBeNull();
   });
 });

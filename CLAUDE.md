@@ -134,6 +134,8 @@ Preencher e manter atualizado na Fase 2.
 | Lint | `npm run lint` (inclui a formatação do Prettier) |
 | Formatação | `npm run format` (aplica) · `npm run format:check` (só confere, como no CI) |
 | Testes | `npm test` |
+| Gerar migração do banco (depois de mudar `src/data/schema/`) | `npm run db:generate` |
+| Ler o banco do app de desenvolvimento no aparelho | `adb exec-out run-as br.com.quedo.app.dev cat files/SQLite/app.db > app.db` |
 | Fluxo Maestro | *a definir* |
 | Verificar permissões proibidas no manifesto | `npm run check:manifest` (depois de um build) |
 

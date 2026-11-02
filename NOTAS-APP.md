@@ -629,6 +629,18 @@ testes falham.
   nome vem do próprio texto. Os testes passam a simular a plataforma-alvo.
 - Total: 10 suítes, 94 testes, sem aviso no console.
 
+### Pontos para a Fase 3 (responsável, 02/11/2026)
+
+1. **Salvar a etapa e as respostas do onboarding.** O alerta de saída diz "Você
+   pode continuar a configuração depois", mas hoje o progresso não é
+   guardado: ao reabrir, tudo recomeça nas boas-vindas. Avaliar gravar no
+   banco a etapa atual e as respostas já dadas, e retomar dali, ou ajustar o
+   texto do alerta.
+2. **Esconder o botão "Voltar" na primeira tela do onboarding.** Fica só a
+   confirmação no Voltar do Android (`BackHandler`). Ajustar o teste "Voltar
+   na primeira tela pede confirmação" para usar o Voltar do Android em vez do
+   botão.
+
 ### Cuidado para a Fase 10 (iOS)
 
 A barra de abas do Expo Router gera no iOS o rótulo de acessibilidade em
@@ -650,6 +662,135 @@ do app):
   configuração depois.", "CONTINUAR AQUI"/"SAIR"); "Continuar aqui" manteve o
   app aberto;
 - `logcat` (`ReactNativeJS`) sem aviso nem erro durante o percurso.
+
+## Passo 7 · Banco local (02/11/2026)
+
+### Bibliotecas
+
+| Biblioteca | Versão | Código nativo | Por quê |
+|---|---|---|---|
+| `expo-sqlite` | ~58.0.15 | sim | Prevista na stack (CLAUDE.md §6); versão do SDK 58 |
+| `drizzle-orm` | ^0.45.4 | não | **Decisão do responsável (01/11/2026).** ORM leve, com esquema em TypeScript e tipos inferidos |
+| `drizzle-kit` (dev) | ^0.31.11 | não | Gera as migrações SQL a partir do esquema |
+| `babel-plugin-inline-import` (dev) | ^3.0.0 | não | Embute os `.sql` no bundle, como pede o guia do Drizzle para Expo |
+| `sql.js` + `@types/sql.js` (dev) | ^1.15.2 | não | SQLite em WebAssembly para os testes no Node, sem compilar nada nativo (o `better-sqlite3` exigiria node-gyp no Windows) |
+| `babel-preset-expo` (dev) | ~58.0.23 | não | Exigido na raiz pelo `babel.config.js` novo. Mesma versão que o `expo` usa; o npm o deixava aninhado em `node_modules/expo` |
+
+- **Versão do Drizzle:** a página do Drizzle para Expo usa `drizzle-orm@rc`
+  (1.0.0-rc.5). Ficou a **estável** 0.45.4 (`latest` no npm). A API de
+  migrações para Expo (`drizzle/migrations.js` + `migrate`) é a mesma. Avaliar
+  a 1.0 quando sair do rc.
+- Guia: <https://orm.drizzle.team/docs/connect-expo-sqlite>.
+
+### Estrutura
+
+- `drizzle.config.ts`: `dialect: 'sqlite'`, `driver: 'expo'`, esquema em
+  `src/data/schema/index.ts`, saída em `drizzle/`.
+- `babel.config.js` (`babel-preset-expo` + `inline-import` para `.sql`) e
+  `metro.config.js` com `sourceExts.push('sql')`.
+- `src/domain/compulsion.ts`: enums das compulsões, mecânicas e gatilhos,
+  puros. O esquema os usa nas colunas e nas restrições `CHECK`.
+- `src/data/schema/`: as 5 tabelas da spec 4.6, em inglês e `snake_case`:
+  - datas em milissegundos (`timestamp_ms`);
+  - `settings` com uma linha só (`CHECK id = 1`);
+  - `UNIQUE` em `user_compulsions.type` e em (`compulsion_id`,
+    `package_name`) de `monitored_apps`;
+  - `CHECK` em todos os enums, para o banco também recusar valores fora da
+    lista;
+  - cascata nas chaves estrangeiras.
+- `drizzle/0000_initial_schema.sql`: a "migração 001" da spec (o Drizzle
+  numera a partir de 0000). Gerar a próxima com `npm run db:generate`.
+- `src/data/repositories.ts`: interfaces explícitas (`SettingsRepository`,
+  `CompulsionRepository`, `MonitoredAppRepository`, `TriggerRepository`,
+  `MotivationRepository`) e `deleteAllData()`.
+  - API **síncrona** do Drizzle, comum ao `expo-sqlite` e ao `sql.js`.
+  - Tipo comum: `AppDatabase = BaseSQLiteDatabase<'sync', unknown, schema>`.
+  - `declaredConsumption` só é gravado em app de risco.
+- `src/data/migrations.ts`: `runMigrations(db)` usa o `migrate` do Drizzle
+  para Expo. Ele só depende do dialeto e da sessão, então o mesmo código roda
+  no app e nos testes.
+- `src/data/bootstrap.ts` (só no app):
+  - abre `app.db`, nome neutro, no armazenamento privado;
+  - liga `PRAGMA foreign_keys = ON`;
+  - aplica as migrações e conecta a flag do onboarding ao banco.
+- O layout raiz só desenha a navegação com o banco pronto (sem piscar o
+  onboarding antes das abas). Se as migrações falharem, mostra "Não foi
+  possível abrir seus dados" (texto do i18n). O erro técnico vai para o
+  console, sem dados do usuário.
+- `onboardingStatus.connect(storage)`: a flag é lida do banco na abertura e
+  gravada a cada mudança. A gravação vem **antes** de mudar a tela: se falhar,
+  a navegação não muda.
+- O banco fica fora do backup do sistema (`allowBackup: false`, desde o
+  passo 2).
+
+### Testes (Jest + sql.js)
+
+- `migrations.test.ts`:
+  - o `drizzle/migrations.js` embutido tem todas as migrações do índice;
+  - a 001 cria as 5 tabelas;
+  - rodar de novo não reaplica;
+  - **duas migrações sobre um banco com dados**: aplica só a nova e preserva
+    a flag e a motivação;
+  - banco novo com as duas, em ordem: a 002 de teste altera uma tabela da 001.
+- Restrições: o banco recusa tipo, situação e gatilho fora da lista, uma
+  segunda linha em `settings` e app de compulsão inexistente.
+- `repositories.test.ts`:
+  - valores padrão de `settings`; flag e idade;
+  - compulsões (limite nulo na abstinência; sem duplicar o tipo);
+  - "consumo declarado" só em app de risco; cascata de apps e gatilhos;
+  - motivação substituída; `deleteAllData()`;
+  - flag do onboarding ligada ao banco, inclusive a falha de gravação.
+- Nos testes, as migrações são lidas **do disco**. O cache do Jest não
+  percebe mudança no `.sql` embutido pelo Babel quando o `migrations.js` não
+  muda. O teste "migrations.js tem todas as migrações" garante que o arquivo
+  embutido no app não fique para trás.
+- Mutação de controle: com `PRAGMA foreign_keys = OFF`, falham o teste de
+  cascata e o de chave estrangeira.
+- Navegação: o `bootstrap` é simulado (o `expo-sqlite` nativo não roda no
+  Jest). Dois testes novos: nada aparece enquanto as migrações rodam, e a
+  tela de erro aparece se elas falharem.
+- Total: 12 suítes, 116 testes.
+
+### No aparelho (S22): V4 e V11
+
+O `expo-sqlite` exigiu prebuild e recompilação (12m37s). O `adb` travou de
+novo antes da instalação (AP3); a solução foi reiniciá-lo e usar
+`adb install -r`. Para ler o banco do aparelho:
+`adb exec-out run-as br.com.quedo.app.dev cat files/SQLite/app.db > app.db`
+(funciona só no build de desenvolvimento). Depois, um script com `sql.js` lê
+só estrutura e flags.
+
+1. Primeira abertura: o banco foi criado em `files/SQLite/app.db` e o app
+   abriu em "Boas-vindas".
+2. Onboarding concluído pelos 7 "Continuar".
+3. **V4:** `am force-stop` e reabertura → **abriu direto no Início**. No
+   banco: 1 migração aplicada e `settings` = `[1, 1, 6]` (onboarding
+   concluído).
+4. **V11:** gerada uma migração 002 de teste (coluna `probe` em
+   `motivation`, só `ALTER TABLE`), e o app reaberto com o JavaScript novo
+   sobre o banco existente. **O app abriu no Início, sem tela de erro e sem
+   erro no `logcat`.** No banco: **2 migrações aplicadas**, coluna `probe`
+   presente e `settings` = `[1, 1, 6]` (dados preservados).
+5. A 002 foi descartada: `git checkout -- src/data/schema/index.ts drizzle`,
+   `git clean -f drizzle`, e o `drizzle-kit generate` respondeu "No schema
+   changes". Os dados do **app de desenvolvimento** foram limpos
+   (`adb shell pm clear br.com.quedo.app.dev`), porque o banco dele ficou com
+   a coluna de teste. Reaberto, o app recriou o banco só com a 001 e o
+   onboarding pendente.
+
+**Os "relatos antigos de falha no Android com mais de uma migração" (spec
+4.6) não se confirmaram** com `drizzle-orm` 0.45.4 e `expo-sqlite` 58.
+
+### Cuidados
+
+- `__drizzle_migrations.id` fica nulo no SQLite (a coluna é `SERIAL`, que o
+  SQLite não autoincrementa). O controle é pelo `created_at`, que é o `when`
+  do índice. Não depender do `id`.
+- Uma migração de teste aplicada num aparelho e depois descartada deixa o
+  banco desse aparelho fora do esquema. Sempre limpar os dados do app de
+  desenvolvimento depois (`pm clear`).
+- Depois de `npm run db:generate`, rodar o app e os testes. O Jest lê os
+  `.sql` do disco; o Metro reconstrói o bundle porque o `migrations.js` muda.
 
 ## Problemas
 
