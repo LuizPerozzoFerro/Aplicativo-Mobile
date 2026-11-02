@@ -1,0 +1,26 @@
+# Regras da raiz: valem para o repositório inteiro, inclusive o prototype/.
+# As regras do app da Fase 2 (Expo, Metro, pastas nativas geradas) entram no
+# passo de preparação da spec 01.
+
+# variáveis de ambiente e credenciais
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+*.p8
+*.p12
+*.pem
+*.key
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+local.properties
+
+# pacotes de build
+*.apk
+*.aab
+*.ipa
+
+# dependências
+node_modules/

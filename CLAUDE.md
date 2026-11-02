@@ -6,142 +6,136 @@ Instruções permanentes para o Claude Code neste repositório. Leia este arquiv
 
 ## 1. Projeto
 
-App mobile (iOS e Android) por assinatura que ajuda pessoas a se livrarem de compulsões digitais. No MVP: **pornografia** (abstinência) e **vídeos curtos/redes sociais** (moderação). O diferencial é ser **proativo**: monitorar o uso do aparelho e **alertar** o usuário no momento de risco, sem bloquear.
+**Quedo** é um app mobile por assinatura que ajuda pessoas a se livrarem de compulsões digitais. No MVP: **pornografia** (abstinência) e **vídeos curtos/redes sociais** (moderação). O diferencial é ser **proativo**: monitorar o uso do aparelho e **alertar** o usuário no momento de risco, sem bloquear.
 
-Nome do app: **a definir** (usar nomes provisórios neutros, nunca referências ao tema).
+- **Android primeiro.** O iOS vem depois da primeira versão Android publicada (Fase 10). Não teste nem configure iOS agora, mas não faça nada que impeça o iOS depois.
+- Público adulto (18+), Brasil, 100% em português no lançamento.
 
 ## 2. Fase atual
 
-**Fase 1 — Protótipo técnico de monitoramento.**
-Código descartável é permitido. O objetivo é validar o que é possível em iOS e Android e produzir um relatório de viabilidade. **Não construir funcionalidades do app definitivo nesta fase.**
+**Fase 2 — Fundação do app.** Spec: `docs/specs/spec-01-fundacao-do-app.md`.
+
+O protótipo da Fase 1 terminou (Android). A partir de agora **o código é definitivo**: qualidade, testes e i18n são obrigatórios. O protótipo em `prototype/` é **só referência**: não altere e não importe código dele sem a spec pedir (o módulo Kotlin entra na Fase 4).
 
 ## 3. Documentos (leia antes de trabalhar)
 
 | Documento | Quando ler |
 |---|---|
-| `docs/specs/spec-00-prototipo-monitoramento.md` | **Sempre, nesta fase.** Define experimentos, ordem, critérios e relatório |
-| `docs/01-visao-e-escopo-mvp.md` | Para entender o produto e as regras de negócio |
-| `docs/02-plano-tecnico.md` | Para stack, arquitetura, riscos e fases |
-| `prototype/NOTAS.md` | Início de cada sessão: decisões, problemas e comandos já descobertos |
+| Spec da fase atual em `docs/specs/` | **Sempre.** Define escopo, ordem, critérios de aceite |
+| `docs/01-visao-e-escopo-mvp.md` | Produto e regras de negócio |
+| `docs/02-plano-tecnico.md` | Stack, arquitetura, modelo de dados, riscos e fases |
+| `docs/relatorios/01-viabilidade-monitoramento.md` | Antes de mexer em monitoramento: o que foi medido e as correções obrigatórias |
+| `NOTAS-APP.md` | Início de cada sessão: decisões, problemas e comandos já descobertos |
+| `prototype/NOTAS.md` | Quando precisar de detalhes do protótipo |
 
-Os documentos em `docs/` são a fonte da verdade. **Não altere `docs/01` e `docs/02`**: se algo neles estiver errado ou inviável, registre em `prototype/NOTAS.md` e no relatório. Mudanças nesses documentos são decididas fora do Claude Code.
+Os documentos em `docs/` são a fonte da verdade. **Não altere `docs/01`, `docs/02` nem as specs**: se algo estiver errado, inviável ou ambíguo, registre em `NOTAS-APP.md` e avise o responsável. Mudanças nesses documentos são decididas no chat de planejamento.
 
 ## 4. Sobre o responsável e a comunicação
 
 - Comunique-se **sempre em português do Brasil**, de forma clara e direta.
-- O responsável tem base em programação e frontend web, mas **não é especialista em desenvolvimento mobile nativo**. Explique conceitos de iOS/Android quando forem relevantes para uma decisão.
-- Quando um teste depender de ação no aparelho, dê **instruções passo a passo** (onde tocar, que permissão conceder, o que observar).
-- Antes de decisões com impacto relevante (instalar biblioteca nativa, mudar abordagem de um experimento, gastar com serviço pago), **explique as opções e peça confirmação**.
-- Nunca afirme que algo funciona **sem evidência**: log do app, saída de build ou confirmação do responsável no aparelho.
+- O responsável tem base em programação e frontend web, mas **não é especialista em desenvolvimento mobile nativo**. Explique conceitos de Android quando forem relevantes para uma decisão.
+- Quando algo depender de ação no aparelho, dê **instruções passo a passo** (onde tocar, que permissão conceder, o que observar).
+- Antes de decisões com impacto relevante (instalar biblioteca com código nativo, criar conta ou gastar com serviço, mudar algo previsto na spec), **explique as opções e peça confirmação**.
+- Nunca afirme que algo funciona **sem evidência**: saída de teste, de build, log do app ou confirmação do responsável no aparelho.
 
 ## 5. Ambiente
 
 | Item | Detalhe |
 |---|---|
 | Sistema | **Windows** (sem Mac, sem Xcode) |
-| iOS | iPhone físico; conta Apple Developer **pessoal**; entitlement **Family Controls (Development)** apenas |
-| Android | Samsung Galaxy S22 (Android 16 / One UI 8) **pelo cabo USB**. O emulador `lab_android16` existe, mas não dá boot: a virtualização está desligada na BIOS (P2 em `prototype/NOTAS.md`) |
-| JDK | **Temurin 17**, via `JAVA_HOME`. O JDK 25 que vem com o Android Studio quebra a compilação de C++ do React Native (P1) |
-| Builds | **Android:** build local na máquina (Android Studio). **iOS:** **EAS Build** na nuvem, perfil de development build. **Não usar Expo Go** (não suporta módulos nativos). Justificativa em D1 de `prototype/NOTAS.md` |
-| Identificadores | Provisórios, ex.: `com.<provisorio>.lab.dev`. Nunca usar o identificador definitivo do app |
-
-Consequências de não ter Mac:
-- Não é possível ver logs do sistema iOS nem depurar extensões diretamente.
-- **Todo componente nativo (extensões iOS, serviços Android) deve registrar eventos no log compartilhado** exibido na tela de laboratório (spec, seção 5.3).
-- Erros de compilação iOS são investigados pelos logs do EAS Build.
+| Android | Samsung Galaxy S22, Android 16 / One UI 8. Emulador só se a virtualização da BIOS for ligada |
+| Builds | **Build local** do Android para desenvolvimento (development build, **nunca Expo Go**). EAS para builds de loja |
+| Identificadores | `br.com.quedo.app` (produção), `.dev` (desenvolvimento), `.preview` (preview). **O de produção não pode mudar depois do primeiro envio ao Google Play** |
+| Conta Google Play | Pessoa física, ativa. Não enviar nada à loja sem pedido do responsável |
 
 ## 6. Stack
 
 - TypeScript (modo estrito) · React Native · Expo (development builds) · Expo Router
-- Módulos nativos: Swift (iOS) e Kotlin (Android) via Expo Modules
-- Extensões iOS do Screen Time compiladas via config plugin compatível com EAS
-- Proibido nesta fase: backend, Supabase, RevenueCat, analytics, Sentry ou qualquer serviço externo
+- i18next + react-i18next + expo-localization
+- expo-sqlite com camada tipada e migrações
+- Módulos nativos: Kotlin (Android) via Expo Modules; Swift (iOS) na Fase 10
+- Jest + React Native Testing Library; Maestro para fluxos ponta a ponta
+- Sentry (com filtro de privacidade) a partir da Fase 2, se o responsável criar a conta
+- Supabase (Fase 5) e RevenueCat sobre o Google Play Billing (Fase 6). **Não adicionar antes da fase correspondente**
+- Proibido: analytics, qualquer SDK que envie dados do usuário, e bibliotecas não justificadas
 
 ## 7. Estrutura
 
 ```
+app/                    # rotas (Expo Router)
+src/
+  domain/               # regras puras, sem React nem banco
+  data/                 # banco, migrações, repositórios
+  features/             # por funcionalidade
+  monitoring/           # interface comum (+ implementação falsa)
+  subscription/         # regras de plano (Fase 6)
+  i18n/                 # configuração e pt-BR
+  ui/                   # tokens e componentes
+  config/               # variante de build
+modules/
+  monitoring-android/   # Kotlin (Fase 4)
+prototype/              # protótipo da Fase 1 — só referência
 docs/
   01-visao-e-escopo-mvp.md
   02-plano-tecnico.md
-  specs/
-    spec-00-prototipo-monitoramento.md
   relatorios/
-    01-viabilidade-monitoramento.md   # entregável da Fase 1
-prototype/
-  NOTAS.md                            # diário técnico do protótipo
-  ...                                 # projeto Expo do protótipo
+  specs/
+NOTAS-APP.md            # diário técnico do app
 CLAUDE.md
 ```
 
 ## 8. Regras de trabalho
 
 ### 8.1 Método
-- Siga a **ordem de execução** da spec (seção 8). Trabalhe **um experimento por vez**.
-- Ao concluir cada experimento, registre em `prototype/NOTAS.md`: ID, resultado (✅/⚠️/❌), evidência, limitações e tentativas malsucedidas.
-- Respeite o **timebox**: se um experimento travar por mais de 2 sessões sem progresso, registre o bloqueio e siga para o próximo.
-- **Consulte a documentação oficial atual** (Apple Developer, Android Developers, Expo, políticas do Google Play e da App Store) antes de implementar APIs de Screen Time, uso de apps, VPN, sobreposição e notificações. Não confie apenas em conhecimento prévio: essas APIs e políticas mudam com frequência.
-- Prefira a solução mais simples que responda à pergunta do experimento.
+- Siga a **ordem de execução** da spec. Um passo por vez, com o critério de aceite verificado antes de seguir.
+- Registre em `NOTAS-APP.md`: decisões, bibliotecas e por quê, problemas, tentativas malsucedidas e comandos úteis.
+- **Consulte a documentação oficial atual** (Expo, Android Developers, políticas do Google Play) antes de configurar bibliotecas e APIs do sistema. Não confie só em conhecimento prévio.
+- Se algo travar por mais de 2 sessões sem progresso, registre o bloqueio e traga opções ao responsável.
 
 ### 8.2 Dependências
-- Antes de adicionar qualquer biblioteca, verifique: manutenção recente, compatibilidade com a versão do Expo em uso e necessidade real.
-- Justifique cada biblioteca nativa em `prototype/NOTAS.md`.
+- Antes de adicionar qualquer biblioteca: manutenção recente, compatibilidade com a versão do Expo, necessidade real. Justifique em `NOTAS-APP.md`.
+- Bibliotecas com código nativo exigem confirmação do responsável.
 
 ### 8.3 Código
-- Código, nomes de variáveis, funções e arquivos **em inglês**.
+- Código, nomes de variáveis, funções, arquivos, tabelas e colunas **em inglês**.
 - Comentários, documentação, notas e mensagens de commit **em português**.
-- Textos de interface podem ser fixos **apenas no protótipo** (no app definitivo, i18n será obrigatório).
-- Diferenças entre plataformas ficam isoladas nos módulos nativos, atrás da interface comum da spec (seção 5.2). Funções impossíveis em uma plataforma retornam `'unsupported'` ou erro explícito, nunca falham silenciosamente.
+- **i18n obrigatório:** nenhum texto visível fixo no código. Tudo em `src/i18n/pt-BR/`. O lint bloqueia texto bruto em JSX.
+- Regras de negócio ficam em `src/domain/`, puras e testadas. A UI nunca escreve SQL.
+- Diferenças entre plataformas ficam nos módulos nativos, atrás da interface comum em `src/monitoring/`. Funções sem suporte retornam `'unsupported'` ou erro explícito, nunca falham em silêncio.
+- Toda funcionalidade nova vem com testes. `lint`, `typecheck` e `test` precisam passar antes de cada commit integrado.
 
 ### 8.4 Git
-- Branch por grupo de experimentos, ex.: `prototype/android-usage`, `prototype/ios-shield`.
-- Commits pequenos e descritivos em português, ex.: `A2: detecção de limite com serviço em primeiro plano`.
-- Nunca commitar credenciais, certificados, chaves ou arquivos `.env`.
+- Branch por grupo de trabalho (ex.: `fase2/i18n`), integrada na `main` por pull request depois da revisão do responsável.
+- Commits pequenos e descritivos em português.
+- Nunca commitar credenciais, keystores, certificados, DSNs ou arquivos `.env`.
 
-## 9. Privacidade (regras inegociáveis)
+## 9. Privacidade e discrição (regras inegociáveis)
 
-Mesmo no protótipo:
-- **Nenhum dado sai do aparelho.** Nada de chamadas de rede para servidores próprios ou de terceiros, exceto o necessário para builds e para a própria VPN local funcionar.
-- O log registra **apenas domínios**, nunca URLs completas, e nunca conteúdo de telas.
-- Nos testes de conteúdo adulto, use a **lista configurável de domínios de teste inofensivos**, salvo instrução contrária do responsável.
-- Textos de notificação devem ser **neutros**: nada que exponha o tema na tela bloqueada.
+- **Dados pessoais nunca saem do aparelho**: compulsões, gatilhos, motivação, check-ins, recaídas, uso de apps, domínios e estatísticas.
+- O servidor (quando existir) só fornece conteúdo público e não recebe identificação do usuário.
+- Logs e relatórios de erro **nunca** contêm compulsões, gatilhos, motivação, nomes de apps monitorados, domínios ou URLs. Todo evento do Sentry passa pelo filtro de privacidade.
+- Banco local fora do backup automático do sistema.
+- Textos de notificação neutros: nada que exponha o tema na tela bloqueada.
+- Nenhum termo explícito em textos, placeholders, nomes de arquivos, commits ou dados de teste. Use domínios de teste inofensivos.
 
 ## 10. Comandos úteis
 
-Preencher e manter atualizado conforme o projeto for configurado.
-
-Todos os comandos rodam dentro de `prototype/`. A lista completa, com os
-diagnósticos via `adb` e `dumpsys`, está na seção "Comandos" de
-`prototype/NOTAS.md`; o roteiro de cada sessão está em "Procedimento de início
-de sessão" no mesmo arquivo.
+Preencher e manter atualizado na Fase 2.
 
 | Ação | Comando |
 |---|---|
-| Instalar dependências | `npm install` |
-| Verificar tipos | `npm run typecheck` |
-| Lint | `npm run lint` |
-| Subir o servidor de desenvolvimento | `nohup npx expo start --dev-client --port 8081 > metro.log 2>&1 & disown` — desacoplado, e encerrado no fim da sessão |
-| Ligar o app ao servidor pelo cabo | `adb reverse tcp:8081 tcp:8081` — refazer após toda reinstalação e reinício |
-| Recarregar o JavaScript do app | `adb shell input keyevent 46 46`, com o laboratório na frente; conferir `Android Bundled` no `metro.log` |
-| Compilar e instalar no Android | `cd android && ./gradlew.bat installDebug` |
-| Regerar o projeto nativo Android | `npx expo prebuild --platform android --clean` |
-| Ler o log compartilhado sem abrir o app | `adb shell run-as com.norte.lab.dev cat files/lab-events.jsonl` |
-| Ver aparelhos Android conectados | `adb devices` |
-| Registrar iPhone para builds internos | `eas device:create` |
-| Build de desenvolvimento iOS | `eas build --profile development --platform ios` |
+| Instalar dependências | *a definir* |
+| Build local de desenvolvimento (Android) | *a definir* |
+| Iniciar servidor de desenvolvimento | *a definir* |
+| Verificar tipos | *a definir* |
+| Lint | *a definir* |
+| Testes | *a definir* |
+| Fluxo Maestro | *a definir* |
+| Gerar variante sem VPN | *a definir* |
 
-Não usar `npm run android` em segundo plano: ele encerra após instalar e deixa o
-servidor órfão, preso na porta 8081 (P4).
+## 11. Ao final de cada fase
 
-Subir o Metro não atualiza um app que já estava aberto: o serviço em primeiro
-plano mantém o processo vivo com o JavaScript antigo na memória. Recarregar com o
-comando acima (P6).
-
-## 11. Ao final da Fase 1
-
-1. Executar os roteiros de teste T1–T10 com o responsável.
-2. Escrever `docs/relatorios/01-viabilidade-monitoramento.md` seguindo **exatamente** a estrutura da spec (seção 9).
-3. Avisar o responsável que o relatório está pronto para revisão no chat de planejamento.
-
----
-
-*Este arquivo será reescrito no início da Fase 2 com as regras do app definitivo (arquitetura, i18n obrigatório, testes, design system).*
+1. Conferir todos os critérios de aceite da spec, com evidência.
+2. Executar o roteiro manual da spec com o responsável.
+3. Atualizar `NOTAS-APP.md` e a tabela de comandos acima.
+4. Avisar o responsável que a fase está pronta para revisão no chat de planejamento.
