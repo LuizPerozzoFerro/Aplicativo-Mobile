@@ -2,5 +2,25 @@
   "home": "Início",
   "stats": "Estatísticas",
   "progress": "Progresso",
-  "profile": "Perfil"
+  "profile": "Perfil",
+  "empty": {
+    "home": {
+      "title": "Seu dia aparece aqui",
+      "description": "Quando a configuração estiver pronta, o resumo do dia fica nesta tela."
+    },
+    "stats": {
+      "title": "Ainda sem dados",
+      "description": "Suas estatísticas aparecem aqui com o uso do app."
+    },
+    "progress": {
+      "title": "Sua jornada começa em breve",
+      "description": "Seus marcos e conquistas aparecem aqui."
+    }
+  },
+  "profileItems": {
+    "about": "Sobre o app",
+    "aboutHint": "Versão e informações",
+    "resetOnboarding": "Refazer onboarding",
+    "resetOnboardingHint": "Só no ambiente de desenvolvimento"
+  }
 }

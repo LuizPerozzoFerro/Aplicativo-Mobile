@@ -1,23 +1,36 @@
 {
   "welcome": {
-    "title": "Boas-vindas"
+    "title": "Boas-vindas",
+    "body": "Aqui vão a apresentação do app e a confirmação de idade."
   },
   "compulsions": {
-    "title": "O que você quer mudar"
+    "title": "O que você quer mudar",
+    "body": "Aqui você vai escolher o que quer acompanhar."
   },
   "setup": {
-    "title": "Configuração"
+    "title": "Configuração",
+    "body": "Aqui vão os detalhes de cada escolha, como limites e apps."
   },
   "triggers": {
-    "title": "Gatilhos"
+    "title": "Gatilhos",
+    "body": "Aqui você vai indicar os horários, dias e emoções de maior risco."
   },
   "motivation": {
-    "title": "Sua motivação"
+    "title": "Sua motivação",
+    "body": "Aqui você vai escrever por que quer mudar."
   },
   "permissions": {
-    "title": "Permissões"
+    "title": "Permissões",
+    "body": "Aqui o app vai explicar e pedir as permissões de que precisa."
   },
   "summary": {
-    "title": "Seu plano"
+    "title": "Seu plano",
+    "body": "Aqui vai o resumo do que o app vai fazer por você."
+  },
+  "exit": {
+    "title": "Sair do app?",
+    "message": "Você pode continuar a configuração depois.",
+    "stay": "Continuar aqui",
+    "leave": "Sair"
   }
 }

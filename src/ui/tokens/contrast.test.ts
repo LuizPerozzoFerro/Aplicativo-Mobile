@@ -12,6 +12,9 @@ const PAIRS = [
   ['text', 'surfaceMuted', TEXT],
   ['textMuted', 'background', TEXT],
   ['textMuted', 'surface', TEXT],
+  ['textMuted', 'surfaceMuted', TEXT],
+  ['danger', 'background', TEXT], // texto de erro
+  ['danger', 'surface', TEXT],
   ['primary', 'background', TEXT], // botão de texto
   ['primary', 'surface', TEXT],
   ['onPrimary', 'primary', TEXT], // botão principal

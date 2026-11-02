@@ -10,18 +10,21 @@
     "lint": "expo lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit",
+    "typegen": "expo customize tsconfig.json",
+    "typecheck": "npm run typegen && tsc --noEmit",
     "test": "jest",
     "check:manifest": "node scripts/check-manifest.js"
   },
   "dependencies": {
     "expo": "~58.0.22",
+    "expo-asset": "~58.0.19",
     "expo-constants": "~58.0.14",
     "expo-dev-client": "~58.0.18",
     "expo-linking": "~58.0.15",
     "expo-localization": "~58.0.5",
     "expo-router": "~58.0.29",
     "expo-status-bar": "~58.0.4",
+    "expo-symbols": "~58.0.4",
     "expo-system-ui": "~58.0.7",
     "i18next": "^26.7.1",
     "react": "19.3.0",
@@ -51,7 +54,7 @@
     "node": ">=24.3 <25"
   },
   "jest": {
-    "preset": "jest-expo",
+    "preset": "jest-expo/android",
     "testPathIgnorePatterns": [
       "/node_modules/",
       "<rootDir>/prototype/",
