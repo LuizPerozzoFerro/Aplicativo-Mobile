@@ -967,8 +967,36 @@ O manifesto mesclado passou a declarar
 `com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE`. Ela
 vem da biblioteca `com.android.installreferrer` (usada só por
 `getInstallReferrerAsync()`, que o app não chama) e serve para ler de onde o
-app foi instalado. Não está entre as proibidas da spec 4.3. **Pendente de
-decisão do responsável:** bloqueá-la em `android.blockedPermissions`.
+app foi instalado. Não estava entre as proibidas da spec 4.3.
+
+**Decisão do responsável (02/11/2026): bloquear.**
+- `app.config.ts`: incluída em `android.blockedPermissions`. O Expo gera
+  `<uses-permission ... tools:node="remove" />` no manifesto do app, e o
+  Gradle a tira do manifesto mesclado.
+- `scripts/check-manifest.js`: incluída em `FORBIDDEN_PERMISSIONS`, para não
+  voltar numa atualização de biblioteca. O script passou a ler cada
+  `<uses-permission>` inteiro e a **ignorar os que têm
+  `tools:node="remove"`** (são o bloqueio, não uma declaração). Dois testes
+  novos: acusa a permissão e não acusa o bloqueio.
+- Antes de recompilar, o script acusou a permissão nos três manifestos do
+  build anterior (prova de que a verificação pega o caso real).
+- Recompilado (15m04s): `check:manifest` OK nos três mesclados, que não
+  listam mais a permissão. O manifesto do app (`src/main`) tem a linha com
+  `tools:node="remove"`, e o script também o aprova. No S22, `dumpsys
+  package` sem a permissão; a tela Sobre mostrou os mesmos dados (`Quedo
+  Dev`, `1.0.0`, build `1`, `Desenvolvimento`), e os dados do app ficaram
+  preservados na reinstalação (abriu no Início).
+
+### Cuidado: encerrar o Metro inteiro
+
+O `npx expo start` abre um processo `node` filho, que é o servidor. Encerrar
+só o processo pai deixa a porta 8081 ocupada, e o próximo `expo start` falha
+com "Port 8081 is being used by another process". Encerrar todos os `node`
+cuja linha de comando tenha `expo` e `start`:
+`Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object { $_.CommandLine -match 'expo.*start' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }`.
+Um aviso "Error: undefined ... URL: localhost:8081" no `logcat` logo antes de
+reinstalar é do processo antigo do app perdendo o Metro (reinício do `adb`),
+não do build novo.
 
 ## Problemas
 

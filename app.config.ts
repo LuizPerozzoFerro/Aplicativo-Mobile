@@ -53,10 +53,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       },
       // Dados sensíveis não vão para o backup do Google (spec 01, seção 4.6).
       allowBackup: false,
-      // O template do Expo declara acesso ao armazenamento externo, que o app não usa.
       blockedPermissions: [
+        // O template do Expo declara acesso ao armazenamento externo, que o app não usa.
         'android.permission.READ_EXTERNAL_STORAGE',
         'android.permission.WRITE_EXTERNAL_STORAGE',
+        // Origem da instalação: vem com o expo-application, e o app não a usa.
+        // Também proibida no scripts/check-manifest.js.
+        'com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE',
       ],
       predictiveBackGestureEnabled: false,
     },

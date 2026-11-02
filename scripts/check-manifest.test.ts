@@ -50,6 +50,26 @@ describe('findForbidden', () => {
     expect(findForbidden(xml)).toEqual(['permissão proibida: android.permission.BIND_VPN_SERVICE']);
   });
 
+  it('acusa a permissão de origem da instalação (Install Referrer)', () => {
+    const xml = CLEAN_MANIFEST.replace(
+      '<application',
+      '<uses-permission android:name="com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE" />\n  <application',
+    );
+    expect(findForbidden(xml)).toEqual([
+      'permissão proibida: com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE',
+    ]);
+  });
+
+  it('não acusa o bloqueio (tools:node="remove"), que é o que o blockedPermissions gera', () => {
+    const xml = CLEAN_MANIFEST.replace(
+      '<application',
+      `<uses-permission android:name="com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE" tools:node="remove" />
+  <uses-permission tools:node="remove" android:name="android.permission.HIDE_OVERLAY_WINDOWS" />
+  <application`,
+    );
+    expect(findForbidden(xml)).toEqual([]);
+  });
+
   it('acusa um serviço que responde a android.net.VpnService mesmo sem a permissão', () => {
     const xml = CLEAN_MANIFEST.replace(
       '</application>',
