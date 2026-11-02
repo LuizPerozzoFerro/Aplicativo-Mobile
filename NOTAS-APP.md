@@ -300,6 +300,17 @@ Todas são só de desenvolvimento, sem código nativo.
   com namespace no `useTranslation` é a padrão.
 - Chaves sempre literais: o teste de chaves recusa `t(variavel)` e template
   com `${}`.
+- **Plural com zero (decisão do responsável, 02/11/2026):** toda chave com
+  contagem que pode ser zero tem a forma **`_zero`** além de `_one` e
+  `_other`. Pelo CLDR, `Intl.PluralRules('pt-BR').select(0)` é `"one"`, então
+  sem `_zero` o i18next escreve "0 dia". Conferido com `i18next` puro: sem
+  `_zero`, `0 dia | 1 dia | 2 dias`; com `_zero`, `0 dias | 1 dia | 2 dias`.
+  - O `keys.test.ts` **falha** se houver plural sem `_zero`. A única saída é
+    listar a chave em `PLURALS_WITHOUT_ZERO`, para contagens que nunca chegam
+    a zero. A falha, em vez de aviso no console, faz de cada exceção uma
+    decisão registrada no código.
+  - Mutação de controle: sem `days_zero`, falham o teste de plurais e o
+    "0 dias" do componente.
 
 ### Regra de lint contra texto fixo (spec 4.5)
 
@@ -322,6 +333,44 @@ Testado com um arquivo de sonda (removido):
 
 O modo `jsx-only` sem a restrição de atributos também acusava `testID`.
 
+### Textos fora do JSX (pedido do responsável para o passo 6)
+
+A regra do i18next só enxerga JSX. Opções de navegação (`options={{ title }}`),
+`Alert.alert` e conteúdo de notificação também são texto visível. Em
+`eslint.config.js`, `no-restricted-syntax` (regra nativa do ESLint, sem
+dependência nova) dá **erro** para:
+
+- texto literal ou template como valor das propriedades `title`,
+  `headerTitle`, `headerBackTitle`, `tabBarLabel`, `tabBarAccessibilityLabel`,
+  `drawerLabel`, `accessibilityLabel`, `accessibilityHint`, `placeholder`,
+  `label`, `text`, `message`, `description`, `subtitle` e `body`, em
+  **qualquer objeto**;
+- argumentos literais ou template de `Alert.alert`, `Alert.prompt` e
+  `ToastAndroid.show*`.
+
+Sonda (removida): acusou `Alert.alert('…', `…`, [{ text: 'OK' }])`,
+`ToastAndroid.show('…')`, `{ title: 'Lembrete', body: `Hora de ${…}` }` e
+`options={{ title: 'Início', tabBarLabel: 'Início' }}`. Deixou passar
+`testID`, `variant`, `channelId`, `href`, `headerShown` e valores vindos do
+`t()`. O projeto inteiro passou sem falso positivo. A config do Expo não usa
+`no-restricted-syntax`, então nada dela foi substituído.
+
+**Cuidados que o lint não cobre (revisar à mão):**
+
+- Texto guardado numa constante e passado depois:
+  `const msg = 'Olá'; Alert.alert(msg)`. A regra só vê o literal no lugar de
+  uso.
+- Propriedades de texto com nomes fora da lista. Ao usar uma API nova que
+  mostra texto, acrescentar a propriedade em `TEXT_PROPERTIES`.
+- Um nome da lista usado para algo técnico, com valor literal (ex.:
+  `{ label: 'debug' }` num log). Nesse caso, desligar a regra na linha
+  (`eslint-disable-next-line no-restricted-syntax`) com comentário dizendo o
+  porquê.
+- **Textos no Kotlin (Fase 4):** notificações e a tela de interrupção montadas
+  no nativo não passam pelo ESLint. Elas devem receber o texto já traduzido
+  do JS ou usar `strings.xml`, com a mesma discrição da tela bloqueada
+  (CLAUDE.md §9).
+
 ### Testes
 
 - `keys.test.ts`: varre `app/` e `src/` e confere que **toda chave usada
@@ -338,7 +387,7 @@ O modo `jsx-only` sem a restrição de atributos também acusava `testID`.
 - `i18n.test.tsx`: inicialização síncrona em pt-BR, interpolação, outro
   namespace (`tabs:home`) e plural num componente renderizado (`1 dia`,
   `3 dias`).
-- Resultado: 6 suítes, 33 testes passando. Lint sem avisos.
+- Resultado: 6 suítes, 36 testes passando (com os de plural no zero). Lint sem avisos.
 - `import/no-named-as-default-member` acusava `i18n.use(...)` e `i18n.t(...)`.
   É um falso positivo com a instância padrão do i18next. No `index.ts`, a regra
   foi desligada só naquela linha, com comentário; no teste, foi usado o `t`

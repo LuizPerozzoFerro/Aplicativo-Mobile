@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { keyExists, scanSource, type KeyUsage } from './keys';
+import { keyExists, pluralsWithoutZero, scanSource, type KeyUsage } from './keys';
 import { DEFAULT_LANGUAGE, DEFAULT_NAMESPACE, resources } from './resources';
 
 const ROOT = path.resolve(__dirname, '../..');
@@ -43,6 +43,31 @@ describe('chaves de tradução usadas no código', () => {
 
   it('são sempre literais (chave dinâmica não pode ser conferida)', () => {
     expect(results.flatMap((r) => r.dynamic)).toEqual([]);
+  });
+});
+
+// Plurais cuja contagem nunca chega a zero e que, por isso, dispensam _zero.
+// Cada entrada é uma decisão consciente: `namespace:caminho.base`.
+const PLURALS_WITHOUT_ZERO: string[] = [];
+
+describe('plurais do pt-BR', () => {
+  it('têm a forma _zero, salvo os listados em PLURALS_WITHOUT_ZERO', () => {
+    expect(pluralsWithoutZero(ptBR).filter((key) => !PLURALS_WITHOUT_ZERO.includes(key))).toEqual(
+      [],
+    );
+  });
+
+  it('pluralsWithoutZero acha o plural sem _zero, inclusive aninhado', () => {
+    const tree = {
+      ns: {
+        a_zero: '0',
+        a_one: '1',
+        a_other: 'n',
+        group: { b_one: '1', b_other: 'n' },
+        c_other: 'n',
+      },
+    };
+    expect(pluralsWithoutZero(tree)).toEqual(['ns:c', 'ns:group.b']);
   });
 });
 

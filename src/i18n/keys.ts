@@ -61,6 +61,30 @@ function lookup(tree: unknown, path: string[]): unknown {
   return node;
 }
 
+/**
+ * Chaves plurais (com _one ou _other) que não têm a forma _zero, como
+ * `namespace:caminho.base`. No pt-BR o 0 cai em "one" ("0 dia"), então toda
+ * contagem que pode ser zero precisa de _zero (convenção do NOTAS-APP.md).
+ */
+export function pluralsWithoutZero(namespaces: Record<string, unknown>): string[] {
+  const missing: string[] = [];
+  const walk = (node: unknown, prefix: string) => {
+    if (typeof node !== 'object' || node === null) return;
+    const entries = node as Record<string, unknown>;
+    const bases = new Set(
+      Object.keys(entries)
+        .filter((key) => /_(one|other)$/.test(key))
+        .map((key) => key.replace(/_(one|other)$/, '')),
+    );
+    for (const base of bases) {
+      if (typeof entries[`${base}_zero`] !== 'string') missing.push(`${prefix}${base}`);
+    }
+    for (const [key, child] of Object.entries(entries)) walk(child, `${prefix}${key}.`);
+  };
+  for (const [namespace, tree] of Object.entries(namespaces)) walk(tree, `${namespace}:`);
+  return missing;
+}
+
 /** A chave existe como texto, ou como plural (chave_one, chave_other...). */
 export function keyExists(namespaceTree: unknown, key: string): boolean {
   const path = key.split('.');

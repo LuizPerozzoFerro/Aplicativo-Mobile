@@ -27,4 +27,11 @@ describe('i18n configurado', () => {
     await render(<Days count={3} />);
     expect(screen.getByText('3 dias')).toBeTruthy();
   });
+
+  it('usa o plural no zero pela forma _zero ("0 dias", não "0 dia")', async () => {
+    // No pt-BR (CLDR), Intl.PluralRules classifica 0 como "one"; sem _zero sairia "0 dia".
+    expect(new Intl.PluralRules('pt-BR').select(0)).toBe('one');
+    await render(<Days count={0} />);
+    expect(screen.getByText('0 dias')).toBeTruthy();
+  });
 });

@@ -5,6 +5,29 @@ const expoConfig = require('eslint-config-expo/flat');
 const eslintPluginPrettierRecommended = require('eslint-plugin-prettier/recommended');
 const i18next = require('eslint-plugin-i18next');
 
+// Textos visíveis fora do JSX, que a regra do i18next não enxerga: opções de
+// navegação (title, tabBarLabel…), botões de Alert ({ text }) e conteúdo de
+// notificação (title, body). Um texto literal nessas propriedades é erro.
+const TEXT_PROPERTIES = [
+  'title',
+  'headerTitle',
+  'headerBackTitle',
+  'tabBarLabel',
+  'tabBarAccessibilityLabel',
+  'drawerLabel',
+  'accessibilityLabel',
+  'accessibilityHint',
+  'placeholder',
+  'label',
+  'text',
+  'message',
+  'description',
+  'subtitle',
+  'body',
+].join('|');
+const STRING_LITERAL = '[raw=/^[\'"]/]';
+const I18N_MESSAGE = 'Texto visível precisa vir do t() (src/i18n/pt-BR/), não de literal.';
+
 module.exports = defineConfig([
   // prototype/ é só referência (spec 01, seção 4.1); o resto é gerado.
   globalIgnores([
@@ -44,6 +67,17 @@ module.exports = defineConfig([
             ],
           },
         },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        ...['Literal' + STRING_LITERAL, 'TemplateLiteral'].map((valueSelector) => ({
+          selector: `Property[key.name=/^(${TEXT_PROPERTIES})$/] > ${valueSelector}.value`,
+          message: I18N_MESSAGE,
+        })),
+        ...['Literal' + STRING_LITERAL, 'TemplateLiteral'].map((argSelector) => ({
+          selector: `CallExpression:matches([callee.object.name='Alert'][callee.property.name=/^(alert|prompt)$/], [callee.object.name='ToastAndroid'][callee.property.name=/^show/]) > ${argSelector}.arguments`,
+          message: I18N_MESSAGE,
+        })),
       ],
     },
   },

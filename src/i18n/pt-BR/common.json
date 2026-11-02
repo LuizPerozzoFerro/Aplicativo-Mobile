@@ -8,6 +8,7 @@
     "environment": "Ambiente: {{environment}}",
     "today": "Hoje é {{date}}",
     "sampleNumber": "Exemplo de número: {{value}}",
+    "days_zero": "{{count}} dias",
     "days_one": "{{count}} dia",
     "days_other": "{{count}} dias"
   }
