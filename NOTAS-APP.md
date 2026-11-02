@@ -1056,17 +1056,58 @@ não do build novo.
 
 | # | Como foi verificado | Resultado |
 |---|---|---|
-| V1 | `pm list packages --user 0`: `br.com.quedo.app.dev` e o protótipo `com.norte.lab.dev` ("Norte Lab") instalados juntos | ✅ (nomes no lançador: confirmar com o responsável) |
+| V1 | `pm list packages --user 0`: `br.com.quedo.app.dev` e o protótipo `com.norte.lab.dev` ("Norte Lab") instalados juntos; nomes no lançador conferidos pelo responsável | ✅ |
 | V2 | Maestro: `clearState` → abre em "Boas-vindas" | ✅ |
 | V3 | Maestro: 7 telas na ordem, volta duas, avança de novo; Jest (`navigation.test.tsx`) | ✅ |
-| V4 | Maestro: `stopApp` e reabertura → Início. Passo 7: `am force-stop` e reabertura, com a flag no banco | ✅ (fechar pelo multitarefa: com o responsável) |
+| V4 | Maestro: `stopApp` e reabertura → Início. Passo 7: `am force-stop` e reabertura, com a flag no banco. Fechamento pelo multitarefa conferido pelo responsável | ✅ |
 | V5 | Maestro e Jest: Início, Estatísticas, Progresso, Perfil | ✅ |
 | V6 | Maestro e Jest: Perfil → Refazer onboarding → boas-vindas | ✅ |
-| V7 | Passo 5: tema escuro no S22 (componentes); claro conferido pelo responsável | Pendente com o responsável, nas telas reais |
-| V8 | Passo 5: fonte no máximo conferida pelo responsável (componentes) | Pendente com o responsável, nas telas reais |
+| V7 | Responsável no S22: escuro e claro nas 4 abas e no Sobre (passo 5: componentes) | ✅ |
+| V8 | Responsável no S22: fonte no máximo nas 4 abas, no Sobre e no onboarding (passo 5: componentes) | ✅ |
 | V9 | Passo 9: `Quedo Dev`, `1.0.0`, build `1`, `Desenvolvimento`, iguais ao `dumpsys package`; Maestro confere a tela | ✅ |
 | V10 | Build de produção (abaixo): `check:manifest` OK | ✅ |
 | V11 | Passo 7: migração 002 de teste sobre banco existente, 2 migrações aplicadas e dados preservados | ✅ |
+
+V1, V4 (multitarefa), V7 e V8 **conferidos pelo responsável no S22 em
+02/11/2026** ("Conferi, está ok"), com as instruções passo a passo. Não
+alterei configurações do aparelho: tema e fonte foram trocados pelo
+responsável.
+
+### Critérios de aceite da Fase 2 (spec, seção 8)
+
+| Critério | Evidência | |
+|---|---|---|
+| App instalado no S22 por build local, com os identificadores da 4.2 | Builds locais (Gradle) nos passos 2, 7 e 9; `br.com.quedo.app.dev` instalado; `expo config` dá `.dev`, `.preview` e o de produção (abaixo) | ✅ |
+| Onboarding vazio e 4 abas, com a flag persistida no banco | Passo 6 (navegação) e 7 (V4 com `settings` lido do aparelho); Maestro | ✅ |
+| Nenhum texto fixo: lint com a regra de texto bruto | `npm run lint` sem erro; regras do passo 4 (JSX e objetos) | ✅ |
+| Migração 001 com teste; repositórios testados; `deleteAllData()` | `migrations.test.ts`, `repositories.test.ts`; V11 | ✅ |
+| Borda do dia testada | `day.test.ts` (meia-noite e as duas trocas de horário de verão), com mutação de controle | ✅ |
+| Interface de monitoramento com implementação falsa | `src/monitoring/` e `FakeMonitoringModule.test.ts` | ✅ |
+| Tokens e componentes, tema claro e escuro | Passo 5; contraste testado; V7 | ✅ |
+| Variantes; `domainMonitoring` desligada; verificação do manifesto | `expo config` nas três variantes (refeito no fim da fase); `variant.test.ts`; `check:manifest` com testes e V10 | ✅ |
+| `lint`, `typecheck` e `test` locais e no CI | Local: 18 suítes, 166 testes. CI verde nos PRs #8, #9 e #10 e na `main` | ✅ |
+| Fluxo Maestro no S22 | `npm run e2e`, aprovado no S22 | ✅ |
+| Roteiro V1 a V11 com o responsável | Tabela acima | ✅ |
+| `NOTAS-APP.md` com decisões, bibliotecas e comandos | Este arquivo | ✅ |
+| Tabela de comandos do `CLAUDE.md` preenchida | Seção 10, inclusive Maestro | ✅ |
+
+Variantes conferidas no fim da fase (`npx expo config --type public`):
+
+| `APP_ENV` | nome | package | scheme | `extra.environment` |
+|---|---|---|---|---|
+| (vazio) | Quedo Dev | `br.com.quedo.app.dev` | `quedo-dev` | `development` |
+| `preview` | Quedo Preview | `br.com.quedo.app.preview` | `quedo-preview` | `preview` |
+| `production` | Quedo | `br.com.quedo.app` | `quedo` | `production` |
+
+**Fase 2 pronta para revisão no chat de planejamento.** Pontos já
+registrados para as próximas fases:
+- Fase 3: salvar o progresso do onboarding; esconder o "Voltar" da primeira
+  tela; teclado na `Screen`; "Apagar meus dados" zera o onboarding;
+  `isAppRoleAllowed` ao gravar apps.
+- Fase 4: voltar preditivo; borda do dia no Kotlin e no Hermes; regras de
+  limite (vídeos curtos somado, apps de risco um por app).
+- Fase 7: decisão sobre SQLCipher.
+- Fase 10: rótulo das abas no iOS.
 
 ### V10: build de produção
 
