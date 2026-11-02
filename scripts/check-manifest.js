@@ -1,6 +1,7 @@
 // Verificação do manifesto Android (spec 01, seção 4.3; doc 02, seção 3.4).
 // O build publicado não pode declarar a VPN nem as permissões que só serviam a
-// ela e a um experimento do protótipo (decisão D6).
+// ela e a um experimento do protótipo (decisão D6), nem a de origem da
+// instalação, que o app não usa (decisão do responsável, 02/11/2026).
 //
 // Uso: node scripts/check-manifest.js [caminho/AndroidManifest.xml ...]
 // Sem argumentos, confere os manifestos mesclados que o Gradle gerou em
@@ -10,9 +11,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const FORBIDDEN_PERMISSIONS = [
+  // D6: VPN e experimento do protótipo.
   'android.permission.BIND_VPN_SERVICE',
   'android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED',
   'android.permission.HIDE_OVERLAY_WINDOWS',
+  // Origem da instalação (Install Referrer do Google Play). Vem com o
+  // expo-application; bloqueada em android.blockedPermissions (app.config.ts).
+  'com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE',
 ];
 
 const VPN_SERVICE_ACTION = 'android.net.VpnService';
@@ -24,11 +29,14 @@ const VPN_SERVICE_ACTION = 'android.net.VpnService';
  */
 function findForbidden(xml) {
   const problems = [];
-  for (const permission of FORBIDDEN_PERMISSIONS) {
-    const usesPermission = new RegExp(
-      `<uses-permission(?:-sdk-23)?\\b[^>]*android:name\\s*=\\s*"${permission.replace(/\./g, '\\.')}"`,
-    );
-    if (usesPermission.test(xml)) problems.push(`permissão proibida: ${permission}`);
+  const usesPermissions = xml.match(/<uses-permission(?:-sdk-23)?\b[^>]*>/g) ?? [];
+  for (const tag of usesPermissions) {
+    const permission = /android:name\s*=\s*"([^"]+)"/.exec(tag)?.[1];
+    // tools:node="remove" é o bloqueio (blockedPermissions), não uma declaração.
+    const removed = /tools:node\s*=\s*"remove"/.test(tag);
+    if (permission && FORBIDDEN_PERMISSIONS.includes(permission) && !removed) {
+      problems.push(`permissão proibida: ${permission}`);
+    }
   }
   const services = xml.match(/<service\b[\s\S]*?(?:\/>|<\/service>)/g) ?? [];
   for (const service of services) {
