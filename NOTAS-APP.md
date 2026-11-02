@@ -947,6 +947,29 @@ Hoje o Brasil não tem horário de verão, mas o app deve funcionar se voltar.
   um dado. O `expo-application` é simulado (não há pacote instalado no Jest).
 - Total: 17 suítes, 160 testes.
 
+### No aparelho (S22): V9
+
+- Código nativo novo: `npm run android:prebuild` + `gradlew assembleDebug`
+  (13m35s) e `adb install -r` (o `adb` reiniciado antes, por causa do AP3).
+- Na primeira abertura depois da reinstalação, o menu de desenvolvimento do
+  Expo abre sozinho ("Continue" e "Close" o fecham). É do `expo-dev-client`,
+  não do app.
+- Onboarding pelos 7 "Continuar" → Perfil → Sobre o app. A tela mostrou
+  `Quedo Dev`, `1.0.0`, build `1` e `Desenvolvimento`, iguais ao
+  `dumpsys package br.com.quedo.app.dev` (`versionName=1.0.0`,
+  `versionCode=1`). "Política de privacidade" com "Disponível em breve".
+- `logcat` (`ReactNativeJS`) sem erro nem aviso.
+- `npm run check:manifest`: OK nos três manifestos mesclados.
+
+### Permissão nova trazida pelo `expo-application`
+
+O manifesto mesclado passou a declarar
+`com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE`. Ela
+vem da biblioteca `com.android.installreferrer` (usada só por
+`getInstallReferrerAsync()`, que o app não chama) e serve para ler de onde o
+app foi instalado. Não está entre as proibidas da spec 4.3. **Pendente de
+decisão do responsável:** bloqueá-la em `android.blockedPermissions`.
+
 ## Problemas
 
 ### AP1 · Build Android falha no C++ do `react-native-worklets` (caminho longo)
