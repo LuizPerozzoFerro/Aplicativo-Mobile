@@ -153,6 +153,27 @@ que a exija ou responda a `android.net.VpnService`),
 caminhos como argumento. Controle positivo: contra o manifesto do módulo do
 protótipo, acusa as três (código de saída 1). Sem build, sai com código 2.
 
+### Primeiro build no S22 (critério do passo 2)
+
+- `br.com.quedo.app.dev` instalado ao lado do protótipo (`com.norte.lab.dev`):
+  saída de `adb shell pm list packages --user 0`.
+- Metro: `Android Bundled 21404ms node_modules\expo-router\entry.js (1279
+  modules)`. `topResumedActivity = br.com.quedo.app.dev/.MainActivity`.
+- Captura de tela: "development" na tela, "Quedo Dev" e o ícone neutro no
+  menu do dev client. A captura não foi versionada, porque a barra de status
+  mostra notificações pessoais.
+- `adb shell pm list packages` sem `--user 0` falha no S22 com "Shell does not
+  have permission to access user 150" (perfil da Pasta Segura).
+
+### Manifesto mesclado do build de desenvolvimento
+
+`node scripts/check-manifest.js`: **OK** nos 3 manifestos mesclados do debug.
+Permissões finais: `INTERNET`, `SYSTEM_ALERT_WINDOW`, `VIBRATE`,
+`ACCESS_NETWORK_STATE`, `ACCESS_LOCAL_NETWORK`, `CHANGE_WIFI_MULTICAST_STATE`
+e a `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` do próprio app. As duas de rede
+local devem vir do dev client (descoberta do Metro na rede). Conferir no build
+de produção (V10) que elas não vão junto.
+
 ### EAS
 
 `eas.json` com os perfis `development` (apk, dev client), `preview` (apk) e
@@ -187,9 +208,27 @@ Mansion cita o mesmo erro e pede ninja 1.12+ e caminhos longos ligados:
 
 Unidade removida (`subst Q: /d`).
 
-**Status:** aberto, aguardando decisão do responsável. Opções: ligar caminhos
-longos no Windows e usar CMake/ninja mais novos, ou mover o repositório para
-um caminho curto.
+**Solução (01/11/2026, escolhida pelo responsável entre esta e mover o
+repositório para `C:\dev\quedo`):**
+
+1. O responsável ligou `LongPathsEnabled = 1` (PowerShell como administrador):
+   `New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name LongPathsEnabled -Value 1 -PropertyType DWORD -Force`
+2. CMake **3.31.6** (com **ninja 1.12.1**) instalado no SDK com
+   `android.exe sdk install cmake/3.31.6`. O `sdkmanager.bat` responde "Package
+   not found" porque o CLI novo usa `cmake/3.31.6`, com barra. Ficou na série
+   3.x porque o CMake 4 recusa `cmake_minimum_required` abaixo de 3.5.
+3. Nenhuma biblioteca fixa a versão do CMake. O config plugin
+   `plugins/with-local-cmake.js` grava `cmake.dir` no `android/local.properties`
+   a cada prebuild, e só age se o CMake 3.31.6 existir no SDK da máquina.
+   Conferido no `CMakeCache.txt` do worklets: `CMAKE_COMMAND` e
+   `CMAKE_MAKE_PROGRAM` apontam para `cmake/3.31.6`.
+4. `gradlew --stop` e remoção dos `.cxx` das bibliotecas antes de recompilar.
+
+**Resultado:** `BUILD SUCCESSFUL in 20m 12s` (build limpo), `Installed on 1
+device`. **Status:** resolvido.
+
+**Atenção:** o Android Studio, se usado para compilar, também precisa do
+Gradle JDK apontado para o Temurin 17 (P1 do protótipo).
 
 ## Decisões do responsável (01/11/2026)
 

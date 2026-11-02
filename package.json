@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "start": "expo start --dev-client",
-    "prebuild": "expo prebuild --platform android --clean",
+    "android:prebuild": "expo prebuild --platform android --clean",
     "android:install": "cd android && gradlew.bat installDebug"
   },
   "dependencies": {
