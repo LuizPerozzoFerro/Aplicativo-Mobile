@@ -1,0 +1,23 @@
+{
+  "welcome": {
+    "title": "Boas-vindas"
+  },
+  "compulsions": {
+    "title": "O que você quer mudar"
+  },
+  "setup": {
+    "title": "Configuração"
+  },
+  "triggers": {
+    "title": "Gatilhos"
+  },
+  "motivation": {
+    "title": "Sua motivação"
+  },
+  "permissions": {
+    "title": "Permissões"
+  },
+  "summary": {
+    "title": "Seu plano"
+  }
+}
