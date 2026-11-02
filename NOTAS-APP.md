@@ -508,8 +508,10 @@ O token `text: '#13212A'` caiu na regra de texto fora do JSX (propriedade
   - botões principal, secundário (com contorno), de texto e desabilitado;
   - item de lista e estado vazio;
   - plural "0 dias · 1 dia · 2 dias".
-- O modo claro fica para o responsável conferir no roteiro (V7), assim como a
-  fonte no máximo (V8). Não alterei configurações do aparelho.
+- **Modo claro e fonte no máximo: conferidos pelo responsável no S22 em
+  02/11/2026** ("Conferi, está ok"), na tela provisória com todos os
+  componentes. Não alterei configurações do aparelho. O V7 e o V8 completos
+  continuam no roteiro do passo 10, já com as telas reais da navegação.
 
 ## Problemas
 
