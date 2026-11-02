@@ -65,7 +65,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       bundleIdentifier: identifier,
       supportsTablet: false,
     },
-    plugins: ['expo-router', './plugins/with-local-cmake'],
+    plugins: ['expo-router', 'expo-system-ui', './plugins/with-local-cmake'],
     experiments: {
       typedRoutes: true,
     },

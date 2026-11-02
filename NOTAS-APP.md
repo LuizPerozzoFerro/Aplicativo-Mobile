@@ -404,6 +404,115 @@ dia" e "2 dias". A interpolação, a data e o número em pt-BR e o plural
 `logcat` (`ReactNativeJS`) não registrou erro nem aviso. A captura não foi
 versionada, porque a barra de status mostra notificações pessoais.
 
+## Passo 5 · Design system (02/11/2026)
+
+### Bibliotecas
+
+| Biblioteca | Versão | Código nativo | Por quê |
+|---|---|---|---|
+| `expo-system-ui` | ~58.0.7 | sim | **Aprovado pelo responsável em 02/11/2026.** Faz o `userInterfaceStyle: 'automatic'` valer no Android (o prebuild avisava que ele era ignorado sem esta biblioteca) e permite pintar o fundo nativo da janela no tema (`SystemUI.setBackgroundColorAsync`). Plugin `expo-system-ui` registrado no `app.config.ts`, como pede <https://docs.expo.dev/versions/latest/sdk/system-ui/> |
+
+Os componentes não usam nenhuma outra biblioteca nova. A área segura vem do
+`react-native-safe-area-context`, que já veio com o Expo Router.
+
+**Ícones da barra de abas (spec 4.9) ficam para o passo 6.** No SDK 58, o
+`@expo/vector-icons` não vem mais junto com o `expo`: não está no
+`node_modules`, e o `bundledNativeModules.json` indica `^15.0.2`. É só
+JavaScript, e as fontes de ícone carregam pelo `expo-font`, que já vem com o
+`expo`. Decidir e instalar com as abas.
+
+### Tokens (`src/ui/tokens/`)
+
+- **Cores** (`colors.ts`): paletas `light` e `dark` provisórias e neutras,
+  derivadas do azul-acinzentado do ícone. Os nomes são semânticos
+  (`background`, `surface`, `surfaceMuted`, `text`, `textMuted`, `primary`,
+  `onPrimary`, `divider`, `outline`, `danger`, `onDanger`); nenhum componente
+  usa hexadecimal direto.
+- **Contraste** (`contrast.ts`): razão WCAG 2.x. O teste confere 11 pares em
+  cada tema: texto com 4,5:1; contorno de controle com 3:1. Valores:
+
+  | Par | Claro | Escuro |
+  |---|---|---|
+  | text / background | 15,3 | 15,6 |
+  | text / surfaceMuted | 13,8 | 11,4 |
+  | textMuted / surface | 7,0 | 7,5 |
+  | primary / background (botão de texto) | 7,2 | 9,4 |
+  | onPrimary / primary (botão principal) | 7,8 | 9,4 |
+  | onDanger / danger | 6,9 | 7,7 |
+  | outline / surface (botão secundário) | 4,1 | 5,0 |
+
+- **Tipografia**: fonte do sistema; variantes `display`, `title`, `heading`,
+  `body`, `bodyStrong`, `caption` e `label`. Nenhum componente desliga o
+  `allowFontScaling` nem usa `maxFontSizeMultiplier`, então o texto acompanha
+  a fonte do sistema (V8).
+- **Espaços** (escala de 4 dp), **raios** e **sombras** (`boxShadow`, do RN
+  0.76+; mais forte no escuro). `MIN_TOUCH_TARGET = 48`.
+
+### Tema (`src/ui/theme.ts`)
+
+`getTheme(scheme)` é puro e `useTheme()` segue o `useColorScheme()` do
+sistema. No layout raiz:
+- `SystemUI.setBackgroundColorAsync` pinta o fundo nativo da janela;
+- `contentStyle` do Stack usa o fundo do tema;
+- a barra de status inverte a cor dos ícones no escuro.
+
+### Componentes (`src/ui/components/`)
+
+| Componente | O que faz | Acessibilidade |
+|---|---|---|
+| `Screen` | Fundo do tema, área segura (`edges`) e rolagem (padrão ligado, para fonte grande não cortar texto) | — |
+| `Text` | Variante tipográfica e cor do tema | `display`, `title` e `heading` viram `accessibilityRole="header"` |
+| `Button` | `primary`, `secondary` (com contorno) e `text` | Papel de botão, rótulo, estado `disabled`, mínimo de 48×48 dp |
+| `Card` | Superfície com raio e sombra | — |
+| `EmptyState` | Título, descrição e ação opcional | Título como cabeçalho |
+| `ListItem` | Título, subtítulo, elemento à direita e `onPress` opcional | Mínimo de 48 dp; com `onPress`, botão que lê "título, subtítulo" |
+
+Os textos chegam prontos pelas props (`label`, `title`, `description`), já
+traduzidos. As regras de lint do passo 4 acusam literais nesses atributos e
+propriedades.
+
+### Lint: falso positivo do token de cor
+
+O token `text: '#13212A'` caiu na regra de texto fora do JSX (propriedade
+`text`). O seletor passou a ignorar strings que são só uma cor hexadecimal
+(`'#RGB'` a `'#RRGGBBAA'`). Sonda: `text: '#FFF'` passa; `title: 'Olá'` e
+`body: '#cafe é bom'` continuam dando erro.
+
+### Testes
+
+- `contrast.test.ts`: 22 pares da paleta (11 por tema), mais preto e branco
+  (21:1) e simetria.
+- `components.test.tsx`:
+  - botão chama `onPress`; desabilitado não chama e anuncia o estado;
+  - 48×48 dp nas três variantes;
+  - cores do tema; variante e cor do `Text`; títulos como cabeçalho;
+  - fonte do sistema não desligada;
+  - `ListItem` com e sem `onPress`; `EmptyState` com e sem ação;
+  - `Card` e `Screen` com e sem rolagem.
+- `theme.test.tsx`: com o sistema simulado no escuro, o botão usa
+  `colors.dark`. Mutação de controle: com `useTheme` sempre claro, o teste
+  falha.
+- A Testing Library 14 não tem mais `UNSAFE_getByType`. A rolagem é
+  conferida procurando `RCTScrollView` no `toJSON()`.
+- Total: 78 testes.
+
+### No aparelho (S22)
+
+- O prebuild gravou
+  `expo_system_ui_user_interface_style = automatic` no `strings.xml`: o plugin
+  está agindo.
+- Metro: `Android Bundled ... (1328 modules)`.
+- O S22 estava no modo escuro (`adb shell cmd uimode night` → `Night mode:
+  yes`), e a tela provisória apareceu toda no tema escuro:
+  - fundo `#0E1518`, cartões em `surface`, barra de status com ícones claros;
+  - botões principal, secundário (com contorno), de texto e desabilitado;
+  - item de lista e estado vazio;
+  - plural "0 dias · 1 dia · 2 dias".
+- **Modo claro e fonte no máximo: conferidos pelo responsável no S22 em
+  02/11/2026** ("Conferi, está ok"), na tela provisória com todos os
+  componentes. Não alterei configurações do aparelho. O V7 e o V8 completos
+  continuam no roteiro do passo 10, já com as telas reais da navegação.
+
 ## Problemas
 
 ### AP1 · Build Android falha no C++ do `react-native-worklets` (caminho longo)
@@ -467,6 +576,26 @@ nenhuma mudança. Tudo indica arquivos presos por um processo (daemon antigo
 do Gradle/Kotlin ou o antivírus), não erro de configuração. Se repetir:
 `gradlew --stop`, apagar a pasta citada e tentar de novo antes de investigar
 mais a fundo.
+
+### AP3 · `installDebug` parado: `adb` travado (02/11/2026)
+
+**Sintoma:** o build empacotou o APK às 14:29 e ficou 20 minutos parado em
+`> Task :app:installDebug`. `adb devices` e `adb shell echo ok` não
+respondiam (`timeout` com código 124). É o mesmo P7 do protótipo.
+
+**Solução:**
+1. Encerrar o build.
+2. Matar o `adb.exe` (`Stop-Process` no PowerShell; o `adb kill-server` também
+   trava nesse estado).
+3. `adb start-server` e `adb devices`.
+4. Instalar o APK já compilado:
+   `adb install -r android/app/build/outputs/apk/debug/app-debug.apk`
+   (`Success`). Não é preciso recompilar.
+5. Refazer o `adb reverse tcp:8081 tcp:8081`.
+
+**Prevenção:** antes de um build longo, conferir `adb shell echo ok`. Em
+builds em segundo plano, considerar o tempo: se o log não mudar por vários
+minutos em `installDebug`, é o `adb`.
 
 ## Decisões do responsável (01/11/2026)
 
