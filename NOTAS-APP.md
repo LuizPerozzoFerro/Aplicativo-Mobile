@@ -709,14 +709,25 @@ do app):
 - `src/data/migrations.ts`: `runMigrations(db)` usa o `migrate` do Drizzle
   para Expo. Ele só depende do dialeto e da sessão, então o mesmo código roda
   no app e nos testes.
-- `src/data/bootstrap.ts` (só no app):
+- `src/data/bootstrap.ts` (só no app), em `initializeDatabase()`:
   - abre `app.db`, nome neutro, no armazenamento privado;
   - liga `PRAGMA foreign_keys = ON`;
-  - aplica as migrações e conecta a flag do onboarding ao banco.
+  - aplica as migrações e conecta a flag do onboarding ao banco;
+  - `getRepositories()` dá acesso aos repositórios depois disso (lança erro
+    se o banco ainda não foi aberto).
 - O layout raiz só desenha a navegação com o banco pronto (sem piscar o
-  onboarding antes das abas). Se as migrações falharem, mostra "Não foi
-  possível abrir seus dados" (texto do i18n). O erro técnico vai para o
-  console, sem dados do usuário.
+  onboarding antes das abas). Se a abertura ou as migrações falharem, mostra
+  "Não foi possível abrir seus dados" (texto do i18n). O erro técnico vai
+  para o console, sem dados do usuário.
+- **Abertura dentro do tratamento de erro (pedido do responsável,
+  02/11/2026, feito no início do passo 8):** na primeira versão, o
+  `openDatabaseSync` e o `PRAGMA` rodavam na importação do módulo. Uma falha
+  ali (arquivo corrompido, disco cheio) lançaria erro antes do React montar e
+  fecharia o app. Agora rodam dentro de `initializeDatabase()`, no mesmo
+  `catch` das migrações. Testado em `bootstrap.test.ts` (falha na abertura,
+  no `PRAGMA` e nas migrações → tela de erro; sucesso → flag ligada ao banco).
+  Mutação de controle: com a abertura de volta na importação, a suíte inteira
+  quebra ao carregar.
 - `onboardingStatus.connect(storage)`: a flag é lida do banco na abertura e
   gravada a cada mudança. A gravação vem **antes** de mudar a tela: se falhar,
   a navegação não muda.
@@ -791,6 +802,25 @@ só estrutura e flags.
   desenvolvimento depois (`pm clear`).
 - Depois de `npm run db:generate`, rodar o app e os testes. O Jest lê os
   `.sql` do disco; o Metro reconstrói o bundle porque o `migrations.js` muda.
+
+### Pontos para as próximas fases (responsável, 02/11/2026)
+
+1. **Fase 3 · "Apagar meus dados" também zera o onboarding.** O
+   `deleteAllData()` apaga as tabelas, mas o `onboardingStatus` fica em
+   memória com `completed = true`, e o app continuaria nas abas. A ação
+   precisa chamar `onboardingStatus.setCompleted(false)` (que grava no banco
+   e troca a navegação), voltando às boas-vindas. Testar as duas coisas: banco
+   vazio e tela de boas-vindas.
+2. **Fase 7 · decisão pendente: criptografar o banco ou não.** Opções:
+   - **SQLCipher:** o `expo-sqlite` tem a opção `useSQLCipher` no plugin de
+     configuração. Protege o arquivo mesmo com acesso de root ou de backup de
+     fábrica. Custos: biblioteca nativa maior, guardar a chave (Android
+     Keystore, via `expo-secure-store`), migração do banco já existente nos
+     aparelhos e o que fazer se a chave se perder;
+   - **proteção do Android:** o banco já fica no armazenamento privado do
+     app, inacessível a outros apps, com a criptografia de disco do sistema e
+     fora do backup (`allowBackup: false`).
+   A decisão é do chat de planejamento.
 
 ## Problemas
 
