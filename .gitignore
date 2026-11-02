@@ -1,6 +1,4 @@
 # Regras da raiz: valem para o repositório inteiro, inclusive o prototype/.
-# As regras do app da Fase 2 (Expo, Metro, pastas nativas geradas) entram no
-# passo de preparação da spec 01.
 
 # variáveis de ambiente e credenciais
 .env
@@ -24,3 +22,35 @@ local.properties
 
 # dependências
 node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# pastas nativas geradas pelo prebuild (a configuração vive no app.config.ts)
+/android/
+/ios/
+
+# Native
+.kotlin/
+*.orig.*
+
+# Metro
+.metro-health-check*
+*.log
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+
+# typescript
+*.tsbuildinfo
+
+# testes
+coverage/
