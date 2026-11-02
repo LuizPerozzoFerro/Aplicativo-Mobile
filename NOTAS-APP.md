@@ -822,6 +822,89 @@ só estrutura e flags.
      fora do backup (`allowBackup: false`).
    A decisão é do chat de planejamento.
 
+## Passo 8 · Domínio e interface de monitoramento (02/11/2026)
+
+Nenhuma biblioteca nova.
+
+### Domínio (`src/domain/`)
+
+- `compulsion.ts`: `Mechanic` (`abstinence` | `moderation`) e
+  `COMPULSION_DEFINITIONS`, com a mecânica e os papéis de app permitidos:
+  pornografia → abstinência, só `risk`; vídeos curtos → moderação, só
+  `short_video`. Helpers `getCompulsionDefinition` e `isAppRoleAllowed`.
+  **Para a Fase 3:** usar `isAppRoleAllowed` ao gravar apps monitorados (o
+  repositório ainda não confere o papel).
+- `day.ts`, a borda do dia:
+  - `startOfDay`, `startOfNextDay`, `getDayBounds` (intervalo `[start, end)`),
+    `isSameDay`, `toDayKey` (`AAAA-MM-DD`) e `calendarDaysBetween`;
+  - usa o horário local do `Date`, que segue o fuso do aparelho;
+  - o dia seguinte vem do calendário, nunca de "+24 h": com horário de verão
+    o dia tem 23 ou 25 horas.
+- Nada de streak, alerta ou reprovação do dia (spec 4.7).
+
+### Fuso fixo nos testes
+
+- Trocar `process.env.TZ` dentro de um teste **não tem efeito** no Jest
+  (testado). O `jest.global-setup.js` fixa `America/Sao_Paulo` antes dos
+  workers, então o resultado é o mesmo no computador e no CI (que roda em
+  UTC). Conferido com `TZ=UTC npx jest src/domain/day.test.ts`.
+- São Paulo teve horário de verão até 2019, **com a troca à meia-noite**, o
+  caso mais difícil:
+  - 04/11/2018: a meia-noite não existiu; o dia começou à 01:00 e teve 23 h;
+  - 16/02/2019: a hora 23:00–24:00 se repetiu; o dia teve 25 h.
+- Um teste confere o fuso e falha se o global setup não for aplicado.
+- Mutação de controle: com o dia seguinte calculado como "início + 24 h",
+  falham os testes de 23 e 25 horas.
+
+### Cuidado para a Fase 4
+
+O JS do app roda no Hermes, e o módulo Kotlin calcula a própria borda do dia
+(correção I-4). Conferir no aparelho que os dois concordam, e que o Hermes
+resolve a meia-noite inexistente como o V8 (para o primeiro instante do dia).
+Hoje o Brasil não tem horário de verão, mas o app deve funcionar se voltar.
+
+### Interface de monitoramento (`src/monitoring/`)
+
+- `types.ts`: `MonitoringModule`, baseada na spec 00 §5.2 e no relatório §7:
+  - permissões `usageAccess`, `notifications` e `overlay` (sem VPN, D6);
+    `overlay` é `unsupported` no iOS;
+  - **seleção opaca:** `TargetId` é uma string com marca de tipo; no Android
+    é o pacote, no iOS será o token da Apple. `listTargets()` (lista
+    própria, Android) e `pickTargets()` (seletor da Apple, iOS); cada uma
+    responde `unsupported` na outra plataforma. O nome do app é opcional
+    (`label`, nulo no iOS);
+  - limite por **regras** (`UsageRule`): apps, minutos por dia e se mostra
+    tela de interrupção. Uma regra por app ou uma para vários: quem monta
+    decide (o doc 01 não fecha se o limite da moderação é por app ou somado);
+  - `getUsageToday()` é `unsupported` no iOS;
+  - `startDomainWatch`/`stopDomainWatch` respondem `unsupported` (flag
+    `domainMonitoring` desligada). O nome é neutro de propósito;
+  - log de eventos (`limit_reached`, `notification_sent`,
+    `interruption_shown`, `permission_lost`) lido por `getEvents()`;
+  - `MonitoringError` com `code` (`permission_required`, `invalid_config`)
+    para erros explícitos.
+- `FakeMonitoringModule`: tudo em memória, com `platform` `android` ou `ios`
+  para simular as respostas de cada um. Por fora da interface:
+  `simulatePermission` (perder permissão grava `permission_lost`) e
+  `simulateUsage` (grava `limit_reached` uma vez por dia por regra; o uso
+  zera na virada do dia, pela `getDayBounds`).
+  - Apps de exemplo `com.example.*`, nomes inofensivos. O lint acusou o
+    `label` como texto visível; desligado só nessa lista, com o motivo no
+    comentário (é nome de app, vem do sistema no aparelho).
+- `getMonitoring()` (`index.ts`): instância única; nesta fase sempre o falso.
+- O formato pode mudar na Fase 4, quando o módulo nativo (base: protótipo)
+  for portado. Textos da notificação e da tela de interrupção ainda não estão
+  na configuração: entram com o nativo.
+
+### Testes
+
+- `compulsion.test.ts`, `day.test.ts` (12 testes) e
+  `FakeMonitoringModule.test.ts` (20 testes): permissões nas duas
+  plataformas, seleção opaca, regras inválidas, `limit_reached` uma vez,
+  virada da meia-noite, `unsupported` dos domínios e `getMonitoring()`.
+- `bootstrap.test.ts` (abertura do banco no tratamento de erro, ver passo 7).
+- Total: 16 suítes, 156 testes.
+
 ## Problemas
 
 ### AP1 · Build Android falha no C++ do `react-native-worklets` (caminho longo)
