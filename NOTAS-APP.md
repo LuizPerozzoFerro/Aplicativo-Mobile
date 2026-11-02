@@ -23,4 +23,18 @@ do protótipo continua em `prototype/NOTAS.md`.
     avaliar recurso e, se preciso, publicar a variante sem VPN" e risco T9.
 - A v0.4 também registra o **I-25 medido em app real** (o Nubank apaga a nossa
   sobreposição), que não aparece nos docs.
-- **Status:** aberto. Até a decisão, não implementar nada que dependa da VPN.
+- **Status:** **resolvida em 01/11/2026** no chat de planejamento. Docs 01 e 02
+  passaram à v0.5 e a spec 01 à v0.3, todos citando o relatório v0.4: a D6 está
+  no doc 01 (seção 3.2) e no doc 02 (seção 3.4, build único sem VPN); não há
+  variante de VPN, só a flag `features.domainMonitoring` (sempre `false`) e a
+  verificação do manifesto contra `BIND_VPN_SERVICE`,
+  `FOREGROUND_SERVICE_SYSTEM_EXEMPTED` e `HIDE_OVERLAY_WINDOWS` (spec 4.3).
+
+## Decisões do responsável (01/11/2026)
+
+- Pontos 4 a 7 da leitura da spec aprovados e incorporados na spec v0.3
+  (`src/config/`, voltar do Android no onboarding, `age_confirmed_at` nulo até a
+  Fase 3, enums técnicos nunca em logs).
+- **Sentry:** fica para antes da Fase 8. Não instalar agora.
+- **Banco:** Drizzle ORM sobre `expo-sqlite`, com o teste de duas migrações no
+  aparelho (V11).

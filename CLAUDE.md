@@ -9,6 +9,7 @@ Instruções permanentes para o Claude Code neste repositório. Leia este arquiv
 **Quedo** é um app mobile por assinatura que ajuda pessoas a se livrarem de compulsões digitais. No MVP: **pornografia** (abstinência) e **vídeos curtos/redes sociais** (moderação). O diferencial é ser **proativo**: monitorar o uso do aparelho e **alertar** o usuário no momento de risco, sem bloquear.
 
 - **Android primeiro.** O iOS vem depois da primeira versão Android publicada (Fase 10). Não teste nem configure iOS agora, mas não faça nada que impeça o iOS depois.
+- **Primeira versão sem VPN** (decisão D6, doc 01 seção 3.2). Não implementar nada da VPN nem declarar suas permissões.
 - Público adulto (18+), Brasil, 100% em português no lançamento.
 
 ## 2. Fase atual
@@ -43,7 +44,7 @@ Os documentos em `docs/` são a fonte da verdade. **Não altere `docs/01`, `docs
 | Item | Detalhe |
 |---|---|
 | Sistema | **Windows** (sem Mac, sem Xcode) |
-| Android | Samsung Galaxy S22, Android 16 / One UI 8. Emulador só se a virtualização da BIOS for ligada |
+| Android | Samsung Galaxy S22, Android 16 / One UI 8. Emulador disponível (virtualização ligada) |
 | Builds | **Build local** do Android para desenvolvimento (development build, **nunca Expo Go**). EAS para builds de loja |
 | Identificadores | `br.com.quedo.app` (produção), `.dev` (desenvolvimento), `.preview` (preview). **O de produção não pode mudar depois do primeiro envio ao Google Play** |
 | Conta Google Play | Pessoa física, ativa. Não enviar nada à loja sem pedido do responsável |
@@ -55,7 +56,7 @@ Os documentos em `docs/` são a fonte da verdade. **Não altere `docs/01`, `docs
 - expo-sqlite com camada tipada e migrações
 - Módulos nativos: Kotlin (Android) via Expo Modules; Swift (iOS) na Fase 10
 - Jest + React Native Testing Library; Maestro para fluxos ponta a ponta
-- Sentry (com filtro de privacidade) a partir da Fase 2, se o responsável criar a conta
+- Sentry (com filtro de privacidade) antes do teste fechado (Fase 8). Não instalar antes
 - Supabase (Fase 5) e RevenueCat sobre o Google Play Billing (Fase 6). **Não adicionar antes da fase correspondente**
 - Proibido: analytics, qualquer SDK que envie dados do usuário, e bibliotecas não justificadas
 
@@ -131,7 +132,7 @@ Preencher e manter atualizado na Fase 2.
 | Lint | *a definir* |
 | Testes | *a definir* |
 | Fluxo Maestro | *a definir* |
-| Gerar variante sem VPN | *a definir* |
+| Verificar permissões proibidas no manifesto | *a definir* |
 
 ## 11. Ao final de cada fase
 
