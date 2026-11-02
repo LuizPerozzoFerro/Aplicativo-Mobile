@@ -1,4 +1,19 @@
 {
   "title": "Sobre o app",
-  "pending": "Versão, build e ambiente entram aqui no passo 9."
+  "fields": {
+    "name": "Nome",
+    "version": "Versão",
+    "build": "Número do build",
+    "environment": "Ambiente"
+  },
+  "environments": {
+    "development": "Desenvolvimento",
+    "preview": "Prévia",
+    "production": "Produção"
+  },
+  "unavailable": "Indisponível",
+  "privacy": {
+    "title": "Política de privacidade",
+    "pending": "Disponível em breve"
+  }
 }

@@ -875,7 +875,9 @@ Hoje o Brasil não tem horário de verão, mas o app deve funcionar se voltar.
     (`label`, nulo no iOS);
   - limite por **regras** (`UsageRule`): apps, minutos por dia e se mostra
     tela de interrupção. Uma regra por app ou uma para vários: quem monta
-    decide (o doc 01 não fecha se o limite da moderação é por app ou somado);
+    decide. **Resolvido no doc 01 v0.6 (02/11/2026):** na Fase 4, vídeos
+    curtos vira **uma regra com todos os apps escolhidos** (limite somado) e
+    cada app de risco da pornografia, **uma regra própria** de 10 minutos;
   - `getUsageToday()` é `unsupported` no iOS;
   - `startDomainWatch`/`stopDomainWatch` respondem `unsupported` (flag
     `domainMonitoring` desligada). O nome é neutro de propósito;
@@ -904,6 +906,46 @@ Hoje o Brasil não tem horário de verão, mas o app deve funcionar se voltar.
   virada da meia-noite, `unsupported` dos domínios e `getMonitoring()`.
 - `bootstrap.test.ts` (abertura do banco no tratamento de erro, ver passo 7).
 - Total: 16 suítes, 156 testes.
+
+## Passo 9 · Tela "Sobre o app" (02/11/2026)
+
+### Biblioteca
+
+| Biblioteca | Versão | Código nativo | Por quê |
+|---|---|---|---|
+| `expo-application` | ~58.1.2 | sim | **Escolha do responsável (02/11/2026).** Versão e build lidos do pacote instalado |
+
+- Alternativa descartada: `Constants.expoConfig` (`expo-constants`, já
+  instalado). Ele lê o `app.config.ts` embutido no bundle. Nos builds de loja,
+  o EAS incrementa o build no servidor (`appVersionSource: remote` +
+  `autoIncrement`), e a tela mostraria o `versionCode` do `app.config.ts` (1),
+  não o real. O campo está marcado como obsoleto e a documentação indica o
+  `expo-application`.
+- Usamos só `applicationName`, `nativeApplicationVersion` e
+  `nativeBuildVersion`. **Não usar** `getAndroidId()` nem
+  `getInstallReferrerAsync()`: são identificador do aparelho e origem da
+  instalação, que o app não precisa (CLAUDE.md, seção 9).
+
+### Tela (`app/about.tsx`)
+
+- `src/config/appInfo.ts`: `getAppInfo()` junta nome, versão, build (do
+  pacote instalado) e ambiente (da variante).
+- Linhas sem toque: nome, versão, número do build e ambiente
+  ("Desenvolvimento", "Prévia", "Produção"). Dado que o sistema não fornecer
+  aparece como "Indisponível", nunca vazio.
+- Política de privacidade: linha com "Disponível em breve", **sem ser link**
+  até a Fase 7.
+- Nome do ambiente por mapa com chaves literais e `satisfies
+  Record<Environment, string>`: o teste de chaves recusa chave montada
+  (`` t(`environments.${env}`) ``), e o `satisfies` obriga a cobrir todos os
+  ambientes.
+
+### Testes
+
+- `__tests__/about.test.tsx` (4 testes): `getAppInfo`, os quatro dados na
+  tela (V9), a política como marcador sem botão e "Indisponível" quando falta
+  um dado. O `expo-application` é simulado (não há pacote instalado no Jest).
+- Total: 17 suítes, 160 testes.
 
 ## Problemas
 
@@ -1000,6 +1042,12 @@ minutos em `installDebug`, é o `adb`.
 
 ## Decisões do responsável (02/11/2026)
 
+- **Limite da moderação somado** (doc 01 v0.6, seção 6.5.4): um limite
+  diário por compulsão, valendo para a soma do tempo em todos os apps
+  escolhidos; estourado, a interrupção vale em qualquer um deles. Os apps de
+  risco da pornografia seguem com 10 minutos **por app** (6.5.6). A
+  interface de regras do passo 8 já atende (ver passo 8).
+- **`expo-application`** para versão e build da tela "Sobre" (passo 9).
 - PR #1 (passos 1 e 2) revisado e integrado na `main`.
 - **`expo-system-ui` aprovado** para o passo 5 (tema escuro nativo, V7).
 - **`expo-splash-screen` adiado** até haver identidade visual. Até lá, o
