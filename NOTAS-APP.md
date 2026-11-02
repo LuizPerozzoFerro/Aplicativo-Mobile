@@ -260,6 +260,150 @@ Todas são só de desenvolvimento, sem código nativo.
   logado pelo responsável. Fica em `C:\Program Files\GitHub CLI\gh.exe`; shells
   abertos antes da instalação não o têm no `PATH`.
 
+**CI no GitHub:** o PR #2 passou nas execuções de push e de pull request
+(`gh run list`: `completed success`, cerca de 1m50s).
+
+## Passo 4 · Internacionalização (02/11/2026)
+
+### Bibliotecas
+
+| Biblioteca | Versão | Código nativo | Por quê |
+|---|---|---|---|
+| `i18next` | ^26.7.1 | não | Prevista na stack (CLAUDE.md §6). Atualizada em 01/11/2026; aceita TypeScript 5 a 7 |
+| `react-i18next` | ^17.1.11 | não | Prevista na stack. Exige `i18next` >= 26.2 |
+| `expo-localization` | ~58.0.5 | sim | Prevista na stack: lê os idiomas do aparelho. Versão do SDK 58 pelo `expo install` |
+| `eslint-plugin-i18next` | ^6.1.5 (dev) | não | Regra contra texto fixo em JSX. Atualizado em 06/2026. O alternativo `eslint-plugin-react-native` (`no-raw-text`) está sem atualização desde 12/2024 |
+
+### Estrutura
+
+- `src/i18n/pt-BR/{common,onboarding,tabs}.json`: um arquivo por
+  funcionalidade (namespace). As chaves são em inglês; os textos, em português.
+- `src/i18n/resources.ts`: recursos por idioma, `DEFAULT_LANGUAGE = 'pt-BR'`,
+  `DEFAULT_NAMESPACE = 'common'`.
+- `src/i18n/index.ts`: inicialização única, importada pelo `app/_layout.tsx`.
+  É síncrona (`initAsync: false`), com os recursos embutidos.
+- `src/i18n/language.ts`: `resolveLanguage(idiomas do aparelho)`. Escolhe o
+  primeiro suportado (exato ou pelo idioma base); senão, pt-BR. Hoje o
+  resultado é sempre pt-BR.
+- `src/i18n/format.ts`: `formatDate`, `formatTime` e `formatNumber`, sempre no
+  idioma ativo (`Intl`). Nenhuma tela chama `Intl` ou `toLocaleString` direto.
+- `src/i18n/i18next.d.ts`: `CustomTypeOptions` com os recursos do pt-BR. Uma
+  chave inexistente quebra o typecheck. Conferido: `t('foundation.dayz')` deu
+  `Type '"foundation.dayz"' is not assignable`.
+
+### Convenção de uso
+
+- Cada componente declara o namespace: `const { t } = useTranslation('onboarding')`,
+  com chaves sem prefixo (`t('welcome.title')`).
+- O prefixo `ns:chave` funciona em tempo de execução, mas a tipagem do i18next
+  26 recusa o prefixo em plurais e em algumas interpolações. Por isso, a forma
+  com namespace no `useTranslation` é a padrão.
+- Chaves sempre literais: o teste de chaves recusa `t(variavel)` e template
+  com `${}`.
+- **Plural com zero (decisão do responsável, 02/11/2026):** toda chave com
+  contagem que pode ser zero tem a forma **`_zero`** além de `_one` e
+  `_other`. Pelo CLDR, `Intl.PluralRules('pt-BR').select(0)` é `"one"`, então
+  sem `_zero` o i18next escreve "0 dia". Conferido com `i18next` puro: sem
+  `_zero`, `0 dia | 1 dia | 2 dias`; com `_zero`, `0 dias | 1 dia | 2 dias`.
+  - O `keys.test.ts` **falha** se houver plural sem `_zero`. A única saída é
+    listar a chave em `PLURALS_WITHOUT_ZERO`, para contagens que nunca chegam
+    a zero. A falha, em vez de aviso no console, faz de cada exceção uma
+    decisão registrada no código.
+  - Mutação de controle: sem `days_zero`, falham o teste de plurais e o
+    "0 dias" do componente.
+
+### Regra de lint contra texto fixo (spec 4.5)
+
+`i18next/no-literal-string` como **erro**, modo `jsx-only`, com
+`should-validate-template`. A checagem de atributos fica restrita a
+`accessibilityLabel`, `accessibilityHint`, `aria-label`, `placeholder`,
+`title`, `label` e `alt`. Arquivos de teste ficam de fora.
+
+Testado com um arquivo de sonda (removido):
+
+| Caso | `jsx-text-only` (padrão) | Configuração adotada |
+|---|---|---|
+| `<Text>Texto fixo</Text>` | erro | erro |
+| `<Text>{'literal'}</Text>` | passa | erro |
+| `` <Text>{`template`}</Text> `` | passa | erro |
+| `'a' + 'b'` em JSX | passa | erro |
+| `accessibilityLabel="…"`, `placeholder="…"` | passa | erro |
+| `testID`, `nativeID`, `style` | passa | passa |
+| `{label}` (variável) | passa | passa |
+
+O modo `jsx-only` sem a restrição de atributos também acusava `testID`.
+
+### Textos fora do JSX (pedido do responsável para o passo 6)
+
+A regra do i18next só enxerga JSX. Opções de navegação (`options={{ title }}`),
+`Alert.alert` e conteúdo de notificação também são texto visível. Em
+`eslint.config.js`, `no-restricted-syntax` (regra nativa do ESLint, sem
+dependência nova) dá **erro** para:
+
+- texto literal ou template como valor das propriedades `title`,
+  `headerTitle`, `headerBackTitle`, `tabBarLabel`, `tabBarAccessibilityLabel`,
+  `drawerLabel`, `accessibilityLabel`, `accessibilityHint`, `placeholder`,
+  `label`, `text`, `message`, `description`, `subtitle` e `body`, em
+  **qualquer objeto**;
+- argumentos literais ou template de `Alert.alert`, `Alert.prompt` e
+  `ToastAndroid.show*`.
+
+Sonda (removida): acusou `Alert.alert('…', `…`, [{ text: 'OK' }])`,
+`ToastAndroid.show('…')`, `{ title: 'Lembrete', body: `Hora de ${…}` }` e
+`options={{ title: 'Início', tabBarLabel: 'Início' }}`. Deixou passar
+`testID`, `variant`, `channelId`, `href`, `headerShown` e valores vindos do
+`t()`. O projeto inteiro passou sem falso positivo. A config do Expo não usa
+`no-restricted-syntax`, então nada dela foi substituído.
+
+**Cuidados que o lint não cobre (revisar à mão):**
+
+- Texto guardado numa constante e passado depois:
+  `const msg = 'Olá'; Alert.alert(msg)`. A regra só vê o literal no lugar de
+  uso.
+- Propriedades de texto com nomes fora da lista. Ao usar uma API nova que
+  mostra texto, acrescentar a propriedade em `TEXT_PROPERTIES`.
+- Um nome da lista usado para algo técnico, com valor literal (ex.:
+  `{ label: 'debug' }` num log). Nesse caso, desligar a regra na linha
+  (`eslint-disable-next-line no-restricted-syntax`) com comentário dizendo o
+  porquê.
+- **Textos no Kotlin (Fase 4):** notificações e a tela de interrupção montadas
+  no nativo não passam pelo ESLint. Elas devem receber o texto já traduzido
+  do JS ou usar `strings.xml`, com a mesma discrição da tela bloqueada
+  (CLAUDE.md §9).
+
+### Testes
+
+- `keys.test.ts`: varre `app/` e `src/` e confere que **toda chave usada
+  existe no pt-BR** (texto ou plural `_one`/`_other`), que a varredura não está
+  vazia e que não há chave dinâmica. Inclui testes da própria varredura:
+  namespace do `useTranslation`, prefixo explícito, comentários ignorados e
+  `format(`/`i18n.t(` não confundidos com `t(`.
+  - Mutação de controle: com `t('foundation.titel')` na tela, 2 testes falham
+    e apontam `app/index.tsx: common:foundation.titel`.
+- `language.test.ts`: pt-BR, pt-PT pelo idioma base, e idiomas não suportados
+  caindo no pt-BR.
+- `format.test.ts`: data por extenso (`2 de março de 2026`), `02/03/2026`,
+  `14:05`, `1.234,5`, `26%` e `en-US` explícito.
+- `i18n.test.tsx`: inicialização síncrona em pt-BR, interpolação, outro
+  namespace (`tabs:home`) e plural num componente renderizado (`1 dia`,
+  `3 dias`).
+- Resultado: 6 suítes, 36 testes passando (com os de plural no zero). Lint sem avisos.
+- `import/no-named-as-default-member` acusava `i18n.use(...)` e `i18n.t(...)`.
+  É um falso positivo com a instância padrão do i18next. No `index.ts`, a regra
+  foi desligada só naquela linha, com comentário; no teste, foi usado o `t`
+  importado pelo nome.
+
+### No aparelho (S22)
+
+O `expo-localization` tem código nativo, então foi preciso rodar o prebuild e
+reinstalar. Metro: `Android Bundled ... (1316 modules)`. Com o app aberto, a
+captura de tela mostra, nesta ordem: "Quedo em construção", "Ambiente:
+development", "Hoje é 2 de novembro de 2026", "Exemplo de número: 1.234,5", "1
+dia" e "2 dias". A interpolação, a data e o número em pt-BR e o plural
+(`Intl.PluralRules`) funcionam no Hermes do aparelho, sem polyfill. O
+`logcat` (`ReactNativeJS`) não registrou erro nem aviso. A captura não foi
+versionada, porque a barra de status mostra notificações pessoais.
+
 ## Problemas
 
 ### AP1 · Build Android falha no C++ do `react-native-worklets` (caminho longo)
@@ -307,6 +451,22 @@ device`. **Status:** resolvido.
 
 **Atenção:** o Android Studio, se usado para compilar, também precisa do
 Gradle JDK apontado para o Temurin 17 (P1 do protótipo).
+
+### AP2 · Arquivo travado no build do Windows (02/11/2026)
+
+**Sintomas, em dois builds seguidos depois do prebuild do passo 4:**
+1. `:react-native-worklets:buildCMakeDebug` falhou com `Unable to delete
+   directory ...\intermediates\cxx\Debug\...\obj\arm64-v8a`, no arquivo
+   `libc++_shared.so` ("a process has files open").
+2. Depois de `gradlew --stop` e da remoção dessa pasta, o C++ recompilou
+   (12m48s), mas o `:app:packageDebug` falhou em
+   `PackageAndroidArtifact$IncrementalSplitterRunnable`, sem mais detalhe.
+
+**Solução:** rodar `gradlew installDebug` de novo. Passou em 1m58s, sem
+nenhuma mudança. Tudo indica arquivos presos por um processo (daemon antigo
+do Gradle/Kotlin ou o antivírus), não erro de configuração. Se repetir:
+`gradlew --stop`, apagar a pasta citada e tentar de novo antes de investigar
+mais a fundo.
 
 ## Decisões do responsável (01/11/2026)
 
