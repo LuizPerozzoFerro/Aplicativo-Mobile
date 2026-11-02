@@ -13,4 +13,7 @@ config.resolver.blockList = [
   new RegExp(`^${escapeForRegExp(prototypeDir)}[\\\\/].*`),
 ];
 
+// Migrações do Drizzle (.sql) entram no bundle pelo inline-import do babel.config.js.
+config.resolver.sourceExts.push('sql');
+
 module.exports = config;

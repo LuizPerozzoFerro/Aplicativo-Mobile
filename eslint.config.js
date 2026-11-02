@@ -40,6 +40,8 @@ module.exports = defineConfig([
     'dist/**',
     'coverage/**',
     'expo-env.d.ts',
+    // Gerado pelo drizzle-kit (npm run db:generate).
+    'drizzle/**',
   ]),
   expoConfig,
   {

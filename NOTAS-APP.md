@@ -629,6 +629,18 @@ testes falham.
   nome vem do próprio texto. Os testes passam a simular a plataforma-alvo.
 - Total: 10 suítes, 94 testes, sem aviso no console.
 
+### Pontos para a Fase 3 (responsável, 02/11/2026)
+
+1. **Salvar a etapa e as respostas do onboarding.** O alerta de saída diz "Você
+   pode continuar a configuração depois", mas hoje o progresso não é
+   guardado: ao reabrir, tudo recomeça nas boas-vindas. Avaliar gravar no
+   banco a etapa atual e as respostas já dadas, e retomar dali, ou ajustar o
+   texto do alerta.
+2. **Esconder o botão "Voltar" na primeira tela do onboarding.** Fica só a
+   confirmação no Voltar do Android (`BackHandler`). Ajustar o teste "Voltar
+   na primeira tela pede confirmação" para usar o Voltar do Android em vez do
+   botão.
+
 ### Cuidado para a Fase 10 (iOS)
 
 A barra de abas do Expo Router gera no iOS o rótulo de acessibilidade em
