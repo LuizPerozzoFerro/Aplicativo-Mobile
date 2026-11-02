@@ -1,0 +1,10 @@
+prototype/
+android/
+ios/
+.expo/
+dist/
+coverage/
+node_modules/
+package-lock.json
+docs/
+*.md

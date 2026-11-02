@@ -29,7 +29,10 @@ module.exports = function withLocalCmake(config) {
 
       const file = path.join(modConfig.modRequest.platformProjectRoot, 'local.properties');
       const lines = fs.existsSync(file)
-        ? fs.readFileSync(file, 'utf8').split(/\r?\n/).filter((line) => !line.startsWith('cmake.dir='))
+        ? fs
+            .readFileSync(file, 'utf8')
+            .split(/\r?\n/)
+            .filter((line) => !line.startsWith('cmake.dir='))
         : [];
       // Barras normais: o formato .properties trata a contrabarra como escape.
       lines.push(`cmake.dir=${cmakeDir.replace(/\\/g, '/')}`);

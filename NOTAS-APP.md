@@ -178,9 +178,87 @@ de produção (V10) que elas não vão junto.
 
 `eas.json` com os perfis `development` (apk, dev client), `preview` (apk) e
 `production` (aab, `autoIncrement`), cada um com o seu `APP_ENV`. Usa
-`appVersionSource: "remote"`. A versão atual do `eas-cli` é a 27.2.0. Falta o
-login do responsável para criar o projeto EAS novo (`eas init`) e rodar o
-`eas build:configure`.
+`appVersionSource: "remote"`. A versão atual do `eas-cli` é a 27.2.0.
+
+**Projeto EAS (02/11/2026):** depois do login do responsável, rodei
+`npx eas-cli@latest init --account luizperozzoferro --non-interactive`, que
+criou `@luizperozzoferro/quedo` (<https://expo.dev/accounts/luizperozzoferro/projects/quedo>).
+A conta também tem a organização `luizperozzoferros-team`; ficou a conta
+pessoal, coerente com a conta de desenvolvedor como pessoa física. Com config
+dinâmica, o `eas init` não grava sozinho: `owner` e `extra.eas.projectId`
+foram postos à mão no `app.config.ts`. O ID não é segredo. Rodando de novo, o
+`eas init` responde "Project already linked". O `eas build:configure
+--platform android` aceitou o `eas.json` sem mudanças. Nenhum build na nuvem
+foi rodado.
+
+## Passo 3 · Qualidade (02/11/2026)
+
+### Ferramentas
+
+| Biblioteca | Versão | Por quê |
+|---|---|---|
+| `eslint` + `eslint-config-expo` | 9.39 / ~58.0.4 | Lint em formato flat, como no guia do Expo: <https://docs.expo.dev/guides/using-eslint/> |
+| `prettier` + `eslint-config-prettier` + `eslint-plugin-prettier` | 3.9 / 10.1 / 5.5 | Formatação conferida pelo próprio lint (`prettier/prettier` como erro) |
+| `jest` + `jest-expo` + `@types/jest` | 30.5 / ~58.0.13 / 30.0 | O `jest-expo` do SDK 58 exige Jest 30: <https://docs.expo.dev/develop/unit-testing/> |
+| `@testing-library/react-native` | 14.1 | O guia pede a versão 14+ para testar o Expo Router. O `react-test-renderer` está obsoleto no React 19 |
+
+Todas são só de desenvolvimento, sem código nativo.
+
+### Configuração
+
+- **Scripts:** `lint` (`expo lint`), `format`, `format:check`, `typecheck`
+  (`tsc --noEmit`), `test` (`jest`) e `check:manifest`.
+- **TypeScript:** `strict` e `noUncheckedIndexedAccess`. `types: ["jest",
+  "node"]`, porque o TypeScript 6 não inclui mais os `@types` automaticamente.
+- **Jest:** preset `jest-expo`, alias `@/` para `src/`
+  (`moduleNameMapper`), `prototype/` e `android/` fora
+  (`testPathIgnorePatterns` e `modulePathIgnorePatterns`).
+  - O `jest.setup.ts` simula o `expo-constants` com `environment:
+    'development'`, porque o `src/config/variant.ts` lança erro sem a config.
+- **ESLint:** `globalIgnores` para `prototype/`, `android/`, `ios/`, `.expo/`,
+  `dist/` e `coverage/`. Analisa 12 arquivos. Sonda: um arquivo com aspas
+  duplas e sem ponto e vírgula deu 2 erros do `prettier/prettier`.
+- **Prettier:** aspas simples, vírgula final e 100 colunas. O `.prettierignore`
+  deixa de fora `docs/`, os `.md` e o `prototype/`.
+- **Quebras de linha:** `.gitattributes` com `* text=auto eol=lf`. O git
+  deste Windows usa `core.autocrlf=true` e converte para CRLF no checkout, e o
+  Prettier acusaria todas as linhas. O `git add --renormalize .` não mudou
+  conteúdo: o índice já estava em LF.
+- **Node 24** fixado em `.nvmrc` (lido pelo CI) e em `engines` (`>=24.3 <25`,
+  mínimo do SDK 58 na linha 24).
+- **`react-dom` fixado em 19.3.0** por `overrides`. O `expo-router` traz
+  componentes web (Radix) que pedem `react-dom`. O npm escolhia a 19.3.1, que
+  exige `react` 19.3.1, e o SDK 58 fixa `react` 19.3.0
+  (`expo/bundledNativeModules.json` indica `react-dom` 19.3.0). Sem o
+  override, `npm install` de qualquer pacote novo falhava com `ERESOLVE`.
+- **`expo install` com `-- --save-dev`** pôs 4 pacotes em `dependencies`. Eles
+  foram movidos à mão para `devDependencies`.
+
+### Testes
+
+- `src/config/variant.test.ts`: os três ambientes; flag `domainMonitoring`
+  sempre `false`; erro com config ausente ou inválida; leitura pelo
+  `expo-constants` simulado.
+- `scripts/check-manifest.test.ts`: `findForbidden` com um manifesto limpo
+  (inclusive `SYSTEM_ALERT_WINDOW` e serviço `specialUse`, permitidos) e um com
+  as três proibições, mais casos de `BIND_VPN_SERVICE` como `uses-permission`
+  e de serviço que responde a `android.net.VpnService`.
+- **Mutação de controle:** sem `HIDE_OVERLAY_WINDOWS` na lista, 1 teste falha.
+  Restaurada a lista, os 4 passam.
+- Resultado: `Test Suites: 2 passed`, `Tests: 14 passed`.
+
+### CI
+
+`.github/workflows/ci.yml` roda em todo push e pull request: `npm ci`, `lint`,
+`format:check`, `typecheck` e `test --ci`. Usa `actions/checkout@v7` e
+`actions/setup-node@v7` (versões mais recentes em 02/11/2026), com Node do
+`.nvmrc` e cache do npm. Sem build nativo nesta fase.
+
+### Ferramentas da máquina
+
+- **GitHub CLI 2.103.3** instalado com `winget install --id GitHub.cli` e
+  logado pelo responsável. Fica em `C:\Program Files\GitHub CLI\gh.exe`; shells
+  abertos antes da instalação não o têm no `PATH`.
 
 ## Problemas
 
@@ -238,3 +316,17 @@ Gradle JDK apontado para o Temurin 17 (P1 do protótipo).
 - **Sentry:** fica para antes da Fase 8. Não instalar agora.
 - **Banco:** Drizzle ORM sobre `expo-sqlite`, com o teste de duas migrações no
   aparelho (V11).
+
+## Decisões do responsável (02/11/2026)
+
+- PR #1 (passos 1 e 2) revisado e integrado na `main`.
+- **`expo-system-ui` aprovado** para o passo 5 (tema escuro nativo, V7).
+- **`expo-splash-screen` adiado** até haver identidade visual. Até lá, o
+  Android 12+ mostra o ícone sobre o fundo da janela.
+- **Voltar preditivo:** o template do SDK 58 traz
+  `android.predictiveBackGestureEnabled: false`, mantido no `app.config.ts`.
+  Com ele desligado, o Android não mostra a animação de prévia do gesto de
+  voltar. **Precisa ser testado ligado na Fase 4**, junto com a tela de
+  interrupção e o tratamento do voltar.
+- Teste do `findForbidden`, simulação do `expo-constants` e Node 24 fixado
+  (inclusive no CI) foram pedidos para o passo 3 e estão feitos.
