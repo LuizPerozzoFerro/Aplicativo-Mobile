@@ -860,7 +860,8 @@ Nenhuma biblioteca nova.
 
 O JS do app roda no Hermes, e o módulo Kotlin calcula a própria borda do dia
 (correção I-4). Conferir no aparelho que os dois concordam, e que o Hermes
-resolve a meia-noite inexistente como o V8 (para o primeiro instante do dia).
+resolve a meia-noite inexistente como o motor V8 do Node, onde rodam os testes
+(para o primeiro instante do dia).
 Hoje o Brasil não tem horário de verão, mas o app deve funcionar se voltar.
 
 ### Interface de monitoramento (`src/monitoring/`)
@@ -997,6 +998,92 @@ cuja linha de comando tenha `expo` e `start`:
 Um aviso "Error: undefined ... URL: localhost:8081" no `logcat` logo antes de
 reinstalar é do processo antigo do app perdendo o Metro (reinício do `adb`),
 não do build novo.
+
+## Passo 10 · Maestro e roteiro manual (02/11/2026)
+
+### Instalação do Maestro (aprovada pelo responsável)
+
+- **Maestro CLI 2.12.0** (26/10/2026). A 2.12.1 foi pulada por ter saído no
+  mesmo dia.
+- Origem: `maestro.zip` (349.408.958 bytes) baixado do GitHub oficial
+  (`mobile-dev-inc/Maestro`, releases).
+  - SHA-256 `a6044a84…63ec5e`, igual ao do GitHub e ao `checksums_sha256.txt`.
+- Instalação nativa no Windows, como na documentação oficial
+  (<https://docs.maestro.dev/getting-started/installing-maestro/windows>):
+  - extraído em `C:\Users\User\tools\maestro`, fora do repositório;
+  - usa o Java 17 (Temurin) já instalado;
+  - **sem mexer no PATH**: o `scripts/run-maestro.js` acha o executável.
+- **Analytics do Maestro desligado**: o script sempre define
+  `MAESTRO_CLI_NO_ANALYTICS`, `MAESTRO_CLI_NO_UPDATE_CHECK` e
+  `MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED`.
+- **Funcionou no Windows com o S22 físico.** A documentação só descreve
+  emuladores, mas não foi preciso nada além do `adb` já configurado. Os apps
+  auxiliares do Maestro não ficaram instalados no aparelho.
+
+### Fluxo (`.maestro/onboarding-e-abas.yaml`)
+
+- `npm run e2e` (`scripts/run-maestro.js`, com testes) roda tudo em
+  `.maestro/`.
+  - Procura o Maestro em `MAESTRO_HOME`, depois em `~/tools/maestro`, depois
+    no PATH.
+  - No Windows, chama o `.bat` pelo `cmd.exe` direto: com `shell: true`, o
+    Node avisa que os argumentos não são escapados (DEP0190).
+- Antes de rodar: build de desenvolvimento instalado, Metro ligado e
+  `adb reverse tcp:8081 tcp:8081`.
+- **O fluxo apaga os dados do app de desenvolvimento** (`clearState`).
+- O que o fluxo faz:
+  - abre o app pelo link do dev client e fecha o menu do dev client se ele
+    aparecer;
+  - percorre as 7 telas, volta duas (pelo botão "Voltar" e pelo Voltar do
+    Android) e avança de novo;
+  - chega ao Início e troca as 4 abas;
+  - fecha e reabre o app (abre no Início);
+  - abre o "Sobre";
+  - "Refazer onboarding" volta às boas-vindas.
+- Tentativa malsucedida: `launchApp` antes do `openLink`. O link chegou
+  enquanto o dev client abria e foi ignorado: o app ficou na tela inicial do
+  dev client e o fluxo falhou esperando "Boas-vindas". Sem o `launchApp`, o
+  próprio link abre o app.
+- Execuções no S22, todas aprovadas:
+  - fluxo curto (onboarding e abas): 3 vezes, ~1 min cada;
+  - fluxo completo: 1m40s.
+- A falha da primeira tentativa mostrou que o fluxo acusa quando a tela
+  esperada não aparece.
+- No PowerShell, a saída do Maestro mostra os acentos trocados ("In�cio").
+  É só a codificação do console: as verificações acham os textos.
+
+### Roteiro V1 a V11 (spec, seção 7)
+
+| # | Como foi verificado | Resultado |
+|---|---|---|
+| V1 | `pm list packages --user 0`: `br.com.quedo.app.dev` e o protótipo `com.norte.lab.dev` ("Norte Lab") instalados juntos | ✅ (nomes no lançador: confirmar com o responsável) |
+| V2 | Maestro: `clearState` → abre em "Boas-vindas" | ✅ |
+| V3 | Maestro: 7 telas na ordem, volta duas, avança de novo; Jest (`navigation.test.tsx`) | ✅ |
+| V4 | Maestro: `stopApp` e reabertura → Início. Passo 7: `am force-stop` e reabertura, com a flag no banco | ✅ (fechar pelo multitarefa: com o responsável) |
+| V5 | Maestro e Jest: Início, Estatísticas, Progresso, Perfil | ✅ |
+| V6 | Maestro e Jest: Perfil → Refazer onboarding → boas-vindas | ✅ |
+| V7 | Passo 5: tema escuro no S22 (componentes); claro conferido pelo responsável | Pendente com o responsável, nas telas reais |
+| V8 | Passo 5: fonte no máximo conferida pelo responsável (componentes) | Pendente com o responsável, nas telas reais |
+| V9 | Passo 9: `Quedo Dev`, `1.0.0`, build `1`, `Desenvolvimento`, iguais ao `dumpsys package`; Maestro confere a tela | ✅ |
+| V10 | Build de produção (abaixo): `check:manifest` OK | ✅ |
+| V11 | Passo 7: migração 002 de teste sobre banco existente, 2 migrações aplicadas e dados preservados | ✅ |
+
+### V10: build de produção
+
+- Comando: `APP_ENV=production npm run android:prebuild` e
+  `gradlew assembleRelease`. Levou **23m11s**: compilação do zero, JS
+  embutido e C++ para 4 arquiteturas. Não foi instalado no aparelho.
+- `npm run check:manifest`: **OK** nos três manifestos mesclados do release.
+- Manifesto final:
+  - `package="br.com.quedo.app"` e `allowBackup="false"`;
+  - permissões: `INTERNET`, `SYSTEM_ALERT_WINDOW`, `VIBRATE` e a
+    `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` do próprio app.
+- **As permissões de rede local do dev client** (`ACCESS_LOCAL_NETWORK`,
+  `CHANGE_WIFI_MULTICAST_STATE`) e `ACCESS_NETWORK_STATE` **não vão para
+  produção**. Era o ponto em aberto do passo 2.
+- Depois, `npm run android:prebuild` sem `APP_ENV` voltou o `android/` para
+  `br.com.quedo.app.dev`. **Cuidado:** um `prebuild` com `APP_ENV=production`
+  deixa o `android/` na variante de produção até o próximo `prebuild`.
 
 ## Problemas
 
