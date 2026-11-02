@@ -136,7 +136,7 @@ Preencher e manter atualizado na Fase 2.
 | Testes | `npm test` |
 | Gerar migração do banco (depois de mudar `src/data/schema/`) | `npm run db:generate` |
 | Ler o banco do app de desenvolvimento no aparelho | `adb exec-out run-as br.com.quedo.app.dev cat files/SQLite/app.db > app.db` |
-| Fluxo Maestro | *a definir* |
+| Fluxo Maestro (ponta a ponta no S22) | `npm run e2e`, com o Metro ligado e o `adb reverse` feito. Apaga os dados do app de desenvolvimento. Maestro em `C:\Users\User\tools\maestro` (`NOTAS-APP.md`, passo 10) |
 | Verificar permissões proibidas no manifesto | `npm run check:manifest` (depois de um build) |
 
 ## 11. Ao final de cada fase
