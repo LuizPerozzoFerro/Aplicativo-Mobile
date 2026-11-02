@@ -6,7 +6,13 @@
   "scripts": {
     "start": "expo start --dev-client",
     "android:prebuild": "expo prebuild --platform android --clean",
-    "android:install": "cd android && gradlew.bat installDebug"
+    "android:install": "cd android && gradlew.bat installDebug",
+    "lint": "expo lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "check:manifest": "node scripts/check-manifest.js"
   },
   "dependencies": {
     "expo": "~58.0.22",
@@ -21,7 +27,40 @@
     "react-native-screens": "~4.30.1"
   },
   "devDependencies": {
+    "@testing-library/react-native": "^14.1.0",
+    "@types/jest": "30.0.0",
     "@types/react": "~19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~58.0.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.7",
+    "jest": "~30.5.2",
+    "jest-expo": "~58.0.13",
+    "prettier": "^3.9.10",
     "typescript": "~6.0.3"
+  },
+  "overrides": {
+    "react-dom": "19.3.0"
+  },
+  "engines": {
+    "node": ">=24.3 <25"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/prototype/",
+      "<rootDir>/android/",
+      "<rootDir>/ios/"
+    ],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/prototype/"
+    ],
+    "setupFiles": [
+      "<rootDir>/jest.setup.ts"
+    ],
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1"
+    }
   }
 }

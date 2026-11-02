@@ -130,11 +130,12 @@ Preencher e manter atualizado na Fase 2.
 | Build local de desenvolvimento (Android) | `npm run android:install` (exige caminhos longos ligados e CMake 3.31.6 no SDK: `NOTAS-APP.md`, AP1) |
 | Iniciar servidor de desenvolvimento | `npx expo start --dev-client --port 8081`, desacoplado, e depois `adb reverse tcp:8081 tcp:8081` (refazer após reinstalar ou reiniciar) |
 | Abrir o app no Metro pelo cabo | `adb shell am start -a android.intent.action.VIEW -d "quedo-dev://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081" br.com.quedo.app.dev` |
-| Verificar tipos | `npx tsc --noEmit` (script `typecheck` no passo 3) |
-| Lint | *a definir* |
-| Testes | *a definir* |
+| Verificar tipos | `npm run typecheck` |
+| Lint | `npm run lint` (inclui a formatação do Prettier) |
+| Formatação | `npm run format` (aplica) · `npm run format:check` (só confere, como no CI) |
+| Testes | `npm test` |
 | Fluxo Maestro | *a definir* |
-| Verificar permissões proibidas no manifesto | `node scripts/check-manifest.js` (depois de um build) |
+| Verificar permissões proibidas no manifesto | `npm run check:manifest` (depois de um build) |
 
 ## 11. Ao final de cada fase
 

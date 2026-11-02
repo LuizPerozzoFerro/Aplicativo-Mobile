@@ -16,12 +16,14 @@ const BASE_IDENTIFIER = 'br.com.quedo.app';
 
 const ICON_BACKGROUND = '#3F5A66';
 
+// Projeto EAS do app (separado do protótipo), criado com `eas init` em 02/11/2026.
+const EAS_OWNER = 'luizperozzoferro';
+const EAS_PROJECT_ID = '6fda3fa1-8aea-4cf0-bdfa-5435b807d83a';
+
 function readEnvironment(): Environment {
   const value = process.env.APP_ENV || 'development';
   if (!(value in ENVIRONMENTS)) {
-    throw new Error(
-      `APP_ENV inválido: "${value}". Use ${Object.keys(ENVIRONMENTS).join(', ')}.`,
-    );
+    throw new Error(`APP_ENV inválido: "${value}". Use ${Object.keys(ENVIRONMENTS).join(', ')}.`);
   }
   return value as Environment;
 }
@@ -35,6 +37,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ...config,
     name,
     slug: 'quedo',
+    owner: EAS_OWNER,
     version: '1.0.0',
     scheme,
     orientation: 'portrait',
@@ -68,6 +71,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     extra: {
       environment,
+      eas: { projectId: EAS_PROJECT_ID },
     },
   };
 };

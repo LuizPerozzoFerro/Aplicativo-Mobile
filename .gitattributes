@@ -1,0 +1,11 @@
+# Quebra de linha LF em todos os textos, também no Windows: o Prettier exige LF,
+# e o core.autocrlf do Windows converteria para CRLF no checkout.
+* text=auto eol=lf
+
+# Scripts do Windows precisam de CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jar binary
