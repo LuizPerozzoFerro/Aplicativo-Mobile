@@ -25,7 +25,9 @@ const TEXT_PROPERTIES = [
   'subtitle',
   'body',
 ].join('|');
-const STRING_LITERAL = '[raw=/^[\'"]/]';
+// Só textos: strings que não são cor hexadecimal (o token de cor `text: '#…'`
+// tem o mesmo nome de propriedade, mas não é texto visível).
+const STRING_LITERAL = '[raw=/^[\'"](?!#[0-9A-Fa-f]{3,8}[\'"])/]';
 const I18N_MESSAGE = 'Texto visível precisa vir do t() (src/i18n/pt-BR/), não de literal.';
 
 module.exports = defineConfig([
