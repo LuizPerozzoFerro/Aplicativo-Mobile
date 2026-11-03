@@ -1,11 +1,10 @@
 // Streak e marcos (spec 02, seção 4.3; doc 01, seções 6.2 e 6.3).
 //
-// A streak conta dias de calendário a partir de uma base: no próprio dia da
-// base ela é 0. Os eventos (recaídas e dias reprovados) chegam como chaves
-// AAAA-MM-DD, como ficam no banco; o início chega como o instante gravado em
-// `user_compulsions.started_at`.
+// A streak conta dias de calendário a partir de uma base, com a mesma regra
+// nas duas mecânicas: no próprio dia da base ela é 0. Os eventos (recaídas e
+// dias reprovados) chegam como chaves AAAA-MM-DD, como ficam no banco; o
+// início chega como o instante gravado em `user_compulsions.started_at`.
 
-import type { Mechanic } from './compulsion';
 import { addCalendarDays, calendarDaysBetween, fromDayKey, startOfDay } from './day';
 
 /**
@@ -41,22 +40,19 @@ function latest(days: readonly Date[]): Date | null {
 }
 
 /**
- * Dia a partir do qual a streak conta.
- * - Abstinência: o mais recente entre o início e o dia da última recaída.
- * - Moderação: o mais recente entre o início e o dia seguinte ao último dia
- *   reprovado. Com hoje reprovado, a base é amanhã e a streak fica em 0.
+ * Dia a partir do qual a streak conta, igual nas duas mecânicas: o mais
+ * recente entre o início e o dia do último evento (recaída na abstinência,
+ * dia reprovado na moderação). No dia da quebra a streak é 0; no seguinte, 1.
  */
-export function getStreakBase(mechanic: Mechanic, input: StreakInput): Date {
+export function getStreakBase(input: StreakInput): Date {
   const start = startOfDay(input.startedAt);
   const lastEvent = latest(pastEventDays(input.eventDayKeys, input.now));
-  if (lastEvent === null) return start;
-  const fromEvent = mechanic === 'abstinence' ? lastEvent : addCalendarDays(lastEvent, 1);
-  return fromEvent.getTime() > start.getTime() ? fromEvent : start;
+  return lastEvent !== null && lastEvent.getTime() > start.getTime() ? lastEvent : start;
 }
 
-/** Streak em dias de calendário. Nunca negativa (início no futuro ou hoje reprovado dão 0). */
-export function getStreakDays(mechanic: Mechanic, input: StreakInput): number {
-  return Math.max(0, calendarDaysBetween(getStreakBase(mechanic, input), input.now));
+/** Streak em dias de calendário. Nunca negativa (início no futuro dá 0). */
+export function getStreakDays(input: StreakInput): number {
+  return Math.max(0, calendarDaysBetween(getStreakBase(input), input.now));
 }
 
 /** Primeiro marco maior que a streak, ou null depois do último. */

@@ -1163,7 +1163,7 @@ Nenhuma biblioteca nova. Tudo em `src/domain/`, sem React nem banco.
 | Arquivo | Conteúdo |
 |---|---|
 | `day.ts` | Novos: `fromDayKey` (AAAA-MM-DD → início do dia local; null para chave inválida ou data inexistente) e `addCalendarDays` (dias de calendário, nunca "N × 24 h") |
-| `streak.ts` | `MILESTONE_DAYS` (lista provisória, único lugar), `getStreakBase`, `getStreakDays`, `getNextMilestone`, `getAbstinenceStart` (do dia do "Começar" menos N) e `isValidDaysAlreadyWithoutRelapse` (1 a 3650) |
+| `streak.ts` | `MILESTONE_DAYS` (lista provisória, único lugar), `getStreakBase` e `getStreakDays` (mesma regra nas duas mecânicas), `getNextMilestone`, `getAbstinenceStart` (do dia do "Começar" menos N) e `isValidDaysAlreadyWithoutRelapse` (1 a 3650) |
 | `checkIn.ts` | Enums `CHECK_IN_ANSWERS` e `CHECK_IN_SOURCES`, `DEFAULT_CHECK_IN_MINUTES` (1260), `isValidCheckInMinutes`, `getTodayCheckInStatus`, `getRelapseDayOptions` ("ontem" só com início antes de hoje), `getRelapseDayKey` e `canUndo` (pelo dia do registro, não pelo dia a que se refere) |
 | `timeRange.ts` | `TimeRange` em minutos, `parseTimeRange`/`formatTimeRange` (`HH:MM-HH:MM`), `PRESET_TIME_RANGES` (as 12 de 2 horas), `isWithinTimeRange` (início incluso, fim excluso, atravessando a meia-noite), `addTimeRange` (sem duplicata) e `mergeTimeRanges` para o resumo (vizinhas e sobrepostas unidas, inclusive através da meia-noite; `ALL_DAY` quando cobrem as 24 horas) |
 | `triggers.ts` | `EMOTIONS`, `WEEKDAYS` (domingo = 0, como `Date.getDay()`), atalhos "Dias úteis"/"Fim de semana" com `toggleWeekdayShortcut` e `isValidTriggerValue` por `kind` |
@@ -1171,9 +1171,14 @@ Nenhuma biblioteca nova. Tudo em `src/domain/`, sem React nem banco.
 | `suggestedApps.ts` | Pacotes pré-marcados por papel (TikTok com os dois pacotes) e `getPreselectedPackages` |
 
 Regras escolhidas na implementação, dentro da spec:
-- A streak nunca é negativa: início no futuro ou hoje reprovado dão 0. Na
-  moderação, um dia reprovado põe a base no dia seguinte, então hoje
-  reprovado e ontem reprovado dão 0 hoje.
+- **Base da streak igual nas duas mecânicas (correção do responsável na
+  revisão do PR #12, 02/11/2026):** o mais recente entre o início e o
+  **próprio dia do último evento** (recaída na abstinência, dia reprovado na
+  moderação). No dia da quebra a streak é 0 e no dia seguinte é 1, nas duas
+  compulsões. A primeira versão do PR usava o dia seguinte ao reprovado na
+  moderação, como a spec 02 v0.2 (4.3) descreve; a regra nova vem na spec
+  02 v0.3, do chat de planejamento.
+- A streak nunca é negativa: início no futuro dá 0.
 - Eventos com chave inválida ou em dia futuro são ignorados no cálculo.
 - Toque num atalho de dias: com todos os dias dele marcados, desmarca esses
   dias; senão, marca os que faltam. Os outros dias não mudam.
@@ -1183,14 +1188,16 @@ Regras escolhidas na implementação, dentro da spec:
 
 ### Testes
 
-121 testes no domínio (271 no total), com virada de dia, mês e ano e o horário
+123 testes no domínio (273 no total), com virada de dia, mês e ano e o horário
 de verão de São Paulo (dia de 23 horas sem meia-noite, dia de 25 horas).
 
-Mutação de controle, cada uma derrubando ao menos um teste:
+Mutação de controle, cada uma derrubando ao menos um teste (refeita depois da correção da base):
 
 | # | Mutação | Falhas |
 |---|---|---|
-| M1 | Moderação sem "dia seguinte ao reprovado" | 3 |
+| M1 | Base no dia seguinte ao evento (regra antiga da moderação) | 10 |
+| M1b | Evento ignorado (base sempre no início) | 11 |
+| M1c | Evento antes do início conta | 2 |
 | M2 | "Há N dias" como N × 24 h | 1 (depois do teste novo) |
 | M3 | Faixas vizinhas não se juntam | 4 |
 | M4 | Faixa que atravessa a meia-noite com `&&` | 3 |
