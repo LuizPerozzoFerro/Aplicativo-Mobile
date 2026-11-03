@@ -1,15 +1,64 @@
 {
   "welcome": {
     "title": "Boas-vindas",
-    "body": "Aqui vão a apresentação do app e a confirmação de idade."
+    "body": "O Quedo ajuda você a retomar o controle do seu tempo no celular, no seu ritmo e sem julgamentos. Ele acompanha seus hábitos e avisa nos momentos de risco, para você decidir com calma.",
+    "privacy": "Tudo o que você contar aqui fica só neste aparelho.",
+    "ageQuestion": "Você tem 18 anos ou mais?",
+    "ageYes": "Sim, tenho 18 anos ou mais",
+    "ageNo": "Não"
   },
   "compulsions": {
     "title": "O que você quer mudar",
-    "body": "Aqui você vai escolher o que quer acompanhar."
+    "body": "Escolha uma ou as duas opções. Dá para mudar depois, no Perfil.",
+    "adult": {
+      "title": "Conteúdo adulto",
+      "description": "Ficar longe desse tipo de conteúdo, com apoio nos momentos de risco."
+    },
+    "shortVideos": {
+      "title": "Vídeos curtos e redes sociais",
+      "description": "Usar com moderação, dentro de um limite diário que você escolhe."
+    },
+    "noneSelected": "Escolha pelo menos uma opção para continuar.",
+    "remove": {
+      "title": "Tirar esta escolha?",
+      "message": "As respostas que você já deu sobre ela serão apagadas.",
+      "confirm": "Tirar",
+      "cancel": "Manter"
+    }
   },
   "setup": {
     "title": "Configuração",
-    "body": "Aqui vão os detalhes de cada escolha, como limites e apps."
+    "body": "Ajuste cada escolha do seu jeito. Dá para mudar tudo depois, no Perfil.",
+    "noAppsFound": "Nenhum app encontrado neste aparelho.",
+    "shortVideos": {
+      "heading": "Vídeos curtos e redes sociais",
+      "apps": "Quais apps acompanhar?",
+      "appsHint": "Já marcamos os mais comuns que estão no seu celular. Tire ou acrescente à vontade.",
+      "limit": "Limite diário",
+      "limitHint": "O tempo é somado entre todos os apps escolhidos.",
+      "limitOption": "{{minutes}} min",
+      "other": "Outro",
+      "otherLabel": "Limite em minutos",
+      "noApps": "Escolha pelo menos um app de vídeos curtos.",
+      "invalidLimit": "Use um limite de 5 a 600 minutos."
+    },
+    "adult": {
+      "heading": "Conteúdo adulto",
+      "start": "Desde quando você está sem recair?",
+      "startToday": "Estou começando hoje",
+      "startDaysAgo": "Já estou sem recair há alguns dias",
+      "daysLabel": "Há quantos dias?",
+      "invalidDays": "Use um número de 1 a 3650.",
+      "riskApps": "Apps de risco (opcional)",
+      "riskAppsHint": "Apps onde esse tipo de conteúdo costuma aparecer. O Quedo avisa se você passar muito tempo neles.",
+      "declare": "Você costuma ver esse tipo de conteúdo no {{app}}?",
+      "yes": "Sim",
+      "no": "Não",
+      "undeclared": "Responda a pergunta de cada app de risco marcado.",
+      "checkIn": "Horário do check-in",
+      "checkInHint": "Uma vez por dia, o Quedo pergunta como foi o seu dia. Escolha um horário em que você costuma ter alguns minutos livres."
+    },
+    "loadingApps": "Carregando os apps do aparelho…"
   },
   "triggers": {
     "title": "Gatilhos",
@@ -32,5 +81,10 @@
     "message": "Você pode continuar a configuração depois.",
     "stay": "Continuar aqui",
     "leave": "Sair"
+  },
+  "underage": {
+    "title": "O Quedo é só para adultos",
+    "body": "Este app foi feito para pessoas com 18 anos ou mais, então não dá para seguir com a configuração. Se você precisa de apoio, converse com alguém de confiança, como alguém da família ou um profissional de saúde.",
+    "back": "Voltar e corrigir a resposta"
   }
 }

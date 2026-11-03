@@ -98,6 +98,14 @@ export const userCompulsions = sqliteTable(
     startedAt: integer('started_at', { mode: 'timestamp_ms' }).notNull(),
     /** Nulo na mecânica de abstinência. */
     dailyLimitMinutes: integer('daily_limit_minutes'),
+    /**
+     * Abstinência: dias sem recair informados no onboarding ("há N dias"; 0 =
+     * começando hoje). O início da streak sai dele no "Começar" (spec 02 v0.2,
+     * 4.3). Nulo até a etapa de configuração e na moderação. Sem CHECK: um
+     * CHECK novo obrigaria a recriar esta tabela-pai (NOTAS-APP.md, passo 3);
+     * a validação fica no domínio e no repositório.
+     */
+    initialStreakDays: integer('initial_streak_days'),
   },
   (table) => [
     uniqueIndex('user_compulsions_type_unique').on(table.type),

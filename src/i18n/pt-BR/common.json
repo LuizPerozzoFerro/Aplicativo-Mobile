@@ -23,7 +23,8 @@
     "increaseHour": "Aumentar a hora",
     "decreaseHour": "Diminuir a hora",
     "increaseMinute": "Aumentar os minutos",
-    "decreaseMinute": "Diminuir os minutos"
+    "decreaseMinute": "Diminuir os minutos",
+    "hint": "Deslize para cima ou para baixo para mudar"
   },
   "timeRangePicker": {
     "start": "Início",

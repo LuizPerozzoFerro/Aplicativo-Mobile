@@ -90,6 +90,21 @@ describe('compulsões', () => {
     ).toThrow('Limite diário só existe na moderação');
   });
 
+  it('dias sem recair informados: só na abstinência, 0 ou de 1 a 3650', () => {
+    const adult = repositories.compulsions.add({ type: 'pornography', startedAt: NOW });
+    expect(adult.initialStreakDays).toBeNull();
+    repositories.compulsions.setInitialStreakDays(adult.id, 12);
+    expect(repositories.compulsions.list()[0]?.initialStreakDays).toBe(12);
+    repositories.compulsions.setInitialStreakDays(adult.id, 0);
+    expect(repositories.compulsions.list()[0]?.initialStreakDays).toBe(0);
+    expect(() => repositories.compulsions.setInitialStreakDays(adult.id, 3651)).toThrow(RangeError);
+    expect(() => repositories.compulsions.setInitialStreakDays(adult.id, -1)).toThrow(RangeError);
+    const videos = repositories.compulsions.add({ type: 'short_videos', startedAt: NOW });
+    expect(() => repositories.compulsions.setInitialStreakDays(videos.id, 3)).toThrow(
+      'Dias sem recair só existem na abstinência',
+    );
+  });
+
   it('muda o início (dia do "Começar")', () => {
     const { id } = repositories.compulsions.add({ type: 'pornography', startedAt: NOW });
     repositories.compulsions.setStartedAt(id, LATER);

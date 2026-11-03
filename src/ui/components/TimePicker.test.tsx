@@ -97,6 +97,13 @@ describe('TimePicker no leitor de tela', () => {
     expect(hourControl()).toHaveAccessibilityValue({ text: '23 horas' });
   });
 
+  it('os dois controles dizem como mudar o valor', async () => {
+    await render(<Harness initial={at(9, 0)} />);
+    for (const control of [hourControl(), minuteControl()]) {
+      expect(control.props.accessibilityHint).toBe('Deslize para cima ou para baixo para mudar');
+    }
+  });
+
   it('declara as ações increment e decrement nos dois controles', async () => {
     await render(<Harness initial={at(9, 0)} />);
     for (const control of [hourControl(), minuteControl()]) {

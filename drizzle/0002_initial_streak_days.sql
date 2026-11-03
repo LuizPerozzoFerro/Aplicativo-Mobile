@@ -1,0 +1,1 @@
+ALTER TABLE `user_compulsions` ADD `initial_streak_days` integer;

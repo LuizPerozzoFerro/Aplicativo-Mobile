@@ -1,5 +1,5 @@
 import { router, useFocusEffect, useNavigation } from 'expo-router';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, BackHandler, View } from 'react-native';
 
@@ -18,7 +18,17 @@ export type OnboardingStepScreenProps = {
   step: OnboardingStep;
   /** Textos já traduzidos (t()). */
   title: string;
-  body: string;
+  body?: string;
+  children?: ReactNode;
+  /**
+   * Por que ainda não dá para avançar, já traduzido. Com ele, o "Continuar"
+   * fica desabilitado e o motivo aparece embaixo (spec 02, seção 4.4).
+   */
+  blockedReason?: string | null;
+  /** Grava as respostas da etapa antes de avançar; se lançar erro, não avança. */
+  onContinue?: () => void;
+  /** Troca o "Continuar" por outros botões (ex.: Sim/Não da idade), com a função que avança. */
+  renderActions?: (goNext: () => void) => ReactNode;
 };
 
 /**
@@ -26,7 +36,15 @@ export type OnboardingStepScreenProps = {
  * etapa seguinte (progresso salvo, spec 02 seção 4.4). A primeira tela não tem
  * botão Voltar; o Voltar do Android nela pede confirmação antes de fechar.
  */
-export function OnboardingStepScreen({ step, title, body }: OnboardingStepScreenProps) {
+export function OnboardingStepScreen({
+  step,
+  title,
+  body,
+  children,
+  blockedReason,
+  onContinue,
+  renderActions,
+}: OnboardingStepScreenProps) {
   const { t } = useTranslation(['onboarding', 'common']);
   const theme = useTheme();
   const navigation = useNavigation();
@@ -70,6 +88,7 @@ export function OnboardingStepScreen({ step, title, body }: OnboardingStepScreen
   );
 
   const goNext = () => {
+    onContinue?.();
     const next = getNextOnboardingStep(step);
     if (next) {
       onboardingProgress.setStep(next);
@@ -84,10 +103,26 @@ export function OnboardingStepScreen({ step, title, body }: OnboardingStepScreen
   return (
     <Screen>
       <Text variant="title">{title}</Text>
-      <Text color="textMuted">{body}</Text>
+      {body ? <Text color="textMuted">{body}</Text> : null}
+      {children}
       <View style={{ flex: 1 }} />
       <View style={{ gap: theme.spacing.sm }}>
-        <Button label={t('common:actions.continue')} onPress={goNext} />
+        {renderActions ? (
+          renderActions(goNext)
+        ) : (
+          <>
+            <Button
+              label={t('common:actions.continue')}
+              onPress={goNext}
+              disabled={Boolean(blockedReason)}
+            />
+            {blockedReason ? (
+              <Text variant="caption" color="textMuted" accessibilityLiveRegion="polite">
+                {blockedReason}
+              </Text>
+            ) : null}
+          </>
+        )}
         {first ? null : <Button label={t('common:actions.back')} variant="text" onPress={goBack} />}
       </View>
     </Screen>

@@ -1534,6 +1534,83 @@ Testes (22) e mutação de controle, com as 8 mutações derrubando testes:
      quer mudar".
   4. As boas-vindas já não têm botão Voltar.
 
+**Decisão do responsável (02/11/2026):** o passo 4 vai em três PRs: (1)
+progresso e Voltar; (2) etapas 1 a 3; (3) etapas 4 a 7. Nos PRs das etapas,
+os textos novos ficam listados no próprio PR, agrupados por tela, para
+revisão. O seletor de horário ganha a dica do leitor de tela "Deslize para
+cima ou para baixo para mudar".
+
+### Parte 2: etapas 1 a 3
+
+- **Etapa 1, boas-vindas:**
+  - apresentação, a frase de privacidade e a pergunta "Você tem 18 anos ou
+    mais?";
+  - "Sim" grava `age_confirmed_at` e avança;
+  - "Não" abre `app/(onboarding)/underage.tsx` sem gravar nada (nem etapa),
+    com "Voltar e corrigir a resposta". Reabrir o app volta às boas-vindas
+    (R1).
+- **Etapa 2, compulsões:**
+  - dois `OptionCard` (componente novo: caixa de seleção com título e uma
+    linha de explicação);
+  - a ordem de escolha vira a ordem de inserção no banco (e dos cards no
+    Início);
+  - tirar uma compulsão já gravada pede confirmação, e ao avançar ela é
+    apagada com as respostas (cascata);
+  - o gravado é lido na hora de usar, porque a tela continua montada quando
+    se volta a ela.
+- **Etapa 3, configuração:** uma seção por compulsão, na ordem da escolha.
+  - **Vídeos curtos:**
+    - apps (chips) e limite (30/45/60/90/120 ou "Outro", com campo
+      numérico);
+    - na primeira vez, os sugeridos instalados vêm pré-marcados;
+    - ao voltar, aparece o gravado (critério: `daily_limit_minutes` não
+      nulo).
+  - **Conteúdo adulto:**
+    - "Estou começando hoje" ou "há N dias", com campo numérico;
+    - apps de risco opcionais, com os sugeridos pré-marcados;
+    - para cada app marcado, "Você costuma ver esse tipo de conteúdo no
+      {app}?" com Sim/Não, obrigatório e sem resposta pré-marcada;
+    - horário do check-in (`TimePicker`, padrão 21h).
+  - Enquanto a lista de apps carrega, o "Continuar" fica desabilitado
+    ("Carregando os apps do aparelho…"); sem isso, gravaria uma lista vazia.
+- **`OnboardingStepScreen`:**
+  - recebe conteúdo, `blockedReason` (desabilita o "Continuar" e mostra o
+    motivo, com `accessibilityLiveRegion`) e `onContinue` (grava antes de
+    avançar);
+  - `renderActions` troca o "Continuar" (Sim/Não da idade).
+- **Validação no domínio:** `getCompulsionChoiceProblem`,
+  `getShortVideoSetupProblem`, `getAbstinenceSetupProblem` e
+  `parseWholeNumber`.
+
+### Migração 003: `user_compulsions.initial_streak_days`
+
+- **Por quê:** a spec v0.2 manda contar o início a partir do dia do
+  "Começar". O "há N dias" é respondido na etapa 3, então o N precisa ficar
+  guardado até a etapa 7, e nenhuma coluna existente servia.
+- **Como:** coluna nova, nula, só com `ALTER TABLE ... ADD`, sem CHECK. Um
+  CHECK obrigaria a recriar `user_compulsions`, a tabela-pai da regra acima.
+  A validação (0 ou de 1 a 3650, só na abstinência) fica no repositório
+  (`setInitialStreakDays`).
+- **Testes:** o teste das tabelas filhas passou a cobrir a 003 sozinho, e os
+  testes de migração não contam mais um número fixo de migrações.
+
+### Testes e aparelho
+
+- **394 testes no total:**
+  - `__tests__/onboardingSteps.test.tsx` (11): idade, bloqueio, ordem da
+    escolha, confirmação ao tirar, pré-marcação, declaração obrigatória,
+    validação do limite e dos dias, gravação e volta mostrando o gravado;
+  - navegação atualizada: o teste usa um banco sql.js por teste, por um
+    `getRepositories` simulado.
+- **No S22**, com `pm clear` do app de desenvolvimento, tema escuro e fonte
+  no máximo:
+  - "Não" mostrou o bloqueio, e "Voltar e corrigir a resposta" voltou;
+  - "Sim" levou às compulsões; escolher as duas e "Continuar" levou à
+    configuração, com as seções na ordem da escolha, os seis sugeridos na
+    lista, 60 min marcado e X e Reddit pré-marcados como risco;
+  - nada cortado;
+  - no banco: 3 migrações aplicadas, 2 compulsões e etapa `setup`.
+
 ## Problemas
 
 ### AP1 · Build Android falha no C++ do `react-native-worklets` (caminho longo)
