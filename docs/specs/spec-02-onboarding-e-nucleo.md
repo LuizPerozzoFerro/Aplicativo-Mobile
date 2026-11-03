@@ -1,6 +1,6 @@
 # Spec 02 — Onboarding e Núcleo (Fase 3)
 
-> **Status:** rascunho v0.2 · **Última atualização:** 02/11/2026
+> **Status:** rascunho v0.3 · **Última atualização:** 02/11/2026
 > **Documentos base:** `docs/01-visao-e-escopo-mvp.md` (v0.7) · `docs/02-plano-tecnico.md` (v0.6) · `docs/specs/spec-01-fundacao-do-app.md` (v0.3) · `NOTAS-APP.md` (pendências herdadas)
 > **Tipo:** código definitivo, sobre a fundação da Fase 2.
 
@@ -96,9 +96,7 @@ Requisitos:
 ### 4.3 Domínio
 Em `src/domain/`, sem React nem banco, com testes que incluem virada de dia e horário de verão (como a borda do dia da Fase 2):
 
-- **Base da streak:**
-  - abstinência: o mais recente entre o início informado e o dia da última recaída;
-  - moderação: o dia seguinte ao último dia reprovado (`day_states.failed`) ou o início, o que for mais recente. Se o dia atual estiver reprovado, a streak é 0.
+- **Base da streak (mesma regra nas duas mecânicas, v0.3):** o mais recente entre o dia do início e o **próprio dia do último evento**: a última recaída na abstinência, o último dia reprovado (`day_states.failed`) na moderação. No dia da quebra a streak é 0, e no dia seguinte é 1, nas duas compulsões.
 - **Streak** = `calendarDaysBetween(base, hoje)`. No dia do início ou da recaída, a streak é 0 ("0 dias"; plural com `_zero`).
 - **Dia de início:** para as duas compulsões, o início é o **dia em que o usuário toca em "Começar"** no fim do onboarding, não o dia em que respondeu a etapa. Uma compulsão adicionada depois pelo Perfil começa no dia em que é adicionada.
 - **Início da abstinência no onboarding:** "Estou começando hoje" (base = dia do "Começar") ou "Estou sem recair há N dias" (base = dia do "Começar" − N dias de calendário, N inteiro de 1 a 3650).
@@ -274,3 +272,4 @@ Todas em `NOTAS-APP.md` e cobertas acima:
 |---|---|---|
 | 0.1 | 02/11/2026 | Primeira versão |
 | 0.2 | 02/11/2026 | Oito pontos esclarecidos com o Claude Code: início no dia do "Começar"; check-in o dia todo nesta fase; desfazer tudo o que foi registrado hoje; "ontem" só dentro do período; "Voltar" na tela de bloqueio de idade; faixas vizinhas unidas no resumo; resposta obrigatória por app de risco; app nas duas listas permitido e Início vazio sem compulsão |
+| 0.3 | 02/11/2026 | Base da streak igual nas duas mecânicas: o próprio dia do último evento (recaída ou dia reprovado). Antes, a moderação contava a partir do dia seguinte, e as duas streaks ficavam com um dia de diferença depois de uma quebra |
