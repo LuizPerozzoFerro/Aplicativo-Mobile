@@ -31,5 +31,31 @@
     "end": "Fim",
     "nextDay": "Termina no dia seguinte",
     "sameTime": "O início e o fim precisam ser diferentes"
+  },
+  "time": {
+    "hour": "{{hour}}h",
+    "hourMinute": "{{hour}}h{{minute}}",
+    "range": "{{start}}–{{end}}",
+    "allDay": "O dia todo"
+  },
+  "weekdays": {
+    "0": "Domingo",
+    "1": "Segunda",
+    "2": "Terça",
+    "3": "Quarta",
+    "4": "Quinta",
+    "5": "Sexta",
+    "6": "Sábado"
+  },
+  "emotions": {
+    "boredom": "Tédio",
+    "loneliness": "Solidão",
+    "stress": "Estresse",
+    "anxiety": "Ansiedade",
+    "tiredness": "Cansaço",
+    "sadness": "Tristeza"
+  },
+  "list": {
+    "separator": ", "
   }
 }

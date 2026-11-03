@@ -25,6 +25,8 @@ export type OnboardingStepScreenProps = {
    * fica desabilitado e o motivo aparece embaixo (spec 02, seção 4.4).
    */
   blockedReason?: string | null;
+  /** Texto do botão de avançar, já traduzido (padrão: "Continuar"). */
+  continueLabel?: string;
   /** Grava as respostas da etapa antes de avançar; se lançar erro, não avança. */
   onContinue?: () => void;
   /** Troca o "Continuar" por outros botões (ex.: Sim/Não da idade), com a função que avança. */
@@ -42,6 +44,7 @@ export function OnboardingStepScreen({
   body,
   children,
   blockedReason,
+  continueLabel,
   onContinue,
   renderActions,
 }: OnboardingStepScreenProps) {
@@ -112,7 +115,7 @@ export function OnboardingStepScreen({
         ) : (
           <>
             <Button
-              label={t('common:actions.continue')}
+              label={continueLabel ?? t('common:actions.continue')}
               onPress={goNext}
               disabled={Boolean(blockedReason)}
             />

@@ -1617,6 +1617,80 @@ cima ou para baixo para mudar".
   - nada cortado;
   - no banco: 3 migrações aplicadas, 2 compulsões e etapa `setup`.
 
+### Parte 3: etapas 4 a 7 e teclado
+
+- **Etapa 4, gatilhos:**
+  - as 12 faixas de 2 horas em chips ("00h–02h" … "22h–24h");
+  - "Adicionar faixa personalizada" abre o `TimeRangePicker` (padrão
+    23h–01h) com "Adicionar faixa". Início igual ao fim fica bloqueado com o
+    motivo, e uma faixa igual a uma das fixas marca a fixa, sem duplicar;
+  - as faixas personalizadas aparecem marcadas, e tocar numa tira;
+  - dias com os atalhos "Dias úteis" e "Fim de semana" (`toggleWeekdayShortcut`)
+    e os 6 sentimentos;
+  - tudo opcional. Os gatilhos são gerais (`compulsion_id` nulo), gravados com
+    `triggers.replaceAll`.
+- **Etapa 5, motivação:**
+  - campo de várias linhas com exemplos neutros e contador "N/280" (contagem
+    do domínio, emoji conta 1);
+  - o mínimo de 3 aparece como motivo do botão; acima de 280, erro no campo;
+  - grava sem os espaços das pontas.
+- **Etapa 6, permissões** (ordem do doc 01, seção 4.3: notificações, acesso
+  a dados de uso, sobreposição):
+  - cada cartão explica "Para que serve" e "O que o Quedo não faz" antes do
+    "Permitir" (divulgação destacada); "Agora não" ou pedido negado mostram
+    que dá para permitir depois, no Perfil;
+  - "Bom saber": a notificação permanente e a demora depois de reiniciar o
+    celular;
+  - nada obrigatório. Os pedidos vão ao `FakeMonitoringModule`. A spec 4.4
+    lista "acesso ao uso, sobreposição, notificações", sem dizer que é a
+    ordem; segui a ordem lógica do doc 01.
+- **Etapa 7, seu plano:**
+  - resumo por compulsão (apps, limite, início, apps de risco, horário do
+    check-in), gatilhos com as faixas unidas (`mergeTimeRanges`: 20h–22h,
+    22h–24h e 23h30–01h viram "20h–01h", R5), dias, sentimentos e a
+    motivação;
+  - "Começar" grava o início: na abstinência, o dia do "Começar" menos os
+    dias informados (`getAbstinenceStart`); na moderação, o próprio
+    instante. Depois limpa a etapa e conclui o onboarding;
+  - sem teste nem preço (Fase 6).
+- **Rótulos:** `useTriggerLabels` monta horários ("22h", "23h30", meia-noite
+  no fim como "24h"), dias e emoções a partir do i18n (`common:time`,
+  `weekdays`, `emotions`), com chaves literais e `satisfies`.
+
+### Teclado na `Screen` (pendência herdada)
+
+- **Primeira tentativa:** `KeyboardAvoidingView` com `padding` só no iOS e
+  nada no Android, como o guia de teclado do Expo sugere. **Não funcionou no
+  S22:** o app tem `adjustResize`, mas com edge-to-edge
+  (`edgeToEdgeEnabled=true`, obrigatório no Android 15+) a janela não
+  encolhe. O conteúdo ficou parado e o contador da motivação ficou meio
+  coberto pelo teclado, que começa em y = 1314 px.
+- **Solução:** `behavior="padding"` também no Android, e
+  `keyboardShouldPersistTaps="handled"` no `ScrollView`.
+  - Na motivação, a área de rolagem passou a terminar exatamente no topo do
+    teclado (1314 px), e o resto fica alcançável rolando.
+  - Na configuração, o campo "Há quantos dias?" estava em 2148 px. Ao tocar
+    nele, foi levado a 1170 px e terminou em 1314 px, logo acima do teclado.
+- **Sem teste automático:** o RNTL 14 não tem mais as consultas `UNSAFE_*`, e
+  a prop `behavior` não chega aos elementos nativos. A evidência é a medição
+  acima.
+- **Sem biblioteca nativa:** a `react-native-keyboard-controller` não foi
+  necessária.
+
+### Testes e aparelho
+
+- **407 testes no total.** `__tests__/onboardingSteps.test.tsx` cobre as 7
+  etapas (24 testes), com um banco sql.js e um `FakeMonitoringModule` novos a
+  cada teste (`getMonitoring` simulado).
+- **No S22** (tema escuro e fonte no máximo), um fluxo Maestro temporário
+  (fora do repositório) foi da configuração até a motivação:
+  - respondeu Sim para X e Reddit;
+  - marcou 20h–22h, 22h–24h e "Fim de semana";
+  - digitou a motivação, com o teclado medido como acima.
+- **O fluxo Maestro do repositório (`.maestro/onboarding-e-abas.yaml`) está
+  desatualizado:** ele toca "Continuar" nas boas-vindas. É reescrito no passo
+  7, com os quatro fluxos da spec.
+
 ## Problemas
 
 ### AP1 · Build Android falha no C++ do `react-native-worklets` (caminho longo)
