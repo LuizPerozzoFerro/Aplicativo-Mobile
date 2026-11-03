@@ -1,3 +1,5 @@
+import { getPreselectedPackages, isSuggestedPackage } from '@/domain/suggestedApps';
+
 import { FAKE_TARGETS, FakeMonitoringModule } from './FakeMonitoringModule';
 import { getMonitoring } from './index';
 import { MonitoringError, UNSUPPORTED, asTargetId, type UsageRule } from './types';
@@ -78,8 +80,21 @@ describe('seleção de alvos (opaca)', () => {
     expect(picked).toEqual(FAKE_TARGETS.map((target) => ({ id: target.id, label: null })));
   });
 
-  it('os apps de exemplo têm pacotes inofensivos', () => {
-    for (const target of FAKE_TARGETS) expect(target.id).toMatch(/^com\.example\./);
+  it('a lista tem os apps sugeridos, para testar a pré-marcação, e outros não sugeridos', () => {
+    const ids = FAKE_TARGETS.map((target) => target.id as string);
+    const suggested = ids.filter(
+      (id) => isSuggestedPackage('short_video', id) || isSuggestedPackage('risk', id),
+    );
+    expect(getPreselectedPackages('short_video', ids)).toHaveLength(4);
+    expect(getPreselectedPackages('risk', ids)).toEqual([
+      'com.twitter.android',
+      'com.reddit.frontpage',
+    ]);
+    // Os não sugeridos são de exemplo, com pacotes inofensivos.
+    for (const id of ids.filter((item) => !suggested.includes(item))) {
+      expect(id).toMatch(/^com\.example\./);
+    }
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });
 

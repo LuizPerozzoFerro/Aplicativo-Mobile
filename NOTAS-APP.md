@@ -1474,6 +1474,65 @@ Testes (22) e mutação de controle, com as 8 mutações derrubando testes:
   cresce para 89 dp.
 - A captura de tela usada na conferência foi apagada (mostrava a barra de
   status).
+- **TalkBack conferido pelo responsável no S22** (02/11/2026, depois do PR
+  #14): hora e minuto respondem a deslizar para cima e para baixo e anunciam
+  o horário. Observação dele: leva um tempo para entender como o controle
+  ajustável funciona. Considerar uma dica curta (`accessibilityHint`) quando
+  o seletor entrar nas telas.
+
+## Fase 3 · Passo 4 · Onboarding (02/11/2026)
+
+### Parte 1: progresso salvo, retomada e Voltar
+
+- **Etapas num lugar só:** `src/features/onboarding/steps.ts` agora
+  reexporta as do domínio (`ONBOARDING_STEPS`, seguinte e anterior), que
+  também alimentam o CHECK de `settings.onboarding_step`.
+- **`onboardingProgress`** (mesmo padrão do `onboardingStatus`):
+  - começa em memória e o `initializeDatabase` o liga a
+    `settings.onboarding_step`;
+  - `setStep` grava antes de mudar; se o banco falhar, quem chamou não navega.
+- **Ao avançar:** cada "Continuar" grava a etapa seguinte. A última limpa a
+  etapa (null) antes de marcar o onboarding como concluído.
+- **Retomada (R3):**
+  - as boas-vindas, onde o app abre, redirecionam (`<Redirect>`) para a
+    etapa gravada;
+  - a retomada vale uma vez por abertura do app: qualquer etapa que aparece
+    marca a retomada como feita, e voltar às boas-vindas depois não pula de
+    novo;
+  - o `connect` (na abertura) a reativa.
+- **Voltar:**
+  - o botão do app e o do Android vão sempre à etapa anterior;
+  - se ela está logo abaixo na pilha, `router.back()`; senão (depois de uma
+    retomada a pilha não tem as anteriores), `router.replace` para ela;
+  - **a primeira tela não tem botão Voltar**, e o Voltar do Android nela pede
+    confirmação (pendência herdada).
+- **Tentativas que não funcionaram:**
+  - **`navigation.reset`** com a pilha das etapas: foi chamado com o estado
+    certo, mas a pilha do onboarding (dentro do `Stack.Protected`) continuou
+    só com as boas-vindas, mesmo com atraso;
+  - **`router.push` em sequência num efeito:** empilhava, mas falha com "the
+    imperative router is unavailable before the first render has finished"
+    quando a tela monta antes do roteador, e deixava as boas-vindas em
+    branco ao voltar;
+  - a solução declarativa (redirecionar e Voltar explícito) não depende do
+    momento do roteador.
+- **Lista do `FakeMonitoringModule`:** ganhou os seis sugeridos com nomes
+  reais (Instagram, TikTok, YouTube, Kwai, X, Reddit), além dos de exemplo.
+- **Testes:**
+  - navegação: grava ao avançar, limpa ao concluir, retoma na etapa, Voltar
+    do app e do Android depois de retomar, primeira tela sem Voltar;
+  - unitários do `onboardingProgress`;
+  - o Voltar do Android é simulado capturando os listeners do
+    `BackHandler`, porque o mock do React Native 0.88 não tem
+    `mockPressBack`.
+  - **372 testes no total.**
+- **No S22 (R3):**
+  1. "Refazer onboarding" e três "Continuar" levaram a "Gatilhos"; no banco,
+     `settings` = `[1, 0, "triggers", 1260, 6]`.
+  2. `am force-stop` e reabertura levaram **direto a "Gatilhos"**.
+  3. O Voltar do app levou a "Configuração", e o do Android a "O que você
+     quer mudar".
+  4. As boas-vindas já não têm botão Voltar.
 
 ## Problemas
 

@@ -2,6 +2,7 @@ import { drizzle } from 'drizzle-orm/expo-sqlite';
 import { openDatabaseSync } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 
+import { onboardingProgress } from '@/features/onboarding/onboardingProgress';
 import { onboardingStatus } from '@/features/onboarding/onboardingStatus';
 
 import { DATABASE_NAME, schema, type AppDatabase } from './database';
@@ -25,9 +26,9 @@ function openAppDatabase(): AppData {
 }
 
 /**
- * Abre o banco, aplica as migrações e liga a flag do onboarding ao banco. A
- * abertura fica aqui dentro (e não na importação do módulo) para que uma falha
- * nela caia no mesmo tratamento das migrações, em vez de fechar o app.
+ * Abre o banco, aplica as migrações e liga a flag e a etapa do onboarding ao
+ * banco. A abertura fica aqui dentro (e não na importação do módulo) para que
+ * uma falha nela caia no mesmo tratamento das migrações, em vez de fechar o app.
  */
 export async function initializeDatabase(): Promise<void> {
   const data = openAppDatabase();
@@ -35,6 +36,10 @@ export async function initializeDatabase(): Promise<void> {
   onboardingStatus.connect({
     load: () => data.repositories.settings.get().onboardingCompleted,
     save: (completed) => data.repositories.settings.setOnboardingCompleted(completed),
+  });
+  onboardingProgress.connect({
+    load: () => data.repositories.settings.get().onboardingStep,
+    save: (step) => data.repositories.settings.setOnboardingStep(step),
   });
   appData = data;
 }

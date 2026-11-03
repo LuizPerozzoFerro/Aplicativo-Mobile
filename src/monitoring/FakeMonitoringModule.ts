@@ -24,11 +24,22 @@ import {
 // memória, para as telas das próximas fases funcionarem sem o módulo nativo.
 // Responde como cada plataforma responderia, inclusive os UNSUPPORTED do iOS.
 
-/** Apps de exemplo, com nomes e pacotes inofensivos (CLAUDE.md, seção 9). */
+/**
+ * Apps simulados (CLAUDE.md, seção 9: nada impróprio). Os seis primeiros são os
+ * sugeridos do onboarding (src/domain/suggestedApps.ts; spec 02, seção 4.4),
+ * com nomes reais de apps populares, para a pré-marcação ser testável sem o
+ * módulo nativo. Os de exemplo completam a lista com apps não sugeridos.
+ */
 // O lint trata `label` como texto visível. Aqui é o nome simulado de um app,
 // que no aparelho vem do sistema e não se traduz.
 /* eslint-disable no-restricted-syntax */
 export const FAKE_TARGETS: readonly MonitoringTarget[] = [
+  { id: asTargetId('com.instagram.android'), label: 'Instagram' },
+  { id: asTargetId('com.zhiliaoapp.musically'), label: 'TikTok' },
+  { id: asTargetId('com.google.android.youtube'), label: 'YouTube' },
+  { id: asTargetId('com.kwai.video'), label: 'Kwai' },
+  { id: asTargetId('com.twitter.android'), label: 'X' },
+  { id: asTargetId('com.reddit.frontpage'), label: 'Reddit' },
   { id: asTargetId('com.example.clips'), label: 'Example Clips' },
   { id: asTargetId('com.example.feed'), label: 'Example Feed' },
   { id: asTargetId('com.example.forum'), label: 'Example Forum' },

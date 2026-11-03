@@ -1,10 +1,11 @@
-import { userEvent } from '@testing-library/react-native';
+import { act, userEvent } from '@testing-library/react-native';
 import { renderRouter, screen, testRouter, waitFor } from 'expo-router/testing-library';
-import { Alert } from 'react-native';
+import { Alert, BackHandler } from 'react-native';
 
 import type { DatabaseState } from '@/data/bootstrap';
+import { onboardingProgress } from '@/features/onboarding/onboardingProgress';
 import { onboardingStatus } from '@/features/onboarding/onboardingStatus';
-import { ONBOARDING_STEPS } from '@/features/onboarding/steps';
+import { ONBOARDING_STEPS, type OnboardingStep } from '@/features/onboarding/steps';
 
 // O banco nativo (expo-sqlite) não roda no Jest; a camada de dados tem testes
 // próprios com sql.js. Aqui o banco é simulado e a flag fica em memória.
@@ -20,9 +21,27 @@ const expectPath = (path: string) => waitFor(() => expect(screen).toHavePathname
 const pressButton = async (name: string) =>
   userEvent.setup().press(await screen.findByRole('button', { name }));
 
+// Voltar do Android: o mock do BackHandler do React Native não simula o botão;
+// os listeners ficam aqui e o último registrado responde primeiro, como no aparelho.
+type BackListener = Parameters<typeof BackHandler.addEventListener>[1];
+let backListeners: BackListener[] = [];
+const pressAndroidBack = () =>
+  act(() => {
+    [...backListeners].reverse().some((listener) => listener({} as never));
+  });
+
+afterEach(() => jest.restoreAllMocks());
+
 // Entre testes não há tela montada, então o estado muda fora de act().
 beforeEach(() => {
+  backListeners = [];
+  jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_event, listener) => {
+    backListeners.push(listener);
+    return { remove: () => (backListeners = backListeners.filter((item) => item !== listener)) };
+  });
   onboardingStatus.setCompleted(false);
+  // Cada teste começa como uma abertura do app sem etapa gravada.
+  onboardingProgress.connect({ load: () => null, save: () => undefined });
 });
 
 describe('sem onboarding concluído', () => {
@@ -60,13 +79,79 @@ describe('sem onboarding concluído', () => {
     expect(testRouter.canGoBack()).toBe(false);
   });
 
-  it('"Voltar" na primeira tela pede confirmação antes de sair', async () => {
+  it('a primeira tela não tem "Voltar"; o Voltar do Android pede confirmação antes de sair', async () => {
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     await renderRouter(APP_DIR, { initialUrl: '/' });
-    await pressButton('Voltar');
+    await screen.findByRole('button', { name: 'Continuar' });
+    expect(screen.queryByRole('button', { name: 'Voltar' })).toBeNull();
+    await pressAndroidBack();
     expect(alert).toHaveBeenCalledWith('Sair do app?', expect.any(String), expect.any(Array));
     await expectPath('/welcome');
     alert.mockRestore();
+  });
+});
+
+describe('progresso do onboarding salvo (spec 02, seção 4.4)', () => {
+  const saved = jest.fn<void, [OnboardingStep | null]>();
+  /** Simula abrir o app com esta etapa gravada no banco. */
+  const openAppWithStep = (step: OnboardingStep | null) =>
+    onboardingProgress.connect({ load: () => step, save: saved });
+
+  it('cada "Continuar" grava a etapa seguinte; concluir limpa a etapa', async () => {
+    openAppWithStep(null);
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+    await pressButton('Continuar');
+    await expectPath('/compulsions');
+    expect(saved).toHaveBeenLastCalledWith('compulsions');
+    await pressButton('Continuar');
+    await expectPath('/setup');
+    expect(onboardingProgress.getStep()).toBe('setup');
+  });
+
+  it('a última tela grava a etapa como nula ao concluir', async () => {
+    openAppWithStep('summary');
+    await renderRouter(APP_DIR, { initialUrl: '/summary' });
+    await pressButton('Continuar');
+    expect(saved).toHaveBeenLastCalledWith(null);
+    expect(onboardingStatus.isCompleted()).toBe(true);
+  });
+
+  it('ao abrir com uma etapa gravada, vai direto para ela (R3)', async () => {
+    openAppWithStep('triggers');
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+    await expectPath('/triggers');
+    expect(await screen.findByRole('header', { name: 'Gatilhos' })).toBeOnTheScreen();
+  });
+
+  it('depois de retomar, o Voltar volta etapa por etapa até as boas-vindas, sem pular de novo', async () => {
+    openAppWithStep('setup');
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+    await expectPath('/setup');
+    await pressButton('Voltar');
+    await expectPath('/compulsions');
+    await pressButton('Voltar');
+    await expectPath('/welcome');
+    expect(await screen.findByRole('header', { name: 'Boas-vindas' })).toBeOnTheScreen();
+  });
+
+  it('depois de retomar, o Voltar do Android também volta à etapa anterior', async () => {
+    openAppWithStep('motivation');
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+    await expectPath('/motivation');
+    await pressAndroidBack();
+    await expectPath('/triggers');
+    await pressAndroidBack();
+    await expectPath('/setup');
+  });
+
+  it('sem etapa gravada (ou nas boas-vindas), abre nas boas-vindas', async () => {
+    for (const step of [null, 'welcome'] as const) {
+      openAppWithStep(step);
+      const view = await renderRouter(APP_DIR, { initialUrl: '/' });
+      await expectPath('/welcome');
+      expect(await screen.findByRole('header', { name: 'Boas-vindas' })).toBeOnTheScreen();
+      await view.unmount();
+    }
   });
 });
 
