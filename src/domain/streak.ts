@@ -13,6 +13,14 @@ import { addCalendarDays, calendarDaysBetween, fromDayKey, startOfDay } from './
  */
 export const MILESTONE_DAYS = [1, 3, 7, 14, 30, 60, 90, 180, 365] as const;
 
+/**
+ * Por que um dia da moderação foi reprovado (doc 01, 6.5.4): "Ignorar o
+ * limite por hoje" ou o terceiro "Continuar mesmo assim". Gravado a partir da
+ * Fase 4, em `day_states.failed_reason`.
+ */
+export const DAY_FAILURE_REASONS = ['ignored_limit', 'third_continue'] as const;
+export type DayFailureReason = (typeof DAY_FAILURE_REASONS)[number];
+
 /** Maior N aceito em "Estou sem recair há N dias". */
 export const MAX_DAYS_ALREADY_WITHOUT_RELAPSE = 3650;
 

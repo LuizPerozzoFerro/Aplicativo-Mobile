@@ -1210,6 +1210,124 @@ Mutação de controle, cada uma derrubando ao menos um teste (refeita depois da 
 trocas do horário de verão, e a hora a menos e a hora a mais se anulavam.
 Entrou um caso que atravessa só o início (10 dias antes de 10/11/2018).
 
+## Fase 3 · Passo 2 · Banco (02/11/2026)
+
+Nenhuma biblioteca nova. A spec 02 v0.3 (base da streak igual nas duas
+mecânicas) entrou no primeiro commit da branch `fase3/banco`.
+
+### Migração 002
+
+A "migração 002" da spec é o arquivo `drizzle/0001_fase3_core.sql` (o
+drizzle-kit numera a partir de 0000).
+
+| Tabela | Mudança |
+|---|---|
+| `settings` | `onboarding_step` (nula ou uma das 7 etapas) e `check_in_minutes` (padrão 1260, de 0 a 1439), com CHECK |
+| `triggers` | CHECK do `value` conforme o `kind` (faixa `HH:MM-HH:MM` com horas até 23 e início diferente do fim; dia `0` a `6`; emoção da lista) |
+| `check_ins` | nova; única por (`compulsion_id`, `day_key`); CHECK de `answer`, `source` e formato do dia |
+| `relapses` | nova; única por (`compulsion_id`, `day_key`) |
+| `day_states` | nova; chave primária (`compulsion_id`, `day_key`); contagens não negativas; `failed_reason` preenchido só em dia reprovado |
+
+As três tabelas novas apagam em cascata com a compulsão.
+
+### Cuidados com o drizzle-kit (importante para as próximas migrações)
+
+1. **Ao recriar uma tabela, o `INSERT ... SELECT` gerado copiava as colunas
+   novas da tabela antiga, onde elas ainda não existem.** Para adicionar um
+   CHECK, o SQLite exige recriar a tabela (`__new_settings`, cópia, `DROP`,
+   `RENAME`). No SQLite, um nome entre aspas duplas que não existe vira texto
+   literal: a cópia gravaria o texto `'onboarding_step'` e o CHECK recusaria.
+   - Corrigido à mão no SQL (só as 5 colunas antigas).
+   - Coberto pelo teste R10 em Jest: falha com o SQL original (mutação D1).
+   - **Sempre ler o SQL gerado** quando ele tiver `__new_`.
+2. **CHECK com o nome da tabela quebra a recriação.** O Drizzle escreve
+   `"settings"."id"`, que não existe dentro de `__new_settings`. Os CHECKs
+   novos, e os de `settings` e `triggers` (recriadas), citam só a coluna
+   (helper `column()` no esquema). Os CHECKs da 001 nas tabelas que não mudam
+   ficaram como estavam: mudar o texto deles faria o drizzle-kit recriar a
+   tabela, e recriar `user_compulsions` apagaria em cascata os filhos (o
+   `PRAGMA foreign_keys=OFF` não vale dentro da transação da migração).
+3. **`NULL in (...)` dá NULL, e o SQLite aceita CHECK com resultado NULL.**
+   O CHECK de `failed_reason` precisou de `is not null` explícito; o teste de
+   restrições pegou o erro.
+4. A migração roda numa transação: se falhar, nada fica pela metade (teste
+   com um gatilho que a 002 passa a recusar). Na Fase 2 nenhuma tela gravava
+   gatilhos, então esse caso não existe fora de testes.
+
+### Repositórios (`src/data/repositories.ts`)
+
+- `settings`: `setOnboardingStep` e `setCheckInMinutes` (valida 0 a 1439).
+- `compulsions`:
+  - `setStartedAt`, para o dia do "Começar";
+  - `setDailyLimit`, só na moderação e de 5 a 600; `add` também recusa limite
+    na abstinência.
+- `monitoredApps`: confere o papel com `isAppRoleAllowed` em toda gravação
+  (pendência herdada) e `replaceForCompulsion` troca a lista numa transação.
+- `triggers`: valida o `value` pelo domínio antes do banco; `replaceAll` numa
+  transação.
+- `checkIns.answer`:
+  - substitui a resposta do dia;
+  - "recaída" grava também a recaída do dia, e "sem recaída" apaga a recaída
+    do dia;
+  - tudo numa transação.
+- `relapses.record` grava a recaída e o check-in do dia como "recaída", numa
+  transação.
+- `checkIns.undo` e `relapses.undo` apagam os dois registros do dia. Quem
+  decide se ainda pode desfazer é a interface, com `canUndo`.
+- Check-in e recaída só na abstinência; estado do dia só na moderação
+  (`dayStates.markFailed` e `listFailedDayKeys`, para a Fase 4 e a streak).
+- `deleteAllData` cobre as três tabelas novas e zera as colunas novas de
+  `settings`.
+
+### Testes
+
+318 no total (69 em `src/data/`):
+- R10 em Jest: um banco só com a 001 e dados como a Fase 2 gravaria; a 002
+  aplica e preserva tudo, e a cascata continua valendo depois de recriar
+  `triggers`;
+- rollback da migração;
+- restrições novas, nos dois sentidos (recusa e aceita);
+- transação da recaída e do check-in (com um gatilho SQL que faz a recaída
+  falhar).
+
+Mutação de controle:
+
+| # | Mutação | Falhas |
+|---|---|---|
+| D1 | SQL da 002 como o drizzle-kit gerou | 1 (R10) |
+| D2 | Sem `isAppRoleAllowed` | 2 |
+| D3 | Recaída sem transação | 1 |
+| D4 | "Sem recaída" não apaga a recaída do dia | 1 |
+| D5 | Check-in "recaída" não grava a recaída | 3 |
+| D6 | Desfazer deixa a recaída | 1 |
+
+### No aparelho (S22): R10
+
+1. Código da `main` (esquema da Fase 2) no Metro. Um fluxo Maestro
+   temporário (fora do repositório) apagou os dados e concluiu o onboarding
+   vazio. No banco: 1 migração aplicada e `settings` = `[1, 1, 6]`.
+2. Metro com a `fase3/banco`, app fechado (`am force-stop`) e reaberto pelo
+   link do dev client.
+3. **O app abriu no Início, sem tela de erro e sem erro de JavaScript no
+   `logcat`.** No banco:
+   - **2 migrações aplicadas** e as tabelas `check_ins`, `day_states` e
+     `relapses`;
+   - em `settings`, as colunas novas e `onboarding_completed = 1` preservado:
+     `[1, 1, null, 1260, 6]` (id, concluído, etapa, check-in, limite de
+     notificações).
+4. A 002 é a migração real, não de teste: o banco do aparelho continua válido
+   e não precisou de `pm clear`.
+
+Cuidados descobertos:
+- Com o cache do Metro limpo (`--clear`), o menu do dev client aparece depois
+  das batidas opcionais do fluxo Maestro ("Continue"/"Close") e cobre o app.
+  No fluxo temporário, o Voltar do Android fechou o menu. Rever no passo 7.
+- **`Start-Process adb start-server -Wait` trava**: o `-Wait` espera também o
+  daemon do adb, que fica rodando. Matar o `adb.exe` e chamar
+  `adb devices` direto (sobe o daemon sozinho).
+- No Git Bash, caminhos do aparelho como `/sdcard/...` precisam de
+  `MSYS_NO_PATHCONV=1`; senão viram `C:/Program Files/Git/sdcard/...`.
+
 ## Problemas
 
 ### AP1 · Build Android falha no C++ do `react-native-worklets` (caminho longo)

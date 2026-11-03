@@ -2,6 +2,7 @@ import { sql, type SQL } from 'drizzle-orm';
 import {
   check,
   integer,
+  primaryKey,
   sqliteTable,
   text,
   uniqueIndex,
@@ -15,6 +16,10 @@ import {
   MONITORED_APP_ROLES,
   TRIGGER_KINDS,
 } from '@/domain/compulsion';
+import { CHECK_IN_ANSWERS, CHECK_IN_SOURCES, DEFAULT_CHECK_IN_MINUTES } from '@/domain/checkIn';
+import { ONBOARDING_STEPS } from '@/domain/onboarding';
+import { DAY_FAILURE_REASONS } from '@/domain/streak';
+import { EMOTIONS, WEEKDAYS } from '@/domain/triggers';
 
 // Esquema local (spec 01, seção 4.6; doc 02, seção 5). Colunas em inglês e
 // snake_case; datas em milissegundos (timestamp_ms). Uma mudança aqui só vale
@@ -23,6 +28,34 @@ import {
 /** CHECK de enum: o banco também recusa valores fora da lista, não só o TypeScript. */
 function oneOf(column: AnySQLiteColumn, values: readonly string[]): SQL {
   return sql`${column} in (${sql.raw(values.map((value) => `'${value}'`).join(', '))})`;
+}
+
+// Da migração 002 em diante, os CHECKs citam a coluna sem o nome da tabela.
+// Com `${table.coluna}` o Drizzle escreve "tabela"."coluna", e quando o
+// drizzle-kit recria uma tabela (CREATE TABLE `__new_tabela` ...) esse nome
+// não existe dentro da tabela nova. Os CHECKs da 001 em tabelas que não mudam
+// ficam como estão: mudar o texto deles faria o drizzle-kit recriar essas
+// tabelas, e recriar `user_compulsions` apagaria em cascata os filhos.
+
+/** Coluna sem o nome da tabela, para CHECK. */
+function column(name: string): SQL {
+  return sql.raw(`\`${name}\``);
+}
+
+/** Lista SQL de textos: ('a', 'b'). */
+function textList(values: readonly (string | number)[]): SQL {
+  return sql.raw(`(${values.map((value) => `'${value}'`).join(', ')})`);
+}
+
+/** Chave de dia AAAA-MM-DD; a data em si é validada no domínio (fromDayKey). */
+function isDayKey(name: string): SQL {
+  return sql`${column(name)} glob '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'`;
+}
+
+/** `HH:MM-HH:MM` com horas de 00 a 23 e início diferente do fim (timeRange.ts). */
+function isTimeRange(name: string): SQL {
+  const value = column(name);
+  return sql`(${value} glob '[0-2][0-9]:[0-5][0-9]-[0-2][0-9]:[0-5][0-9]' and substr(${value}, 1, 2) <= '23' and substr(${value}, 7, 2) <= '23' and substr(${value}, 1, 5) <> substr(${value}, 7, 5))`;
 }
 
 /** Configurações do app: uma linha só (id = 1). Entidade Configuracoes. */
@@ -39,8 +72,20 @@ export const settings = sqliteTable(
       .notNull()
       .default(DEFAULT_PROACTIVE_NOTIFICATION_DAILY_LIMIT),
     createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+    /** Etapa em que o onboarding parou; nula antes de começar e depois de concluído. */
+    onboardingStep: text('onboarding_step', { enum: ONBOARDING_STEPS }),
+    /** Horário do check-in em minutos desde a meia-noite (padrão 21h). */
+    checkInMinutes: integer('check_in_minutes').notNull().default(DEFAULT_CHECK_IN_MINUTES),
   },
-  (table) => [check('settings_single_row', sql`${table.id} = 1`)],
+  () => [
+    // A tabela é recriada na 002: o CHECK da 001 passa a citar a coluna sem a tabela.
+    check('settings_single_row', sql`${column('id')} = 1`),
+    check(
+      'settings_onboarding_step_valid',
+      sql`${column('onboarding_step')} is null or ${column('onboarding_step')} in ${textList(ONBOARDING_STEPS)}`,
+    ),
+    check('settings_check_in_minutes_valid', sql`${column('check_in_minutes')} between 0 and 1439`),
+  ],
 );
 
 /** Compulsões escolhidas pelo usuário. Entidade CompulsaoUsuario. */
@@ -93,9 +138,17 @@ export const triggers = sqliteTable(
       onDelete: 'cascade',
     }),
     kind: text('kind', { enum: TRIGGER_KINDS }).notNull(),
+    /** Formato por `kind` em src/domain/triggers.ts. */
     value: text('value').notNull(),
   },
-  (table) => [check('triggers_kind_valid', oneOf(table.kind, TRIGGER_KINDS))],
+  () => [
+    // A tabela é recriada na 002: o CHECK da 001 passa a citar a coluna sem a tabela.
+    check('triggers_kind_valid', sql`${column('kind')} in ${textList(TRIGGER_KINDS)}`),
+    check(
+      'triggers_value_valid',
+      sql`case ${column('kind')} when 'time' then ${isTimeRange('value')} when 'weekday' then ${column('value')} in ${textList(WEEKDAYS)} when 'emotion' then ${column('value')} in ${textList(EMOTIONS)} else 0 end`,
+    ),
+  ],
 );
 
 /** Motivação pessoal escrita pelo usuário. Entidade Motivacao. */
@@ -104,3 +157,79 @@ export const motivation = sqliteTable('motivation', {
   text: text('text').notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 });
+
+/**
+ * Check-in diário da abstinência (spec 02, seção 4.2). Um por compulsão e
+ * dia: responder de novo no mesmo dia substitui. Entidade CheckIn.
+ */
+export const checkIns = sqliteTable(
+  'check_ins',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    compulsionId: integer('compulsion_id')
+      .notNull()
+      .references(() => userCompulsions.id, { onDelete: 'cascade' }),
+    /** AAAA-MM-DD, de `toDayKey`. */
+    dayKey: text('day_key').notNull(),
+    answer: text('answer', { enum: CHECK_IN_ANSWERS }).notNull(),
+    source: text('source', { enum: CHECK_IN_SOURCES }).notNull().default('app'),
+    answeredAt: integer('answered_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  (table) => [
+    uniqueIndex('check_ins_compulsion_day_unique').on(table.compulsionId, table.dayKey),
+    check('check_ins_day_key_valid', isDayKey('day_key')),
+    check('check_ins_answer_valid', sql`${column('answer')} in ${textList(CHECK_IN_ANSWERS)}`),
+    check('check_ins_source_valid', sql`${column('source')} in ${textList(CHECK_IN_SOURCES)}`),
+  ],
+);
+
+/** Recaídas informadas pelo usuário, uma por compulsão e dia. Entidade Recaida. */
+export const relapses = sqliteTable(
+  'relapses',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    compulsionId: integer('compulsion_id')
+      .notNull()
+      .references(() => userCompulsions.id, { onDelete: 'cascade' }),
+    /** Dia da recaída (hoje ou ontem), AAAA-MM-DD. */
+    dayKey: text('day_key').notNull(),
+    /** Quando foi registrada: decide se ainda pode ser desfeita. */
+    recordedAt: integer('recorded_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  (table) => [
+    uniqueIndex('relapses_compulsion_day_unique').on(table.compulsionId, table.dayKey),
+    check('relapses_day_key_valid', isDayKey('day_key')),
+  ],
+);
+
+/**
+ * Estado do dia na moderação: interrupções, "Continuar mesmo assim" e
+ * reprovação (doc 01, 6.5.4). Base para a Fase 4. Entidade EstadoDoDia.
+ */
+export const dayStates = sqliteTable(
+  'day_states',
+  {
+    compulsionId: integer('compulsion_id')
+      .notNull()
+      .references(() => userCompulsions.id, { onDelete: 'cascade' }),
+    dayKey: text('day_key').notNull(),
+    interruptions: integer('interruptions').notNull().default(0),
+    continues: integer('continues').notNull().default(0),
+    failed: integer('failed', { mode: 'boolean' }).notNull().default(false),
+    /** Preenchido só em dia reprovado. */
+    failedReason: text('failed_reason', { enum: DAY_FAILURE_REASONS }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.compulsionId, table.dayKey] }),
+    check('day_states_day_key_valid', isDayKey('day_key')),
+    check(
+      'day_states_counts_valid',
+      sql`${column('interruptions')} >= 0 and ${column('continues')} >= 0`,
+    ),
+    // 'is not null' explícito: NULL in (...) dá NULL, e o SQLite aceita CHECK que dá NULL.
+    check(
+      'day_states_failed_reason_valid',
+      sql`(${column('failed')} = 0 and ${column('failed_reason')} is null) or (${column('failed')} = 1 and ${column('failed_reason')} is not null and ${column('failed_reason')} in ${textList(DAY_FAILURE_REASONS)})`,
+    ),
+  ],
+);
