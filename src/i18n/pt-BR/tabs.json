@@ -21,6 +21,8 @@
     "about": "Sobre o app",
     "aboutHint": "Versão e informações",
     "resetOnboarding": "Refazer onboarding",
-    "resetOnboardingHint": "Só no ambiente de desenvolvimento"
+    "resetOnboardingHint": "Só no ambiente de desenvolvimento",
+    "components": "Componentes",
+    "componentsHint": "Só no ambiente de desenvolvimento"
   }
 }

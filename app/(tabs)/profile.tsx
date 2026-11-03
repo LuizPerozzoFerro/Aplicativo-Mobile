@@ -27,6 +27,14 @@ export default function ProfileTab() {
             onPress={() => onboardingStatus.setCompleted(false)}
           />
         ) : null}
+        {/* Só em development: vitrine dos componentes para conferir no aparelho. */}
+        {variant.environment === 'development' ? (
+          <ListItem
+            title={t('profileItems.components')}
+            subtitle={t('profileItems.componentsHint')}
+            onPress={() => router.push('/dev-components')}
+          />
+        ) : null}
       </View>
     </Screen>
   );

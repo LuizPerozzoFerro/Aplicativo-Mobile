@@ -1404,7 +1404,76 @@ do `datetimepicker`.
 | B. `@react-native-community/datetimepicker` 9.2.1 | Sim | Relógio nativo do Android, familiar; 24 h | Recompilar e confirmar; no Android, o tema escuro depende do tema do app; `minuteInterval` sem suporte documentado no Android; manutenção incerta (procura mantenedores, mudança de nome prevista) |
 | C. `@expo/ui` ~58.0.26 (Compose, Material 3) | Sim | Mantido pelo Expo, acompanha o SDK; Material 3; iOS em SwiftUI depois | Recompilar e confirmar; exige o `Host` em volta; pacote novo (pronto para produção desde o SDK 56) e APIs ainda mudando; sem orientação de acessibilidade na documentação |
 
-**Aguardando a escolha do responsável.**
+**Decisão do responsável (02/11/2026): opção A**, com três requisitos:
+1. no TalkBack, hora e minuto são controles ajustáveis (deslizar para cima e
+   para baixo muda o valor) e o leitor anuncia o horário completo, por
+   exemplo "21 horas e 30 minutos";
+2. os valores dão a volta (23 → 00, 55 → 00), e segurar o botão repete o
+   ajuste;
+3. cada botão tem 48 dp de área de toque, testado com a fonte no máximo.
+
+### `TimePicker` e `TimeRangePicker`
+
+- **Valor:** minutos desde a meia-noite (0 a 1439), como `check_in_minutes`.
+  Minuto de 5 em 5 por padrão (`minuteStep`).
+- **Ajuste (funções puras, testadas):**
+  - `stepHours` dá a volta no dia;
+  - `stepMinutes` dá a volta na hora sem mudar a hora;
+  - um minuto fora do passo (ex.: 07) vai ao múltiplo seguinte ou anterior.
+- **TalkBack:**
+  - cada unidade (hora, minuto) é uma `View` acessível com papel
+    `adjustable`, ações `increment`/`decrement` e `accessibilityValue` com o
+    horário completo falado;
+  - o rótulo é "Nome do campo, Hora" ou "Nome do campo, Minutos";
+  - os botões + e − ficam dentro da unidade e não recebem foco separado; o
+    ":" fica escondido do leitor;
+  - o horário falado vem do i18n (`common:timePicker`): "zero hora",
+    "1 hora e 5 minutos", "21 horas" (sem "e zero minuto").
+- **Segurar:**
+  - um toque ajusta uma vez (`onPress`);
+  - segurar por 400 ms ajusta e repete a cada 120 ms (`onLongPress` e
+    `setInterval`), até soltar (`onPressOut`) ou a tela sair;
+  - depois de um toque longo, o Pressable não chama `onPress`, então não há
+    ajuste extra ao soltar;
+  - a repetição parte sempre do valor mais recente (ref atualizada num
+    efeito; o React Compiler não aceita atualizar ref durante a
+    renderização).
+  - O ajuste começa no `onPress`, e não no `onPressIn`, para que encostar
+    no botão ao rolar a tela não mude o valor.
+- **`TimeRangePicker`:** início e fim. Avisa "Termina no dia seguinte" quando o
+  fim é menor que o início e mostra erro quando os dois são iguais.
+
+Testes (22) e mutação de controle, com as 8 mutações derrubando testes:
+
+| # | Mutação | Falhas |
+|---|---|---|
+| T1 | Hora sem volta | 3 |
+| T2 | Minuto sem volta | 4 |
+| T3 | Soltar não para a repetição | 2 |
+| T4 | Segurar não repete | 2 |
+| T5 | Sem papel `adjustable` | 9 |
+| T6 | Deslizar para cima não aumenta | 1 |
+| T7 | Sem o horário falado | 8 |
+| T8 | Botão com altura fixa de 40 | 2 |
+
+### Tela "Componentes" (só em development)
+
+`app/dev-components.tsx`, no Perfil, ao lado de "Refazer onboarding":
+- é a vitrine dos componentes do passo 3, para conferir tema, fonte e
+  TalkBack no aparelho antes de eles entrarem nas telas;
+- em preview e produção, redireciona para o início (testado);
+- os textos ficam no namespace `dev` do i18n.
+
+### No aparelho (S22, fonte no máximo)
+
+- `font_scale` = 2.0 (máximo, como deixado pelo responsável na Fase 2) e
+  densidade 480 (3 px por dp). Medido pelo `uiautomator`.
+- **Os quatro botões + e −: 48,0 × 48,0 dp**, com o símbolo inteiro. Os
+  números (21 : 00) aparecem ampliados e sem corte.
+- **Chips:** 53 dp de altura; o de texto longo quebra em duas linhas e
+  cresce para 89 dp.
+- A captura de tela usada na conferência foi apagada (mostrava a barra de
+  status).
 
 ## Problemas
 

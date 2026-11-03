@@ -54,6 +54,7 @@ function AppNavigator() {
       <Stack.Protected guard={onboardingCompleted} redirectTo="/welcome">
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="about" />
+        <Stack.Screen name="dev-components" />
       </Stack.Protected>
     </Stack>
   );

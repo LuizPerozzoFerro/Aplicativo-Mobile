@@ -1,0 +1,29 @@
+{
+  "title": "Componentes",
+  "description": "Tela só do ambiente de desenvolvimento, para conferir os componentes no aparelho (tema, fonte grande e leitor de tela).",
+  "chips": {
+    "multiple": "Seleção múltipla",
+    "single": "Seleção simples",
+    "first": "Opção A",
+    "second": "Opção B",
+    "third": "Opção com um texto bem mais longo"
+  },
+  "textField": {
+    "label": "Campo de exemplo",
+    "helper": "Opcional",
+    "counter": "{{current}}/{{max}}",
+    "error": "Escreva pelo menos 3 caracteres"
+  },
+  "timePicker": "Horário de exemplo",
+  "timeRange": "Faixa de exemplo",
+  "confirm": {
+    "open": "Abrir confirmação",
+    "title": "Confirmar a ação?",
+    "message": "Exemplo do diálogo do sistema.",
+    "confirm": "Confirmar",
+    "cancel": "Cancelar",
+    "result": "Última resposta: {{answer}}",
+    "yes": "confirmou",
+    "no": "cancelou"
+  }
+}
