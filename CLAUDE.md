@@ -14,9 +14,9 @@ Instruções permanentes para o Claude Code neste repositório. Leia este arquiv
 
 ## 2. Fase atual
 
-**Fase 2 — Fundação do app.** Spec: `docs/specs/spec-01-fundacao-do-app.md`.
+**Fase 3 — Onboarding e núcleo.** Spec: `docs/specs/spec-02-onboarding-e-nucleo.md`.
 
-O protótipo da Fase 1 terminou (Android). A partir de agora **o código é definitivo**: qualidade, testes e i18n são obrigatórios. O protótipo em `prototype/` é **só referência**: não altere e não importe código dele sem a spec pedir (o módulo Kotlin entra na Fase 4).
+A Fase 2 (fundação do app, spec 01) terminou em 02/11/2026. **O código é definitivo**: qualidade, testes e i18n são obrigatórios. O protótipo em `prototype/` é **só referência**: não altere e não importe código dele sem a spec pedir (o módulo Kotlin entra na Fase 4).
 
 ## 3. Documentos (leia antes de trabalhar)
 
