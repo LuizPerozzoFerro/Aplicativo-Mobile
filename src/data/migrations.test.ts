@@ -38,8 +38,8 @@ function firstMigrations(bundle: MigrationBundle, count: number): MigrationBundl
   };
 }
 
-/** Migração extra de teste, depois das do app: só existe aqui (cenário V11). */
-function withTestMigration(bundle: MigrationBundle): MigrationBundle {
+/** Acrescenta uma migração de teste depois das do app: só existe aqui. */
+function withExtraMigration(bundle: MigrationBundle, sqlText: string): MigrationBundle {
   const last = bundle.journal.entries[bundle.journal.entries.length - 1]!;
   const idx = last.idx + 1;
   const key = idx.toString().padStart(4, '0');
@@ -50,14 +50,17 @@ function withTestMigration(bundle: MigrationBundle): MigrationBundle {
         { idx, when: last.when + 1000, tag: `${key}_test_probe`, breakpoints: true },
       ],
     },
-    migrations: {
-      ...bundle.migrations,
-      // Depende de uma tabela da 001: só funciona se a ordem for respeitada.
-      [`m${key}`]:
-        'ALTER TABLE `motivation` ADD `probe` text;--> statement-breakpoint\n' +
-        'CREATE TABLE `migration_probe` (`id` integer PRIMARY KEY NOT NULL);',
-    },
+    migrations: { ...bundle.migrations, [`m${key}`]: sqlText },
   };
+}
+
+/** Migração extra do cenário V11. Depende de uma tabela da 001: só funciona em ordem. */
+function withTestMigration(bundle: MigrationBundle): MigrationBundle {
+  return withExtraMigration(
+    bundle,
+    'ALTER TABLE `motivation` ADD `probe` text;--> statement-breakpoint\n' +
+      'CREATE TABLE `migration_probe` (`id` integer PRIMARY KEY NOT NULL);',
+  );
 }
 
 describe('migrações', () => {
@@ -289,5 +292,125 @@ describe('restrições do esquema', () => {
     for (const table of TABLES_002) {
       expect(query(raw, `SELECT count(*) FROM ${table}`)[0]?.[0]).toBe(0);
     }
+  });
+});
+
+// Migrações rodam numa transação, onde `PRAGMA foreign_keys=OFF` não tem
+// efeito. Se uma migração recriar uma tabela-pai (DROP TABLE + CREATE), o DROP
+// apaga em cascata as linhas das tabelas filhas. Este teste popula todas as
+// tabelas antes de cada migração e confere que nenhuma linha some
+// (NOTAS-APP.md, passo 3 da Fase 3).
+
+/**
+ * Linhas válidas por tabela, na ordem de inserção (pais antes dos filhos).
+ * Toda tabela com chave estrangeira, e todo pai dela, precisa estar aqui: o
+ * teste falha se aparecer uma tabela filha nova sem linhas de teste.
+ */
+const FIXTURE_ROWS: Record<string, readonly string[]> = {
+  user_compulsions: [
+    "INSERT INTO user_compulsions (id, type, started_at) VALUES (1, 'pornography', 0)",
+    "INSERT INTO user_compulsions (id, type, started_at, daily_limit_minutes) VALUES (2, 'short_videos', 0, 60)",
+  ],
+  monitored_apps: [
+    "INSERT INTO monitored_apps (compulsion_id, package_name, role, declared_consumption) VALUES (1, 'com.example.forum', 'risk', 1)",
+    "INSERT INTO monitored_apps (compulsion_id, package_name, role) VALUES (2, 'com.example.clips', 'short_video')",
+  ],
+  triggers: [
+    "INSERT INTO triggers (compulsion_id, kind, value) VALUES (1, 'weekday', '6')",
+    "INSERT INTO triggers (compulsion_id, kind, value) VALUES (2, 'emotion', 'stress')",
+    "INSERT INTO triggers (compulsion_id, kind, value) VALUES (NULL, 'time', '22:00-00:00')",
+  ],
+  check_ins: [
+    "INSERT INTO check_ins (compulsion_id, day_key, answer, answered_at) VALUES (1, '2026-11-01', 'relapse', 0)",
+  ],
+  relapses: [
+    "INSERT INTO relapses (compulsion_id, day_key, recorded_at) VALUES (1, '2026-11-01', 0)",
+  ],
+  day_states: [
+    "INSERT INTO day_states (compulsion_id, day_key, failed, failed_reason) VALUES (2, '2026-11-01', 1, 'ignored_limit')",
+  ],
+};
+
+const userTables = (raw: Raw) =>
+  tableNames(raw).filter(
+    (name): name is string =>
+      typeof name === 'string' && name !== '__drizzle_migrations' && !name.startsWith('sqlite_'),
+  );
+
+const parentTables = (raw: Raw, table: string) =>
+  query(raw, `PRAGMA foreign_key_list(${table})`).map((row) => row[2] as string);
+
+const rowCount = (raw: Raw, table: string) =>
+  Number(query(raw, `SELECT count(*) FROM ${table}`)[0]?.[0]);
+
+/** Popula as tabelas com pai e os pais delas; devolve a contagem por tabela. */
+function populateRelatedTables(raw: Raw): Record<string, number> {
+  const tables = userTables(raw);
+  const children = tables.filter((table) => parentTables(raw, table).length > 0);
+  const related = new Set([...children, ...children.flatMap((table) => parentTables(raw, table))]);
+  for (const table of related) {
+    if (!FIXTURE_ROWS[table]) {
+      throw new Error(`Tabela sem linhas de teste em FIXTURE_ROWS: ${table}`);
+    }
+  }
+  for (const [table, rows] of Object.entries(FIXTURE_ROWS)) {
+    if (related.has(table)) for (const row of rows) raw.run(row);
+  }
+  return Object.fromEntries([...related].map((table) => [table, rowCount(raw, table)]));
+}
+
+const countsOf = (raw: Raw, tables: readonly string[]) =>
+  Object.fromEntries(tables.map((table) => [table, rowCount(raw, table)]));
+
+/** Aplica as primeiras `stage` migrações, popula, aplica o resto e devolve antes e depois. */
+async function migrateWithChildRows(bundle: MigrationBundle, stage: number) {
+  const { db, raw } = await createEmptyDatabase();
+  await runMigrations(db, firstMigrations(bundle, stage) as never);
+  const before = populateRelatedTables(raw);
+  await runMigrations(db, bundle as never);
+  return { before, after: countsOf(raw, Object.keys(before)) };
+}
+
+describe('migrações não apagam linhas de tabelas filhas', () => {
+  const tags = loadMigrationBundle().journal.entries.map((entry) => entry.tag);
+
+  // Cada migração depois da primeira, aplicada sobre um banco com todas as
+  // tabelas filhas (e os pais) populadas.
+  it.each(tags.slice(1).map((tag, index) => [tag, index + 1] as const))(
+    '%s preserva todas as linhas',
+    async (_tag, stage) => {
+      const bundle = firstMigrations(loadMigrationBundle(), stage + 1);
+      const { before, after } = await migrateWithChildRows(bundle, stage);
+      expect(Object.values(before).every((count) => count > 0)).toBe(true);
+      expect(after).toEqual(before);
+    },
+  );
+
+  it('controle: uma migração que recria user_compulsions apaga os filhos, apesar do PRAGMA', async () => {
+    // Recria a tabela-pai como o drizzle-kit faria: cópia, DROP e CREATE.
+    const { raw: model } = await createTestDatabase();
+    const objectSql = (type: string, name: string) =>
+      query(
+        model,
+        `SELECT sql FROM sqlite_master WHERE type = '${type}' AND name = '${name}'`,
+      )[0]![0];
+    const recreateParent = [
+      'PRAGMA foreign_keys=OFF;',
+      'CREATE TABLE `__copy_user_compulsions` AS SELECT * FROM `user_compulsions`;',
+      'DROP TABLE `user_compulsions`;',
+      `${objectSql('table', 'user_compulsions')};`,
+      `${objectSql('index', 'user_compulsions_type_unique')};`,
+      'INSERT INTO `user_compulsions` SELECT * FROM `__copy_user_compulsions`;',
+      'DROP TABLE `__copy_user_compulsions`;',
+      'PRAGMA foreign_keys=ON;',
+    ].join('--> statement-breakpoint\n');
+
+    const current = loadMigrationBundle();
+    const bundle = withExtraMigration(current, recreateParent);
+    const { before, after } = await migrateWithChildRows(bundle, current.journal.entries.length);
+    expect(after.user_compulsions).toBe(before.user_compulsions);
+    expect(after.monitored_apps).toBe(0);
+    expect(after.check_ins).toBe(0);
+    expect(after).not.toEqual(before);
   });
 });

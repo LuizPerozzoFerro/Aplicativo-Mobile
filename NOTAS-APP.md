@@ -1246,7 +1246,8 @@ As três tabelas novas apagam em cascata com a compulsão.
    (helper `column()` no esquema). Os CHECKs da 001 nas tabelas que não mudam
    ficaram como estavam: mudar o texto deles faria o drizzle-kit recriar a
    tabela, e recriar `user_compulsions` apagaria em cascata os filhos (o
-   `PRAGMA foreign_keys=OFF` não vale dentro da transação da migração).
+   `PRAGMA foreign_keys=OFF` não vale dentro da transação da migração). Ver
+   a regra de tabela-pai no passo 3.
 3. **`NULL in (...)` dá NULL, e o SQLite aceita CHECK com resultado NULL.**
    O CHECK de `failed_reason` precisou de `is not null` explícito; o teste de
    restrições pegou o erro.
@@ -1327,6 +1328,39 @@ Cuidados descobertos:
   `adb devices` direto (sobe o daemon sozinho).
 - No Git Bash, caminhos do aparelho como `/sdcard/...` precisam de
   `MSYS_NO_PATHCONV=1`; senão viram `C:/Program Files/Git/sdcard/...`.
+
+## Fase 3 · Passo 3 · Componentes (02/11/2026)
+
+### Regra: migração que recria tabela-pai (pedido do responsável na revisão do PR #13)
+
+**Toda migração que recriar uma tabela com filhos (hoje `user_compulsions`)
+precisa ser revisada à mão e passar no teste de preservação das tabelas
+filhas.**
+
+Por quê:
+- As migrações rodam numa transação, onde o `PRAGMA foreign_keys=OFF` que o
+  drizzle-kit escreve não tem efeito.
+- O `DROP TABLE` da tabela-pai faz um `DELETE` implícito, e a cascata apaga
+  apps, gatilhos, check-ins, recaídas e estados do dia.
+- Não dá erro: os dados somem em silêncio.
+
+O teste (`src/data/migrations.test.ts`, "migrações não apagam linhas de
+tabelas filhas"):
+- **Cada migração depois da primeira** é aplicada sobre um banco com todas as
+  tabelas filhas e os pais delas populados (`FIXTURE_ROWS`). Depois da
+  migração, a contagem de linhas de cada uma tem de ser igual à de antes.
+- **As tabelas vêm do próprio banco**, pelas chaves estrangeiras
+  (`PRAGMA foreign_key_list`). Se uma migração criar uma tabela filha nova sem
+  linhas em `FIXTURE_ROWS`, o teste falha com "Tabela sem linhas de teste".
+  Conferido tirando as linhas de `relapses`.
+- **Controle:** uma migração de teste recria `user_compulsions` com
+  `PRAGMA foreign_keys=OFF`, como o drizzle-kit faria. Os filhos (apps,
+  check-ins) chegam a 0. Isso confirma o risco no próprio migrador.
+
+Se um dia for preciso recriar uma tabela-pai, o caminho é escrever a
+migração à mão, sem `DROP TABLE` da tabela-pai. Exemplos: só `ALTER TABLE ...
+ADD COLUMN`, ou copiar e recriar também os filhos na mesma migração. Discutir
+antes com o responsável.
 
 ## Problemas
 
