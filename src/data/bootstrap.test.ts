@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react-native';
 
+import { onboardingProgress } from '@/features/onboarding/onboardingProgress';
 import { onboardingStatus } from '@/features/onboarding/onboardingStatus';
 
 import { getRepositories, useDatabase } from './bootstrap';
@@ -68,12 +69,14 @@ describe('useDatabase', () => {
   });
 
   // Por último: depois dele os repositórios ficam abertos neste arquivo.
-  it('com tudo certo, fica pronto e liga a flag do onboarding ao banco', async () => {
+  it('com tudo certo, fica pronto e liga a flag e a etapa do onboarding ao banco', async () => {
     const result = await renderDatabaseState();
     await waitFor(() => expect(result.current).toEqual({ status: 'ready' }));
 
     onboardingStatus.setCompleted(true);
     expect(getRepositories().settings.get().onboardingCompleted).toBe(true);
+    onboardingProgress.setStep('triggers');
+    expect(getRepositories().settings.get().onboardingStep).toBe('triggers');
     expect(consoleError).not.toHaveBeenCalled();
   });
 });
