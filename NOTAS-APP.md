@@ -1126,6 +1126,36 @@ registrados para as próximas fases:
   `br.com.quedo.app.dev`. **Cuidado:** um `prebuild` com `APP_ENV=production`
   deixa o `android/` na variante de produção até o próximo `prebuild`.
 
+## Fase 3 · Leitura da spec 02 (02/11/2026)
+
+Spec: `docs/specs/spec-02-onboarding-e-nucleo.md`. Documentos de partida
+(PR #11): spec 02 v0.2, doc 01 v0.7 e doc 02 v0.6.
+
+Oito pontos ambíguos levantados na leitura da v0.1. O responsável aprovou as
+oito recomendações e as incorporou na **spec 02 v0.2**:
+
+| # | Ponto | Decisão | Onde na spec |
+|---|---|---|---|
+| 1 | Quando a streak começa | Dia em que o usuário toca em "Começar" (não o dia em que respondeu a etapa); "há N dias" conta a partir dele. Compulsão adicionada pelo Perfil começa no dia em que é adicionada | 4.3 |
+| 2 | Check-in antes do horário | Oferecido o dia todo nesta fase; o horário escolhido só vale na Fase 4, com a notificação. "Registrar recaída" substitui um "Sem recaída" do mesmo dia | 4.3 |
+| 3 | O que se desfaz | Tudo o que foi **registrado hoje**, até o fim do dia, inclusive recaída marcada para ontem por engano | 4.3 |
+| 4 | Recaída "ontem" antes do início | "Ontem" só é oferecido quando ontem já está no período acompanhado | 4.3 |
+| 5 | Tela de bloqueio de idade | Tem "Voltar" para as boas-vindas, para corrigir um toque errado | 4.4, etapa 1 |
+| 6 | "Faixas agrupadas" no resumo | Vizinhas e sobrepostas viram um intervalo só no resumo (20h–22h + 22h–24h + 23:30–01:00 = 20h–01h); o banco guarda as faixas como marcadas; faixa personalizada igual a uma fixa não duplica | 4.3 |
+| 7 | Declaração por app de risco | Obrigatória para cada app marcado, sem resposta pré-marcada | 4.4, etapa 3 |
+| 8 | App nas duas listas / Início sem compulsão | Mesmo app pode estar nas duas compulsões (em qual a interrupção conta fica para a Fase 4). Sem compulsão (onboarding vazio da Fase 2): estado vazio com atalho para "Adicionar compulsão" no Perfil | 4.4 e 4.5 |
+
+Também registrados na leitura, sem mudança de escopo:
+- **Seletor de horário (passo 3):** dá para fazer em JavaScript puro (hora e
+  minuto de 5 em 5) ou com `@react-native-community/datetimepicker`, que tem
+  código nativo. As opções serão apresentadas ao responsável antes do passo 3.
+- **Permissões do `FakeMonitoringModule`:** ficam só na memória; ao reabrir o
+  app voltam a "não concedidas". Esperado até a Fase 4 (spec 02 v0.2, 4.7).
+- **R10:** o app de desenvolvimento no S22 terminou o último fluxo Maestro com
+  o onboarding desfeito ("Refazer onboarding"). Antes do passo 2, concluir o
+  onboarding no build da Fase 2 para testar a migração 002 sobre um banco com
+  a flag gravada.
+
 ## Problemas
 
 ### AP1 · Build Android falha no C++ do `react-native-worklets` (caminho longo)
