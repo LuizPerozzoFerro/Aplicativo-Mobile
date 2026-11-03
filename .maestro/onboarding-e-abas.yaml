@@ -1,0 +1,85 @@
+# Fluxo ponta a ponta (spec 01, seção 4.10): abrir o app, percorrer o
+# onboarding, chegar ao Início e trocar de aba. Cobre também, do roteiro da
+# seção 7, V2, V3, V4, V5, V6 e V9.
+#
+# Roda no build de desenvolvimento com o Metro ligado e
+# `adb reverse tcp:8081 tcp:8081` (npm run e2e). Apaga os dados do app de
+# desenvolvimento antes de começar.
+appId: br.com.quedo.app.dev
+name: Onboarding até o Início e troca de abas
+---
+- clearState
+# O próprio link abre o app e carrega o bundle do Metro. Com um launchApp
+# antes, o link chega enquanto o dev client abre e é ignorado (testado).
+- openLink: quedo-dev://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081
+
+# Menu do expo-dev-client que abre sozinho na primeira vez (não é do app).
+- tapOn:
+    text: Continue
+    optional: true
+- tapOn:
+    text: Close
+    optional: true
+
+# V2: a primeira abertura começa nas boas-vindas.
+- extendedWaitUntil:
+    visible: Boas-vindas
+    timeout: 60000
+
+# V3: as 7 telas na ordem; volta duas (uma pelo botão do app, outra pelo
+# Voltar do Android) e avança de novo.
+- tapOn: Continuar
+- assertVisible: O que você quer mudar
+- tapOn: Continuar
+- assertVisible: Configuração
+- tapOn: Continuar
+- assertVisible: Gatilhos
+- tapOn: Continuar
+- assertVisible: Sua motivação
+- tapOn: Continuar
+- assertVisible: Permissões
+- tapOn: Continuar
+- assertVisible: Seu plano
+- tapOn: Voltar
+- assertVisible: Permissões
+- back
+- assertVisible: Sua motivação
+- tapOn: Continuar
+- assertVisible: Permissões
+- tapOn: Continuar
+- assertVisible: Seu plano
+- tapOn: Continuar
+
+# Início, sem volta ao onboarding.
+- assertVisible: Seu dia aparece aqui
+- assertNotVisible: Boas-vindas
+
+# V5: as quatro abas.
+- tapOn: Estatísticas
+- assertVisible: Ainda sem dados
+- tapOn: Progresso
+- assertVisible: Sua jornada começa em breve
+- tapOn: Perfil
+- assertVisible: Sobre o app
+- tapOn: Início
+- assertVisible: Seu dia aparece aqui
+
+# V4: fechado e reaberto, abre direto no Início (a flag está no banco).
+- stopApp
+- openLink: quedo-dev://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081
+- extendedWaitUntil:
+    visible: Seu dia aparece aqui
+    timeout: 60000
+- assertNotVisible: Boas-vindas
+
+# V9: Sobre o app.
+- tapOn: Perfil
+- tapOn: Sobre o app
+- assertVisible: Número do build
+- assertVisible: Desenvolvimento
+- assertVisible: Disponível em breve
+- tapOn: Voltar
+
+# V6: Refazer onboarding volta às boas-vindas.
+- tapOn: Refazer onboarding
+- assertVisible: Boas-vindas
