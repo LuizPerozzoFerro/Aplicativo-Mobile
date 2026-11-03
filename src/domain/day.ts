@@ -45,6 +45,25 @@ export function toDayKey(date: Date): string {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
+const DAY_KEY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/**
+ * Primeiro instante do dia local de uma chave AAAA-MM-DD, ou null se a chave
+ * for inválida (formato errado ou data inexistente, como 2026-02-30).
+ */
+export function fromDayKey(key: string): Date | null {
+  const match = DAY_KEY_PATTERN.exec(key);
+  if (!match) return null;
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  const date = new Date(year, month - 1, day);
+  return toDayKey(date) === key ? date : null;
+}
+
+/** Primeiro instante do dia local `days` dias de calendário depois (ou antes) de `date`. */
+export function addCalendarDays(date: Date, days: number): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+}
+
 /**
  * Quantas viradas de dia local há de `from` até `to` (negativo se `to` for
  * antes). Compara as datas do calendário, então não depende de o dia ter 23,

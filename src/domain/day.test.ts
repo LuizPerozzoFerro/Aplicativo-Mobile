@@ -1,5 +1,7 @@
 import {
+  addCalendarDays,
   calendarDaysBetween,
+  fromDayKey,
   getDayBounds,
   isSameDay,
   startOfDay,
@@ -124,5 +126,42 @@ describe('calendarDaysBetween', () => {
     const night = at('2026-03-16T02:00:00.000Z');
     expect(calendarDaysBetween(morning, night)).toBe(0);
     expect(calendarDaysBetween(night, at('2026-03-13T15:00:00.000Z'))).toBe(-2);
+  });
+});
+
+describe('fromDayKey', () => {
+  it('devolve o primeiro instante do dia local da chave', () => {
+    expect(fromDayKey('2026-03-15')).toEqual(at('2026-03-15T03:00:00.000Z'));
+    expect(toDayKey(fromDayKey('2026-12-31') as Date)).toBe('2026-12-31');
+  });
+
+  it('no dia sem meia-noite (04/11/2018), devolve 01:00 do mesmo dia', () => {
+    const day = fromDayKey('2018-11-04') as Date;
+    expect(day).toEqual(at('2018-11-04T03:00:00.000Z'));
+    expect(day.getHours()).toBe(1);
+    expect(toDayKey(day)).toBe('2018-11-04');
+  });
+
+  it.each(['', '2026-3-15', '2026-02-30', '2026-13-01', '15/03/2026', '2026-03-15T00:00'])(
+    'recusa %p',
+    (key) => {
+      expect(fromDayKey(key)).toBeNull();
+    },
+  );
+});
+
+describe('addCalendarDays', () => {
+  it('anda dias de calendário, para frente e para trás, no início do dia', () => {
+    const noon = at('2026-03-15T15:00:00.000Z');
+    expect(addCalendarDays(noon, 1)).toEqual(at('2026-03-16T03:00:00.000Z'));
+    expect(addCalendarDays(noon, -15)).toEqual(at('2026-02-28T03:00:00.000Z'));
+    expect(addCalendarDays(noon, 0)).toEqual(startOfDay(noon));
+  });
+
+  it('atravessa as duas trocas do horário de verão sem perder nem ganhar dia', () => {
+    const start = at('2018-11-01T15:00:00.000Z');
+    expect(toDayKey(addCalendarDays(start, 120))).toBe('2019-03-01');
+    expect(calendarDaysBetween(start, addCalendarDays(start, 120))).toBe(120);
+    expect(toDayKey(addCalendarDays(at('2018-11-05T15:00:00.000Z'), -1))).toBe('2018-11-04');
   });
 });
