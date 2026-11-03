@@ -10,6 +10,7 @@ export {
 } from './components/Chip';
 export { EmptyState, type EmptyStateProps } from './components/EmptyState';
 export { ListItem, type ListItemProps } from './components/ListItem';
+export { OptionCard, type OptionCardProps } from './components/OptionCard';
 export { Screen, type ScreenProps } from './components/Screen';
 export { Text, type TextProps } from './components/Text';
 export { TextField, type TextFieldProps } from './components/TextField';

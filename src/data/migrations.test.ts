@@ -10,6 +10,8 @@ import {
 
 const TABLES_001 = ['monitored_apps', 'motivation', 'settings', 'triggers', 'user_compulsions'];
 const TABLES_002 = ['check_ins', 'day_states', 'relapses'];
+/** Migrações do app no índice (drizzle/meta/_journal.json). */
+const APP_MIGRATIONS = loadMigrationBundle().journal.entries.length;
 
 type Raw = Parameters<typeof query>[0];
 
@@ -74,17 +76,18 @@ describe('migrações', () => {
     );
   });
 
-  it('as migrações criam as tabelas da 001 e as da 002', async () => {
+  it('as migrações criam as tabelas da 001 e as da 002, e a 003 a coluna do início informado', async () => {
     const { raw } = await createTestDatabase();
     expect(tableNames(raw)).toEqual(expect.arrayContaining([...TABLES_001, ...TABLES_002]));
-    expect(appliedCount(raw)).toBe(2);
+    expect(columnNames(raw, 'user_compulsions')).toContain('initial_streak_days');
+    expect(appliedCount(raw)).toBe(APP_MIGRATIONS);
   });
 
   it('rodar de novo não reaplica nada', async () => {
     const { db, raw } = await createTestDatabase();
     await runMigrations(db, loadMigrationBundle() as never);
     await runMigrations(db, loadMigrationBundle() as never);
-    expect(appliedCount(raw)).toBe(2);
+    expect(appliedCount(raw)).toBe(APP_MIGRATIONS);
   });
 
   it('002 sobre um banco da Fase 2 com dados: aplica e preserva tudo (R10)', async () => {
@@ -108,7 +111,7 @@ describe('migrações', () => {
     raw.run("INSERT INTO motivation (text, updated_at) VALUES ('Quero ter mais tempo.', 3000)");
 
     await runMigrations(db, bundle as never);
-    expect(appliedCount(raw)).toBe(2);
+    expect(appliedCount(raw)).toBe(APP_MIGRATIONS);
     expect(tableNames(raw)).toEqual(expect.arrayContaining(TABLES_002));
 
     const repositories = createRepositories(db);
@@ -128,6 +131,7 @@ describe('migrações', () => {
         status: 'active',
         startedAt: new Date(2000),
         dailyLimitMinutes: 30,
+        initialStreakDays: null,
       },
     ]);
     expect(repositories.monitoredApps.listByCompulsion(7)).toHaveLength(1);
@@ -165,19 +169,19 @@ describe('migrações', () => {
     repositories.motivation.save('Quero ter mais tempo para mim.');
 
     await runMigrations(db, withTestMigration(bundle) as never);
-    expect(appliedCount(raw)).toBe(3);
+    expect(appliedCount(raw)).toBe(APP_MIGRATIONS + 1);
     expect(tableNames(raw)).toContain('migration_probe');
     expect(repositories.settings.get().onboardingCompleted).toBe(true);
     expect(repositories.motivation.get()?.text).toBe('Quero ter mais tempo para mim.');
 
     await runMigrations(db, withTestMigration(bundle) as never);
-    expect(appliedCount(raw)).toBe(3);
+    expect(appliedCount(raw)).toBe(APP_MIGRATIONS + 1);
   });
 
   it('banco novo com todas as migrações de uma vez aplica todas, em ordem', async () => {
     const { db, raw } = await createEmptyDatabase();
     await runMigrations(db, withTestMigration(loadMigrationBundle()) as never);
-    expect(appliedCount(raw)).toBe(3);
+    expect(appliedCount(raw)).toBe(APP_MIGRATIONS + 1);
     expect(columnNames(raw, 'motivation')).toContain('probe');
   });
 });

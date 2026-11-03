@@ -1,14 +1,3 @@
-import { useTranslation } from 'react-i18next';
+import { CompulsionsStep } from '@/features/onboarding/CompulsionsStep';
 
-import { OnboardingStepScreen } from '@/features/onboarding/OnboardingStepScreen';
-
-export default function CompulsionsStep() {
-  const { t } = useTranslation('onboarding');
-  return (
-    <OnboardingStepScreen
-      step="compulsions"
-      title={t('compulsions.title')}
-      body={t('compulsions.body')}
-    />
-  );
-}
+export default CompulsionsStep;

@@ -122,6 +122,8 @@ type UnitProps = {
   accessibilityLabel: string;
   /** Horário completo falado (ex.: "21 horas e 30 minutos"). */
   spokenTime: string;
+  /** Dica do leitor de tela ("Deslize para cima ou para baixo para mudar"). */
+  hint: string;
   display: string;
   increase: () => void;
   decrease: () => void;
@@ -138,6 +140,7 @@ type UnitProps = {
 function TimeUnit({
   accessibilityLabel,
   spokenTime,
+  hint,
   display,
   increase,
   decrease,
@@ -156,6 +159,7 @@ function TimeUnit({
       accessibilityRole="adjustable"
       accessibilityLabel={accessibilityLabel}
       accessibilityValue={{ text: spokenTime }}
+      accessibilityHint={hint}
       accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
       onAccessibilityAction={onAccessibilityAction}
       testID={testID}
@@ -227,6 +231,7 @@ export function TimePicker({ label, value, onChange, minuteStep = 5, testID }: T
         <TimeUnit
           accessibilityLabel={t('timePicker.unitLabel', { label, unit: t('timePicker.hour') })}
           spokenTime={spokenTime}
+          hint={t('timePicker.hint')}
           display={pad(Math.floor(value / MINUTES_PER_HOUR))}
           increase={() => apply(stepHours(latest.current, 1))}
           decrease={() => apply(stepHours(latest.current, -1))}
@@ -240,6 +245,7 @@ export function TimePicker({ label, value, onChange, minuteStep = 5, testID }: T
         <TimeUnit
           accessibilityLabel={t('timePicker.unitLabel', { label, unit: t('timePicker.minute') })}
           spokenTime={spokenTime}
+          hint={t('timePicker.hint')}
           display={pad(value % MINUTES_PER_HOUR)}
           increase={() => apply(stepMinutes(latest.current, 1, minuteStep))}
           decrease={() => apply(stepMinutes(latest.current, -1, minuteStep))}

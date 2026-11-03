@@ -6,6 +6,7 @@ import { confirmDialog } from '../confirmDialog';
 import { getTheme } from '../theme';
 import { MIN_TOUCH_TARGET } from '../tokens';
 import { Chip, ChipGroup, type ChipMode } from './Chip';
+import { OptionCard } from './OptionCard';
 import { TextField } from './TextField';
 
 const light = getTheme('light');
@@ -240,5 +241,35 @@ describe('confirmDialog', () => {
     const dismissed = open();
     lastCall()[3]?.onDismiss?.();
     await expect(dismissed).resolves.toBe(false);
+  });
+});
+
+describe('OptionCard', () => {
+  it('é caixa de seleção com título e explicação no nome acessível', async () => {
+    const onPress = jest.fn();
+    await render(
+      <OptionCard
+        title="Vídeos curtos"
+        description="Usar com moderação."
+        selected={false}
+        onPress={onPress}
+      />,
+    );
+    const card = screen.getByRole('checkbox', { name: 'Vídeos curtos, Usar com moderação.' });
+    expect(card).not.toBeChecked();
+    await userEvent.setup().press(card);
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it('marcado: borda mais grossa na cor de ação e estado anunciado', async () => {
+    await render(<OptionCard title="Conteúdo" selected />);
+    const card = screen.getByRole('checkbox', { name: 'Conteúdo' });
+    expect(card).toBeChecked();
+    expect(card).toHaveStyle({ borderColor: light.colors.primary, borderWidth: 2 });
+  });
+
+  it('tem altura mínima de 48 dp', async () => {
+    await render(<OptionCard title="Conteúdo" selected={false} />);
+    expect(screen.getByRole('checkbox')).toHaveStyle({ minHeight: MIN_TOUCH_TARGET });
   });
 });

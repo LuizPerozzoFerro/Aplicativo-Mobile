@@ -15,6 +15,13 @@
       "when": 1793670091352,
       "tag": "0001_fase3_core",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793674836168,
+      "tag": "0002_initial_streak_days",
+      "breakpoints": true
     }
   ]
 }

@@ -12,7 +12,7 @@ import {
 import { isValidCheckInMinutes, type CheckInAnswer, type CheckInSource } from '@/domain/checkIn';
 import { fromDayKey } from '@/domain/day';
 import { isValidDailyLimit, type OnboardingStep } from '@/domain/onboarding';
-import type { DayFailureReason } from '@/domain/streak';
+import { isValidDaysAlreadyWithoutRelapse, type DayFailureReason } from '@/domain/streak';
 import { isValidTriggerValue } from '@/domain/triggers';
 
 import type { AppDatabase } from './database';
@@ -63,6 +63,8 @@ export type CompulsionRepository = {
   setStartedAt(id: number, startedAt: Date): void;
   /** Limite diário da moderação, somado entre os apps. */
   setDailyLimit(id: number, minutes: number): void;
+  /** Abstinência: dias sem recair informados no onboarding (0 = começando hoje). */
+  setInitialStreakDays(id: number, days: number): void;
   /** Apaga a compulsão e, em cascata, apps, gatilhos, check-ins, recaídas e dias. */
   remove(id: number): void;
 };
@@ -329,6 +331,18 @@ export function createRepositories(
         requireDailyLimit(requireCompulsionType(db, id), minutes);
         db.update(userCompulsions)
           .set({ dailyLimitMinutes: minutes })
+          .where(eq(userCompulsions.id, id))
+          .run();
+      },
+      setInitialStreakDays: (id, days) => {
+        if (getCompulsionDefinition(requireCompulsionType(db, id)).mechanic !== 'abstinence') {
+          throw new Error('Dias sem recair só existem na abstinência');
+        }
+        if (days !== 0 && !isValidDaysAlreadyWithoutRelapse(days)) {
+          throw new RangeError('Dias sem recair fora do intervalo aceito');
+        }
+        db.update(userCompulsions)
+          .set({ initialStreakDays: days })
           .where(eq(userCompulsions.id, id))
           .run();
       },

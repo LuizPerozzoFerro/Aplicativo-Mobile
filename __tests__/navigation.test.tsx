@@ -3,14 +3,21 @@ import { renderRouter, screen, testRouter, waitFor } from 'expo-router/testing-l
 import { Alert, BackHandler } from 'react-native';
 
 import type { DatabaseState } from '@/data/bootstrap';
+import { createRepositories, type Repositories } from '@/data/repositories';
+import { createTestDatabase } from '@/data/testing';
 import { onboardingProgress } from '@/features/onboarding/onboardingProgress';
 import { onboardingStatus } from '@/features/onboarding/onboardingStatus';
 import { ONBOARDING_STEPS, type OnboardingStep } from '@/features/onboarding/steps';
 
-// O banco nativo (expo-sqlite) não roda no Jest; a camada de dados tem testes
-// próprios com sql.js. Aqui o banco é simulado e a flag fica em memória.
+// O banco nativo (expo-sqlite) não roda no Jest. Aqui a abertura é simulada, a
+// flag e a etapa ficam em memória e os repositórios usam um banco sql.js novo
+// a cada teste, com as migrações do app.
 const mockDatabaseState = jest.fn<DatabaseState, []>(() => ({ status: 'ready' }));
-jest.mock('@/data/bootstrap', () => ({ useDatabase: () => mockDatabaseState() }));
+let mockRepositories: Repositories;
+jest.mock('@/data/bootstrap', () => ({
+  useDatabase: () => mockDatabaseState(),
+  getRepositories: () => mockRepositories,
+}));
 
 // Navegação inicial (spec 01, seções 4.4 e 4.10) sobre as rotas reais de app/.
 const APP_DIR = './app';
@@ -20,6 +27,23 @@ const expectPath = (path: string) => waitFor(() => expect(screen).toHavePathname
 
 const pressButton = async (name: string) =>
   userEvent.setup().press(await screen.findByRole('button', { name }));
+
+const AGE_YES = 'Sim, tenho 18 anos ou mais';
+
+/**
+ * Avança da etapa com o mínimo válido: idade confirmada nas boas-vindas,
+ * vídeos curtos escolhidos (se nada estiver escolhido) e, na configuração, os
+ * apps sugeridos pré-marcados. Espera o "Continuar" habilitar.
+ */
+async function advanceFrom(step: OnboardingStep) {
+  if (step === 'welcome') return pressButton(AGE_YES);
+  if (step === 'compulsions' && mockRepositories.compulsions.list().length === 0) {
+    const card = await screen.findByRole('checkbox', { name: /^Vídeos curtos e redes sociais/ });
+    if (!card.props.accessibilityState?.checked) await userEvent.setup().press(card);
+  }
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Continuar' })).toBeEnabled());
+  return pressButton('Continuar');
+}
 
 // Voltar do Android: o mock do BackHandler do React Native não simula o botão;
 // os listeners ficam aqui e o último registrado responde primeiro, como no aparelho.
@@ -33,7 +57,8 @@ const pressAndroidBack = () =>
 afterEach(() => jest.restoreAllMocks());
 
 // Entre testes não há tela montada, então o estado muda fora de act().
-beforeEach(() => {
+beforeEach(async () => {
+  mockRepositories = createRepositories((await createTestDatabase()).db);
   backListeners = [];
   jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_event, listener) => {
     backListeners.push(listener);
@@ -58,15 +83,15 @@ describe('sem onboarding concluído', () => {
 
   it('percorre as 7 telas na ordem, volta duas e avança de novo (V3)', async () => {
     await renderRouter(APP_DIR, { initialUrl: '/' });
-    for (const step of ONBOARDING_STEPS.slice(1)) {
-      await pressButton('Continuar');
+    for (const [index, step] of ONBOARDING_STEPS.slice(1).entries()) {
+      await advanceFrom(ONBOARDING_STEPS[index]!);
       await expectPath(`/${step}`);
     }
     await pressButton('Voltar');
     await pressButton('Voltar');
     await expectPath('/motivation');
-    await pressButton('Continuar');
-    await pressButton('Continuar');
+    await advanceFrom('motivation');
+    await advanceFrom('permissions');
     await expectPath('/summary');
   });
 
@@ -82,7 +107,7 @@ describe('sem onboarding concluído', () => {
   it('a primeira tela não tem "Voltar"; o Voltar do Android pede confirmação antes de sair', async () => {
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     await renderRouter(APP_DIR, { initialUrl: '/' });
-    await screen.findByRole('button', { name: 'Continuar' });
+    await screen.findByRole('button', { name: AGE_YES });
     expect(screen.queryByRole('button', { name: 'Voltar' })).toBeNull();
     await pressAndroidBack();
     expect(alert).toHaveBeenCalledWith('Sair do app?', expect.any(String), expect.any(Array));
@@ -100,10 +125,10 @@ describe('progresso do onboarding salvo (spec 02, seção 4.4)', () => {
   it('cada "Continuar" grava a etapa seguinte; concluir limpa a etapa', async () => {
     openAppWithStep(null);
     await renderRouter(APP_DIR, { initialUrl: '/' });
-    await pressButton('Continuar');
+    await advanceFrom('welcome');
     await expectPath('/compulsions');
     expect(saved).toHaveBeenLastCalledWith('compulsions');
-    await pressButton('Continuar');
+    await advanceFrom('compulsions');
     await expectPath('/setup');
     expect(onboardingProgress.getStep()).toBe('setup');
   });
