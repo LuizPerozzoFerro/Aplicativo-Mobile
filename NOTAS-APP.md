@@ -1362,6 +1362,50 @@ migração à mão, sem `DROP TABLE` da tabela-pai. Exemplos: só `ALTER TABLE .
 ADD COLUMN`, ou copiar e recriar também os filhos na mesma migração. Discutir
 antes com o responsável.
 
+### Componentes (`src/ui/`)
+
+Nenhuma biblioteca nova. Todos recebem os textos já traduzidos, como os da
+Fase 2.
+
+| Componente | O que faz |
+|---|---|
+| `Chip` | Seleção com área de toque de 48 dp. Papel `checkbox` (múltipla) ou `radio` (simples), com `checked` anunciado. Marcado e desmarcado diferem no fundo e no peso da fonte, não só na cor |
+| `ChipGroup` | Chips em linhas que quebram. Múltipla: cada toque alterna e a seleção sai na ordem das opções. Simples: tocar marca só um, e tocar de novo não desmarca |
+| `TextField` | Rótulo (nome acessível), apoio, contador e erro. O erro substitui o apoio e põe o contorno na cor de erro; com foco, o contorno fica na cor de ação e mais grosso. O leitor de tela ouve o erro ou o apoio e o contador. A contagem e a validação ficam com quem usa (ex.: `getMotivationLength`) |
+| `confirmDialog` | Diálogo de confirmação do sistema (`Alert`), como permite a spec 4.7. Resolve `true` só ao confirmar; cancelar ou tocar fora dá `false`. Para duas etapas ("Apagar meus dados"), chamar duas vezes |
+
+Notas:
+- **Contraste:** os componentes novos só usam pares de cores que o teste de
+  contraste já cobre (texto e contorno sobre `surface`, `onPrimary` sobre
+  `primary`, `danger` sobre `surface`).
+- **Grupo de rádio:** o `ChipGroup` simples leva `accessibilityRole="radiogroup"`
+  mas não é um elemento acessível próprio. Se fosse, o TalkBack o leria como
+  um bloco só e não chegaria aos chips. Por isso o teste confere o papel pelas
+  propriedades, não por `getByRole`.
+- **RNTL 14:** `fireEvent` é assíncrono e precisa de `await`; sem ele, o
+  estado (ex.: foco) não é aplicado antes da conferência.
+- **Teclado na `Screen`:** fica para o passo 4, com o campo de motivação no
+  aparelho (R12). O Android 16 força edge-to-edge, e o comportamento do
+  teclado precisa ser medido no S22.
+- **Etapas do onboarding em dois lugares:** `src/features/onboarding/steps.ts`
+  (Fase 2) e `ONBOARDING_STEPS` no domínio (passo 1). Unificar no passo 4.
+
+### Seletor de horário: opções levantadas (02/11/2026)
+
+Documentação consultada: página do `@react-native-community/datetimepicker`
+no Expo (versão recomendada 9.2.1), o README da biblioteca e as páginas do
+`@expo/ui` (versão recomendada ~58.0.26, `DateTimePicker`/`TimePickerDialog`
+em Jetpack Compose). A página do Expo recomenda o `@expo/ui` como substituto
+do `datetimepicker`.
+
+| Opção | Código nativo | Prós | Contras |
+|---|---|---|---|
+| A. Componente próprio em JS (hora e minuto com − e +, minuto de 5 em 5) | Não | Sem recompilar; tema claro/escuro, fonte grande e TalkBack sob nosso controle; testável no Jest; igual no iOS depois | Não é o relógio do sistema; mais código nosso |
+| B. `@react-native-community/datetimepicker` 9.2.1 | Sim | Relógio nativo do Android, familiar; 24 h | Recompilar e confirmar; no Android, o tema escuro depende do tema do app; `minuteInterval` sem suporte documentado no Android; manutenção incerta (procura mantenedores, mudança de nome prevista) |
+| C. `@expo/ui` ~58.0.26 (Compose, Material 3) | Sim | Mantido pelo Expo, acompanha o SDK; Material 3; iOS em SwiftUI depois | Recompilar e confirmar; exige o `Host` em volta; pacote novo (pronto para produção desde o SDK 56) e APIs ainda mudando; sem orientação de acessibilidade na documentação |
+
+**Aguardando a escolha do responsável.**
+
 ## Problemas
 
 ### AP1 · Build Android falha no C++ do `react-native-worklets` (caminho longo)
