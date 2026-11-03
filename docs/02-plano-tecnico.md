@@ -1,7 +1,7 @@
 # 02 — Plano Técnico e Plano de Ação
 
-> **Status:** rascunho v0.5 · **Última atualização:** 01/11/2026
-> **Documentos base:** `01-visao-e-escopo-mvp.md` (v0.5) · `relatorios/01-viabilidade-monitoramento.md` (v0.4, Fase 1 no Android)
+> **Status:** rascunho v0.6 · **Última atualização:** 02/11/2026
+> **Documentos base:** `01-visao-e-escopo-mvp.md` (v0.7) · `relatorios/01-viabilidade-monitoramento.md` (v0.4, Fase 1 no Android)
 > **Decisão D6 (25/10/2026):** a primeira versão publicada sai **sem a VPN local**. Tudo o que depende dela neste documento vale para uma versão posterior.
 > Este documento define **como** o app será construído e **em que ordem**. Itens marcados como *proposta* ou *a decidir* ainda podem mudar. As decisões sobre o Android já se apoiam no protótipo; as do iOS continuam hipóteses até a fase iOS.
 
@@ -31,14 +31,14 @@
 
 | Camada | Escolha | Status |
 |---|---|---|
-| Linguagem | TypeScript | Proposta |
-| Framework | React Native com **Expo** (development builds, não Expo Go). Protótipo: Expo SDK 57, React Native 0.86.3 | Validado no Android |
-| Navegação | Expo Router (barra inferior com 4 abas) | Proposta |
+| Linguagem | TypeScript (modo estrito) | **Em uso** (Fase 2) |
+| Framework | React Native com **Expo** (development builds, não Expo Go). App: **Expo SDK 58, React Native 0.88.1** (protótipo: SDK 57, RN 0.86.3) | **Em uso** (Fase 2) |
+| Navegação | Expo Router (barra inferior com 4 abas, rotas protegidas para onboarding/abas); ícones com `expo-symbols` (Material Symbols no Android, SF Symbols no iOS) | **Em uso** (Fase 2) |
 | Código nativo Android | Kotlin, via Expo Modules — **módulo próprio** (serviço, notificação, sobreposição e log; VPN numa versão posterior) | **Decidido** (Fase 1) |
 | Código nativo iOS | Swift, via Expo Modules + config plugins para extensões. Biblioteca pronta ou módulo próprio a avaliar na fase iOS | Proposta |
-| Banco local | SQLite (`expo-sqlite`) com **Drizzle ORM** (esquema em TypeScript e migrações geradas pelo drizzle-kit) | Recomendado em 01/11/2026; confirmar no passo 7 da spec 01 |
+| Banco local | SQLite (`expo-sqlite`) com **Drizzle ORM 0.45** estável (esquema em TypeScript e migrações geradas pelo drizzle-kit); testes com sql.js | **Em uso** (Fase 2). Reavaliar a 1.0 quando sair do pré-lançamento |
 | Estado da interface | Biblioteca leve de estado (ex.: Zustand) | A decidir |
-| Internacionalização | i18next + `expo-localization` | Proposta |
+| Internacionalização | i18next + react-i18next + `expo-localization`; chaves tipadas, lint contra texto fixo e plural `_zero` obrigatório | **Em uso** (Fase 2) |
 | Notificações locais | `expo-notifications` para as agendadas; alertas de monitoramento disparados pelo Kotlin | Proposta |
 | Assinaturas | **RevenueCat** (`react-native-purchases`) sobre o **Google Play Billing** (obrigatório) | Proposta |
 | Conteúdo remoto (calendários, marcos, metadados de vídeos) | **Supabase** | Proposta |
@@ -47,7 +47,7 @@
 | Analytics de produto | Ferramenta com foco em privacidade, **sem eventos contendo dados sensíveis** | A decidir |
 | Build Android | **Build local** no Windows durante o desenvolvimento (32 s incrementais no protótipo); EAS para builds de loja se convier | Validado no protótipo |
 | Build iOS e publicação | EAS Build e EAS Submit | Proposta |
-| Testes | Jest + React Native Testing Library (unitários e componentes); Maestro (fluxos ponta a ponta) | Proposta |
+| Testes | Jest + React Native Testing Library (unitários e componentes); Maestro 2.12 no Windows com o S22 (fluxos ponta a ponta); CI no GitHub Actions (lint, formatação, tipos, testes) | **Em uso** (Fase 2) |
 | Repositório | GitHub (`Aplicativo-Mobile`) | Em uso |
 
 **Justificativa do framework:** TypeScript é uma linguagem em que o Claude Code é particularmente produtivo, aproveita a experiência prévia em frontend web e o Expo facilita builds na nuvem a partir do Windows. O monitoramento exige código nativo com qualquer framework multiplataforma.
@@ -260,18 +260,22 @@ Itens:
 **Critério de saída:** itens acima concluídos, só para Android.
 
 ### Fase 2 — Fundação do app
-**Spec:** `docs/specs/spec-01-fundacao-do-app.md`.
-- [ ] Projeto definitivo, estrutura de pastas e `CLAUDE.md` reescrito para o app definitivo
-- [ ] Navegação com 4 abas e fluxo de onboarding vazio
-- [ ] i18n configurado (pt-BR), sem textos fixos
-- [ ] Banco local com migrações e repositórios
-- [ ] Design system básico (cores, tipografia, componentes)
-- [ ] Variantes de ambiente (dev, preview, produção) e verificação automática do manifesto (seção 3.4)
-- [ ] Testes automatizados, CI e builds configurados
+**Spec:** `docs/specs/spec-01-fundacao-do-app.md`. **Concluída em 02/11/2026** (PRs #1 a #10; 13 critérios de aceite e roteiro V1 a V11 com evidência em `NOTAS-APP.md`).
+- [x] Projeto definitivo, estrutura de pastas e `CLAUDE.md` reescrito para o app definitivo
+- [x] Navegação com 4 abas e fluxo de onboarding vazio
+- [x] i18n configurado (pt-BR), sem textos fixos
+- [x] Banco local com migrações e repositórios
+- [x] Design system básico (cores, tipografia, componentes)
+- [x] Variantes de ambiente (dev, preview, produção) e verificação automática do manifesto (seção 3.4)
+- [x] Testes automatizados, CI e builds configurados
+- [x] Tela "Sobre o app" com versão e build reais (`expo-application`)
 
-**Critério de saída:** app navegável instalado no S22, com testes rodando.
+**Critério de saída:** app navegável instalado no S22, com testes rodando. **Cumprido.**
+
+Também saiu da Fase 2: o manifesto de produção declara só `INTERNET`, `SYSTEM_ALERT_WINDOW` (usada na Fase 4) e `VIBRATE`; a permissão de origem da instalação (`BIND_GET_INSTALL_REFERRER_SERVICE`), trazida pelo `expo-application`, foi bloqueada e entrou na lista de proibidas do `check-manifest`.
 
 ### Fase 3 — Onboarding e núcleo
+**Spec:** `docs/specs/spec-02-onboarding-e-nucleo.md`.
 - [ ] Onboarding completo (compulsões, configuração, gatilhos, motivação, permissões com divulgação destacada, resumo)
 - [ ] Modelo genérico de compulsão com pornografia e vídeos curtos
 - [ ] Streak por mecânica, check-in e registro de recaída
@@ -279,6 +283,8 @@ Itens:
 - [ ] Perfil: editar compulsões, gatilhos e motivação; apagar dados
 
 **Critério de saída:** usuário configura o app e acompanha streaks com check-in manual.
+
+Pendências herdadas da Fase 2 (detalhes em `NOTAS-APP.md`): salvar etapa e respostas do onboarding; esconder o "Voltar" da primeira tela; teclado na `Screen`; "Apagar meus dados" zerar o onboarding; validar o papel do app ao gravá-lo.
 
 ### Fase 4 — Monitoramento, alertas e emergência
 - [ ] Módulo nativo Android definitivo (a partir do protótipo) atrás da interface comum, com as correções da seção 4.1
@@ -318,6 +324,8 @@ Itens:
 - [ ] **Vídeo de declaração do serviço em primeiro plano**, gravado no build definitivo (roteiro em `docs/rascunhos/roteiro-video-servico-primeiro-plano.md`). Os dois vídeos da VPN só quando ela voltar
 - [ ] Justificativa do serviço `specialUse` no manifesto (em inglês) e no Play Console
 - [ ] Revisar os rascunhos de `docs/rascunhos/` (política de privacidade, segurança de dados, justificativas) com o nome Quedo e a pessoa física
+- [ ] Decidir sobre criptografar o banco (SQLCipher) ou manter a proteção do Android
+- [ ] Tela "Sobre": mostrar a linha "Ambiente" só em desenvolvimento e prévia
 
 **Critério de saída:** conteúdo final carregado e materiais da loja prontos.
 
@@ -437,3 +445,4 @@ Complementam os riscos R1–R12 do doc 01.
 | 0.3 | 01/11/2026 | Resultados da Fase 1 (Android): módulo próprio em Kotlin, build local, tabela de monitoramento com dados medidos, correções obrigatórias e pendências de medição; variantes de build com e sem VPN; modelo de dados com interrupções e estado do dia; contas como pessoa física e marco de transição para CNPJ; plano reorganizado em Android primeiro (Fases 2 a 9) e iOS na Fase 10; Fase 1 concluída no Android; teste fechado com 12 testadores por 14 dias; custos e riscos T8 a T12 |
 | 0.4 | 01/11/2026 | Conta Google Play verificada; package name `br.com.quedo.app` (dev: `.dev`); conta Apple adiada para perto da Fase 10; recrutamento de testadores movido para a Fase 8; modelo de dados com `AppMonitorado`, `NotificacaoEnviada`, compulsão pausada e idade confirmada; Fase 2 aponta para a spec 01 |
 | 0.5 | 01/11/2026 | Decisão D6: build único sem VPN, flag `domainMonitoring` e verificação de permissões proibidas no manifesto (seção 3.4); VPN movida para a evolução pós-lançamento; I-25 no Nubank; segurança de dados com coleta (RevenueCat e Sentry); Sentry antes da Fase 8; Drizzle recomendado; emulador liberado; relatório v0.4 e rascunhos de loja referenciados |
+| 0.6 | 02/11/2026 | Fase 2 concluída: stack em uso (Expo SDK 58, RN 0.88.1, Drizzle 0.45, expo-symbols, Maestro 2.12, CI); manifesto de produção enxuto e permissão de origem da instalação bloqueada; pendências herdadas para as Fases 3 e 7 |

@@ -1,8 +1,8 @@
 # 01 — Visão do Produto e Escopo do MVP
 
-> **Status:** revisado v0.6 · **Última atualização:** 02/11/2026
+> **Status:** revisado v0.7 · **Última atualização:** 02/11/2026
 > **Nome do app:** **Quedo** (decidido em 01/11/2026, ver seção 7.4 e o documento de decisão do nome no Project)
-> **Documentos relacionados:** `02-plano-tecnico.md` (v0.5) · `relatorios/01-viabilidade-monitoramento.md` (v0.4, resultado da Fase 1 no Android)
+> **Documentos relacionados:** `02-plano-tecnico.md` (v0.6) · `relatorios/01-viabilidade-monitoramento.md` (v0.4, resultado da Fase 1 no Android)
 > Este documento descreve **o que** o app faz e **por quê**. Decisões de arquitetura, stack e padrões de código ficam em documentos técnicos próprios e no `CLAUDE.md`.
 
 ---
@@ -100,15 +100,15 @@ Consequência para o produto: na primeira versão, a pornografia no Android é a
 Configurar o plano personalizado do usuário e obter as permissões necessárias, explicando claramente o que é monitorado e por quê.
 
 ### 4.2 Etapas (ordem sugerida, a validar no design)
-1. **Boas-vindas** e proposta do app, com linguagem acolhedora e sem julgamento, e **confirmação de idade (18 anos ou mais)**, ver 7.6.
+1. **Boas-vindas** e proposta do app, com linguagem acolhedora e sem julgamento, e **confirmação de idade (18 anos ou mais)**, ver 7.6. Quem responder que tem menos de 18 anos vê uma tela educada explicando que o Quedo é só para adultos, sem poder seguir.
 2. **Escolha das compulsões:** pornografia, vídeos curtos/redes sociais ou ambas.
 3. **Configuração por compulsão:**
-   - Vídeos curtos: quais apps monitorar e **um** limite diário aceitável, que vale para a soma de todos eles;
-   - Pornografia: há quanto tempo está sem recair (opcional, para iniciar a streak), quais redes sociais de risco monitorar e, **para cada uma, se o usuário costuma consumir esse tipo de conteúdo nela** (define se haverá tela de interrupção, ver 6.5.6).
+   - Vídeos curtos: quais apps monitorar e **um** limite diário aceitável, que vale para a soma de todos eles. **Pré-marcados, se instalados:** Instagram, TikTok, YouTube e Kwai; o usuário pode tirar ou acrescentar outros. **Limite padrão: 60 minutos**, com as opções 30, 45, 60, 90 e 120 e um valor livre;
+   - Pornografia: há quanto tempo está sem recair (opcional, para iniciar a streak), quais redes sociais de risco monitorar e, **para cada uma, se o usuário costuma consumir esse tipo de conteúdo nela** (define se haverá tela de interrupção, ver 6.5.6). **Pré-marcados, se instalados:** X e Reddit; o usuário pode tirar ou acrescentar outros. Também o **horário do check-in diário** (padrão 21h, ver 6.2).
 4. **Gatilhos:**
-   - Horários de vulnerabilidade (ex.: depois do trabalho, antes de dormir);
-   - Dias de maior risco (ex.: fins de semana);
-   - Estados emocionais associados (ex.: tédio, solidão, estresse, ansiedade), usados para personalizar os textos dos alertas.
+   - **Horários de vulnerabilidade**, com boa granularidade (decisão de 02/11/2026): o usuário marca quantas quiser entre **12 faixas de 2 horas** que cobrem o dia todo (00h–02h, 02h–04h … 22h–24h) e pode criar **faixas personalizadas** com início e fim livres, inclusive atravessando a meia-noite (ex.: 23h30–01h00). Não usar só turnos (manhã, tarde, noite);
+   - **Dias de maior risco:** os 7 dias da semana, com atalhos "dias úteis" e "fim de semana";
+   - **Estados emocionais** associados, de uma lista (tédio, solidão, estresse, ansiedade, cansaço, tristeza), usados para personalizar os textos dos alertas.
    - **Não** usar gatilhos de localização.
 5. **Motivação pessoal:** texto curto escrito pelo usuário ("Por que eu quero mudar?"), exibido em alertas e no botão de emergência.
 6. **Permissões** (ver 4.3): explicação transparente seguida dos pedidos. O app deve funcionar (em modo reduzido) se o usuário negar.
@@ -134,6 +134,8 @@ Também no onboarding:
 ### 4.4 Regras
 - Todas as respostas podem ser editadas depois pelo Perfil.
 - O onboarding deve ser rápido; perguntas opcionais devem ser claramente marcadas.
+- **Progresso salvo (decisão de 02/11/2026):** a etapa atual e as respostas já dadas ficam gravadas. Quem sai no meio volta exatamente de onde parou.
+- Na primeira tela não há botão "Voltar"; o Voltar do Android pede confirmação antes de fechar o app.
 
 ---
 
@@ -165,7 +167,13 @@ A barra inferior é **igual para todos os usuários**, independentemente de quan
 
 ### 6.2 Streak e check-in
 - **Moderação (vídeos curtos):** streak calculada automaticamente a partir do monitoramento e das respostas na tela de interrupção. O dia só é **reprovado** por "Ignorar o limite por hoje" ou pelo terceiro "Continuar mesmo assim" do dia (regras completas em 6.5.4).
-- **Abstinência (pornografia):** streak **parcialmente automática**. O monitoramento detecta acessos a domínios adultos no aparelho, mas não detecta tudo (ex.: outros aparelhos, páginas em cache). Por isso existe um **check-in periódico de um toque**, preferencialmente respondido na própria notificação. Detecção de domínio nunca é recaída automática (3.3).
+- **Abstinência (pornografia):** a streak é o número de **dias de calendário desde a última recaída** (ou desde o início informado no onboarding). O monitoramento não detecta tudo, então a recaída é sempre informada pelo usuário. Detecção nunca é recaída automática (3.3).
+- **Check-in da pornografia (decisão de 02/11/2026):**
+  - **um por dia**, no horário escolhido pelo usuário (padrão **21h**), editável no Perfil;
+  - duas respostas de um toque: **"Sem recaída"** e **"Tive uma recaída"**;
+  - **um dia sem resposta não quebra a streak**: o check-in serve para registrar recaídas, e a streak só zera quando o usuário informa uma;
+  - o card da tela Início oferece o check-in do dia e, a qualquer momento, "Registrar recaída" (hoje ou ontem);
+  - a partir da Fase 4 do plano técnico, o check-in também chega por notificação, com as duas respostas como ações.
 - Sem permissão de monitoramento, a streak depende apenas do check-in.
 - Em pornografia, tocar em "continuar mesmo assim" num alerta **não é recaída automática**: é registrado como sinal, e o app faz um check-in gentil posteriormente para o usuário confirmar.
 - Recaída zera a streak atual, mas mantém histórico, marcos e vídeos já desbloqueados.
@@ -435,14 +443,15 @@ Situação atualizada com o relatório de viabilidade (Fase 1, Android).
 - [x] Janela cega após reinício: **avisar no onboarding** (01/11/2026)
 - [x] Idade mínima: **18+** (01/11/2026)
 - [x] Limite da moderação: **somado entre os apps**, um por compulsão (02/11/2026)
+- [x] Apps pré-marcados: Instagram, TikTok, YouTube e Kwai (vídeos curtos); X e Reddit (apps de risco) (02/11/2026)
+- [x] Limite padrão de vídeos curtos: **60 minutos** (02/11/2026)
+- [x] Check-in da pornografia: **diário**, horário escolhido (padrão 21h), dia sem resposta não quebra a streak (02/11/2026)
+- [x] Onboarding: **progresso salvo**; menor de 18 anos bloqueado; faixas de horário de 2 horas e personalizadas (02/11/2026)
 - [x] VPN na primeira versão: **não** (D6, 25/10/2026, seção 3.2)
 
 **Ainda em aberto**
 - [ ] Quando e como a detecção de domínios volta (nova leitura da política de `VpnService`; avaliar se existe função de servidor real)
 - [ ] Ícone e identidade visual
-- [ ] Apps de vídeo curto monitorados por padrão
-- [ ] Limite diário sugerido por padrão para vídeos curtos
-- [ ] Frequência e formato do check-in de pornografia
 - [ ] Marcos exatos e conteúdo de cada calendário (depende das fontes científicas)
 - [ ] Ferramenta de IA para produção dos vídeos
 - [ ] App monitorado por duas compulsões (ex.: X): em qual compulsão a interrupção é contada (fechar na spec de monitoramento)
@@ -478,3 +487,4 @@ Situação atualizada com o relatório de viabilidade (Fase 1, Android).
 | 0.4 | 01/11/2026 | Decisões de 01/11/2026: "Ignorar o limite por hoje" a partir da terceira tela; contagens por compulsão; regras da pornografia (apps de risco após 10 min, interrupção só com declaração no onboarding, domínio adulto só notificação); navegador só notifica depois do limite do app; plano gratuito só com pornografia e pausa de vídeos curtos no fim do teste; limite de 6 notificações proativas; aviso da janela cega no onboarding; app 18+ (seção 7.6) |
 | 0.5 | 01/11/2026 | Decisão D6 (25/10/2026): primeira versão publicada sem VPN (nova seção 3.2; itens dependentes da VPN marcados como versão posterior); I-25 medido no Nubank (R4 e R11); segurança de dados deixa de ser "sem coleta" por causa de RevenueCat e Sentry; referência ao relatório v0.4 |
 | 0.6 | 02/11/2026 | Limite da moderação somado entre os apps escolhidos, um por compulsão (6.5.4); card do Início e Estatísticas ajustados |
+| 0.7 | 02/11/2026 | Decisões para a Fase 3: check-in diário da pornografia (padrão 21h, dia sem resposta não quebra a streak); apps pré-marcados e limite padrão de 60 min; faixas de horário de 2 horas e personalizadas; lista de emoções; progresso do onboarding salvo; bloqueio de menores de 18 |
