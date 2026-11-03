@@ -1581,6 +1581,12 @@ cima ou para baixo para mudar".
 - **Validação no domínio:** `getCompulsionChoiceProblem`,
   `getShortVideoSetupProblem`, `getAbstinenceSetupProblem` e
   `parseWholeNumber`.
+- **Textos revisados pelo responsável no PR #16 (03/11/2026):** código e
+  migração 003 aprovados. Ajustes aplicados:
+  - "Responda à pergunta…" (com crase);
+  - "…esse tipo de conteúdo em {app}?" (em vez de "no");
+  - botão "Não, tenho menos de 18";
+  - apps de risco: "O Quedo avisa depois de 10 minutos de uso em cada um."
 
 ### Migração 003: `user_compulsions.initial_streak_days`
 

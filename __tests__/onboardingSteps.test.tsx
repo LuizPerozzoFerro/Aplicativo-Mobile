@@ -47,7 +47,7 @@ describe('etapa 1: boas-vindas e idade', () => {
 
   it('"Não" leva à tela de bloqueio sem gravar nada, e o Voltar corrige (R1)', async () => {
     await renderRouter(APP_DIR, { initialUrl: '/' });
-    await press('button', 'Não');
+    await press('button', 'Não, tenho menos de 18');
     await expectPath('/underage');
     expect(
       await screen.findByRole('header', { name: 'O Quedo é só para adultos' }),
@@ -147,9 +147,9 @@ describe('etapa 3: configuração', () => {
   it('cada app de risco marcado precisa da resposta, sem resposta pré-marcada', async () => {
     setupBoth();
     await renderRouter(APP_DIR, { initialUrl: '/setup' });
-    await screen.findByText('Você costuma ver esse tipo de conteúdo no X?');
+    await screen.findByText('Você costuma ver esse tipo de conteúdo em X?');
     expect(continueButton()).toBeDisabled();
-    expect(screen.getByText('Responda a pergunta de cada app de risco marcado.')).toBeOnTheScreen();
+    expect(screen.getByText('Responda à pergunta de cada app de risco marcado.')).toBeOnTheScreen();
     const answers = screen.getAllByRole('radio', { name: 'Sim' });
     expect(answers).toHaveLength(2);
     for (const answer of answers) expect(answer).not.toBeChecked();
@@ -161,7 +161,7 @@ describe('etapa 3: configuração', () => {
   it('valida o limite livre e os dias sem recair, com o motivo à vista', async () => {
     setupBoth();
     await renderRouter(APP_DIR, { initialUrl: '/setup' });
-    await screen.findByText('Você costuma ver esse tipo de conteúdo no X?');
+    await screen.findByText('Você costuma ver esse tipo de conteúdo em X?');
     // Tira os apps de risco: são opcionais.
     await pressApp('risk-apps', 'X');
     await pressApp('risk-apps', 'Reddit');
@@ -187,7 +187,7 @@ describe('etapa 3: configuração', () => {
   it('grava apps, limite, declarações, dias e horário do check-in; voltar mostra o gravado', async () => {
     const { videos, adult } = setupBoth();
     await renderRouter(APP_DIR, { initialUrl: '/setup' });
-    await screen.findByText('Você costuma ver esse tipo de conteúdo no X?');
+    await screen.findByText('Você costuma ver esse tipo de conteúdo em X?');
     const user = userEvent.setup();
     await pressApp('short-video-apps', 'Kwai'); // tira o Kwai
     await press('radio', '90 min');

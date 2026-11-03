@@ -5,7 +5,7 @@
     "privacy": "Tudo o que você contar aqui fica só neste aparelho.",
     "ageQuestion": "Você tem 18 anos ou mais?",
     "ageYes": "Sim, tenho 18 anos ou mais",
-    "ageNo": "Não"
+    "ageNo": "Não, tenho menos de 18"
   },
   "compulsions": {
     "title": "O que você quer mudar",
@@ -50,11 +50,11 @@
       "daysLabel": "Há quantos dias?",
       "invalidDays": "Use um número de 1 a 3650.",
       "riskApps": "Apps de risco (opcional)",
-      "riskAppsHint": "Apps onde esse tipo de conteúdo costuma aparecer. O Quedo avisa se você passar muito tempo neles.",
-      "declare": "Você costuma ver esse tipo de conteúdo no {{app}}?",
+      "riskAppsHint": "Apps onde esse tipo de conteúdo costuma aparecer. O Quedo avisa depois de 10 minutos de uso em cada um.",
+      "declare": "Você costuma ver esse tipo de conteúdo em {{app}}?",
       "yes": "Sim",
       "no": "Não",
-      "undeclared": "Responda a pergunta de cada app de risco marcado.",
+      "undeclared": "Responda à pergunta de cada app de risco marcado.",
       "checkIn": "Horário do check-in",
       "checkInHint": "Uma vez por dia, o Quedo pergunta como foi o seu dia. Escolha um horário em que você costuma ter alguns minutos livres."
     },
