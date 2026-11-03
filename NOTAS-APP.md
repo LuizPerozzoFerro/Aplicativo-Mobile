@@ -1246,7 +1246,8 @@ As três tabelas novas apagam em cascata com a compulsão.
    (helper `column()` no esquema). Os CHECKs da 001 nas tabelas que não mudam
    ficaram como estavam: mudar o texto deles faria o drizzle-kit recriar a
    tabela, e recriar `user_compulsions` apagaria em cascata os filhos (o
-   `PRAGMA foreign_keys=OFF` não vale dentro da transação da migração).
+   `PRAGMA foreign_keys=OFF` não vale dentro da transação da migração). Ver
+   a regra de tabela-pai no passo 3.
 3. **`NULL in (...)` dá NULL, e o SQLite aceita CHECK com resultado NULL.**
    O CHECK de `failed_reason` precisou de `is not null` explícito; o teste de
    restrições pegou o erro.
@@ -1327,6 +1328,152 @@ Cuidados descobertos:
   `adb devices` direto (sobe o daemon sozinho).
 - No Git Bash, caminhos do aparelho como `/sdcard/...` precisam de
   `MSYS_NO_PATHCONV=1`; senão viram `C:/Program Files/Git/sdcard/...`.
+
+## Fase 3 · Passo 3 · Componentes (02/11/2026)
+
+### Regra: migração que recria tabela-pai (pedido do responsável na revisão do PR #13)
+
+**Toda migração que recriar uma tabela com filhos (hoje `user_compulsions`)
+precisa ser revisada à mão e passar no teste de preservação das tabelas
+filhas.**
+
+Por quê:
+- As migrações rodam numa transação, onde o `PRAGMA foreign_keys=OFF` que o
+  drizzle-kit escreve não tem efeito.
+- O `DROP TABLE` da tabela-pai faz um `DELETE` implícito, e a cascata apaga
+  apps, gatilhos, check-ins, recaídas e estados do dia.
+- Não dá erro: os dados somem em silêncio.
+
+O teste (`src/data/migrations.test.ts`, "migrações não apagam linhas de
+tabelas filhas"):
+- **Cada migração depois da primeira** é aplicada sobre um banco com todas as
+  tabelas filhas e os pais delas populados (`FIXTURE_ROWS`). Depois da
+  migração, a contagem de linhas de cada uma tem de ser igual à de antes.
+- **As tabelas vêm do próprio banco**, pelas chaves estrangeiras
+  (`PRAGMA foreign_key_list`). Se uma migração criar uma tabela filha nova sem
+  linhas em `FIXTURE_ROWS`, o teste falha com "Tabela sem linhas de teste".
+  Conferido tirando as linhas de `relapses`.
+- **Controle:** uma migração de teste recria `user_compulsions` com
+  `PRAGMA foreign_keys=OFF`, como o drizzle-kit faria. Os filhos (apps,
+  check-ins) chegam a 0. Isso confirma o risco no próprio migrador.
+
+Se um dia for preciso recriar uma tabela-pai, o caminho é escrever a
+migração à mão, sem `DROP TABLE` da tabela-pai. Exemplos: só `ALTER TABLE ...
+ADD COLUMN`, ou copiar e recriar também os filhos na mesma migração. Discutir
+antes com o responsável.
+
+### Componentes (`src/ui/`)
+
+Nenhuma biblioteca nova. Todos recebem os textos já traduzidos, como os da
+Fase 2.
+
+| Componente | O que faz |
+|---|---|
+| `Chip` | Seleção com área de toque de 48 dp. Papel `checkbox` (múltipla) ou `radio` (simples), com `checked` anunciado. Marcado e desmarcado diferem no fundo e no peso da fonte, não só na cor |
+| `ChipGroup` | Chips em linhas que quebram. Múltipla: cada toque alterna e a seleção sai na ordem das opções. Simples: tocar marca só um, e tocar de novo não desmarca |
+| `TextField` | Rótulo (nome acessível), apoio, contador e erro. O erro substitui o apoio e põe o contorno na cor de erro; com foco, o contorno fica na cor de ação e mais grosso. O leitor de tela ouve o erro ou o apoio e o contador. A contagem e a validação ficam com quem usa (ex.: `getMotivationLength`) |
+| `confirmDialog` | Diálogo de confirmação do sistema (`Alert`), como permite a spec 4.7. Resolve `true` só ao confirmar; cancelar ou tocar fora dá `false`. Para duas etapas ("Apagar meus dados"), chamar duas vezes |
+
+Notas:
+- **Contraste:** os componentes novos só usam pares de cores que o teste de
+  contraste já cobre (texto e contorno sobre `surface`, `onPrimary` sobre
+  `primary`, `danger` sobre `surface`).
+- **Grupo de rádio:** o `ChipGroup` simples leva `accessibilityRole="radiogroup"`
+  mas não é um elemento acessível próprio. Se fosse, o TalkBack o leria como
+  um bloco só e não chegaria aos chips. Por isso o teste confere o papel pelas
+  propriedades, não por `getByRole`.
+- **RNTL 14:** `fireEvent` é assíncrono e precisa de `await`; sem ele, o
+  estado (ex.: foco) não é aplicado antes da conferência.
+- **Teclado na `Screen`:** fica para o passo 4, com o campo de motivação no
+  aparelho (R12). O Android 16 força edge-to-edge, e o comportamento do
+  teclado precisa ser medido no S22.
+- **Etapas do onboarding em dois lugares:** `src/features/onboarding/steps.ts`
+  (Fase 2) e `ONBOARDING_STEPS` no domínio (passo 1). Unificar no passo 4.
+
+### Seletor de horário: opções levantadas (02/11/2026)
+
+Documentação consultada: página do `@react-native-community/datetimepicker`
+no Expo (versão recomendada 9.2.1), o README da biblioteca e as páginas do
+`@expo/ui` (versão recomendada ~58.0.26, `DateTimePicker`/`TimePickerDialog`
+em Jetpack Compose). A página do Expo recomenda o `@expo/ui` como substituto
+do `datetimepicker`.
+
+| Opção | Código nativo | Prós | Contras |
+|---|---|---|---|
+| A. Componente próprio em JS (hora e minuto com − e +, minuto de 5 em 5) | Não | Sem recompilar; tema claro/escuro, fonte grande e TalkBack sob nosso controle; testável no Jest; igual no iOS depois | Não é o relógio do sistema; mais código nosso |
+| B. `@react-native-community/datetimepicker` 9.2.1 | Sim | Relógio nativo do Android, familiar; 24 h | Recompilar e confirmar; no Android, o tema escuro depende do tema do app; `minuteInterval` sem suporte documentado no Android; manutenção incerta (procura mantenedores, mudança de nome prevista) |
+| C. `@expo/ui` ~58.0.26 (Compose, Material 3) | Sim | Mantido pelo Expo, acompanha o SDK; Material 3; iOS em SwiftUI depois | Recompilar e confirmar; exige o `Host` em volta; pacote novo (pronto para produção desde o SDK 56) e APIs ainda mudando; sem orientação de acessibilidade na documentação |
+
+**Decisão do responsável (02/11/2026): opção A**, com três requisitos:
+1. no TalkBack, hora e minuto são controles ajustáveis (deslizar para cima e
+   para baixo muda o valor) e o leitor anuncia o horário completo, por
+   exemplo "21 horas e 30 minutos";
+2. os valores dão a volta (23 → 00, 55 → 00), e segurar o botão repete o
+   ajuste;
+3. cada botão tem 48 dp de área de toque, testado com a fonte no máximo.
+
+### `TimePicker` e `TimeRangePicker`
+
+- **Valor:** minutos desde a meia-noite (0 a 1439), como `check_in_minutes`.
+  Minuto de 5 em 5 por padrão (`minuteStep`).
+- **Ajuste (funções puras, testadas):**
+  - `stepHours` dá a volta no dia;
+  - `stepMinutes` dá a volta na hora sem mudar a hora;
+  - um minuto fora do passo (ex.: 07) vai ao múltiplo seguinte ou anterior.
+- **TalkBack:**
+  - cada unidade (hora, minuto) é uma `View` acessível com papel
+    `adjustable`, ações `increment`/`decrement` e `accessibilityValue` com o
+    horário completo falado;
+  - o rótulo é "Nome do campo, Hora" ou "Nome do campo, Minutos";
+  - os botões + e − ficam dentro da unidade e não recebem foco separado; o
+    ":" fica escondido do leitor;
+  - o horário falado vem do i18n (`common:timePicker`): "zero hora",
+    "1 hora e 5 minutos", "21 horas" (sem "e zero minuto").
+- **Segurar:**
+  - um toque ajusta uma vez (`onPress`);
+  - segurar por 400 ms ajusta e repete a cada 120 ms (`onLongPress` e
+    `setInterval`), até soltar (`onPressOut`) ou a tela sair;
+  - depois de um toque longo, o Pressable não chama `onPress`, então não há
+    ajuste extra ao soltar;
+  - a repetição parte sempre do valor mais recente (ref atualizada num
+    efeito; o React Compiler não aceita atualizar ref durante a
+    renderização).
+  - O ajuste começa no `onPress`, e não no `onPressIn`, para que encostar
+    no botão ao rolar a tela não mude o valor.
+- **`TimeRangePicker`:** início e fim. Avisa "Termina no dia seguinte" quando o
+  fim é menor que o início e mostra erro quando os dois são iguais.
+
+Testes (22) e mutação de controle, com as 8 mutações derrubando testes:
+
+| # | Mutação | Falhas |
+|---|---|---|
+| T1 | Hora sem volta | 3 |
+| T2 | Minuto sem volta | 4 |
+| T3 | Soltar não para a repetição | 2 |
+| T4 | Segurar não repete | 2 |
+| T5 | Sem papel `adjustable` | 9 |
+| T6 | Deslizar para cima não aumenta | 1 |
+| T7 | Sem o horário falado | 8 |
+| T8 | Botão com altura fixa de 40 | 2 |
+
+### Tela "Componentes" (só em development)
+
+`app/dev-components.tsx`, no Perfil, ao lado de "Refazer onboarding":
+- é a vitrine dos componentes do passo 3, para conferir tema, fonte e
+  TalkBack no aparelho antes de eles entrarem nas telas;
+- em preview e produção, redireciona para o início (testado);
+- os textos ficam no namespace `dev` do i18n.
+
+### No aparelho (S22, fonte no máximo)
+
+- `font_scale` = 2.0 (máximo, como deixado pelo responsável na Fase 2) e
+  densidade 480 (3 px por dp). Medido pelo `uiautomator`.
+- **Os quatro botões + e −: 48,0 × 48,0 dp**, com o símbolo inteiro. Os
+  números (21 : 00) aparecem ampliados e sem corte.
+- **Chips:** 53 dp de altura; o de texto longo quebra em duas linhas e
+  cresce para 89 dp.
+- A captura de tela usada na conferência foi apagada (mostrava a barra de
+  status).
 
 ## Problemas
 

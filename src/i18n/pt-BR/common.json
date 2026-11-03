@@ -8,5 +8,27 @@
       "title": "Não foi possível abrir seus dados",
       "description": "Feche o app e abra de novo. Seus dados continuam guardados neste aparelho."
     }
+  },
+  "timePicker": {
+    "hour": "Hora",
+    "minute": "Minutos",
+    "unitLabel": "{{label}}, {{unit}}",
+    "hours_zero": "zero hora",
+    "hours_one": "{{count}} hora",
+    "hours_other": "{{count}} horas",
+    "minutes_zero": "zero minuto",
+    "minutes_one": "{{count}} minuto",
+    "minutes_other": "{{count}} minutos",
+    "time": "{{hours}} e {{minutes}}",
+    "increaseHour": "Aumentar a hora",
+    "decreaseHour": "Diminuir a hora",
+    "increaseMinute": "Aumentar os minutos",
+    "decreaseMinute": "Diminuir os minutos"
+  },
+  "timeRangePicker": {
+    "start": "Início",
+    "end": "Fim",
+    "nextDay": "Termina no dia seguinte",
+    "sameTime": "O início e o fim precisam ser diferentes"
   }
 }

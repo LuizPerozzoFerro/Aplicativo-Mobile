@@ -1,5 +1,6 @@
 import about from './pt-BR/about.json';
 import common from './pt-BR/common.json';
+import dev from './pt-BR/dev.json';
 import onboarding from './pt-BR/onboarding.json';
 import tabs from './pt-BR/tabs.json';
 
@@ -9,7 +10,7 @@ export const DEFAULT_LANGUAGE = 'pt-BR';
 export const DEFAULT_NAMESPACE = 'common';
 
 export const resources = {
-  'pt-BR': { about, common, onboarding, tabs },
+  'pt-BR': { about, common, dev, onboarding, tabs },
 } as const;
 
 export type Language = keyof typeof resources;
