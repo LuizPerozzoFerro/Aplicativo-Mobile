@@ -1,6 +1,6 @@
 # Spec 02 — Onboarding e Núcleo (Fase 3)
 
-> **Status:** rascunho v0.1 · **Última atualização:** 02/11/2026
+> **Status:** rascunho v0.2 · **Última atualização:** 02/11/2026
 > **Documentos base:** `docs/01-visao-e-escopo-mvp.md` (v0.7) · `docs/02-plano-tecnico.md` (v0.6) · `docs/specs/spec-01-fundacao-do-app.md` (v0.3) · `NOTAS-APP.md` (pendências herdadas)
 > **Tipo:** código definitivo, sobre a fundação da Fase 2.
 
@@ -100,12 +100,13 @@ Em `src/domain/`, sem React nem banco, com testes que incluem virada de dia e ho
   - abstinência: o mais recente entre o início informado e o dia da última recaída;
   - moderação: o dia seguinte ao último dia reprovado (`day_states.failed`) ou o início, o que for mais recente. Se o dia atual estiver reprovado, a streak é 0.
 - **Streak** = `calendarDaysBetween(base, hoje)`. No dia do início ou da recaída, a streak é 0 ("0 dias"; plural com `_zero`).
-- **Início da abstinência no onboarding:** "Estou começando hoje" (base = hoje) ou "Estou sem recair há N dias" (base = hoje − N dias de calendário, N inteiro de 1 a 3650).
+- **Dia de início:** para as duas compulsões, o início é o **dia em que o usuário toca em "Começar"** no fim do onboarding, não o dia em que respondeu a etapa. Uma compulsão adicionada depois pelo Perfil começa no dia em que é adicionada.
+- **Início da abstinência no onboarding:** "Estou começando hoje" (base = dia do "Começar") ou "Estou sem recair há N dias" (base = dia do "Começar" − N dias de calendário, N inteiro de 1 a 3650).
 - **Próximo marco:** da lista provisória **1, 3, 7, 14, 30, 60, 90, 180, 365** dias (doc 01, seção 6.3), o primeiro maior que a streak atual. Depois de 365, nenhum. A lista vive num único lugar e será substituída pelo conteúdo remoto na Fase 5.
-- **Check-in do dia:** pendente, respondido "sem recaída" ou "recaída". Um dia sem resposta não muda a streak.
-- **Recaída:** pode ser registrada para **hoje ou ontem**. Registrar para ontem também zera a streak a partir de ontem.
-- **Desfazer:** o check-in e a recaída **de hoje** podem ser desfeitos no mesmo dia (erro de toque). Recaída de dias anteriores não se desfaz pela interface.
-- **Faixas de horário:** parse e validação de `HH:MM-HH:MM`, "está dentro da faixa agora?" (inclusive atravessando a meia-noite) e detecção de faixas sobrepostas (permitidas, mas o resumo as mostra uma vez só).
+- **Check-in do dia:** pendente, respondido "sem recaída" ou "recaída". Um dia sem resposta não muda a streak. Nesta fase o card oferece o check-in **o dia todo**; o horário escolhido só passa a valer na Fase 4, com a notificação. Se o usuário responder "Sem recaída" e recair depois no mesmo dia, "Registrar recaída" substitui a resposta.
+- **Recaída:** pode ser registrada para **hoje ou ontem**. "Ontem" só é oferecido quando ontem já está dentro do período acompanhado (não antes do início). Registrar para ontem também zera a streak a partir de ontem.
+- **Desfazer:** tudo o que foi **registrado hoje** pode ser desfeito até o fim do dia, inclusive uma recaída marcada para ontem por engano. O que foi registrado em dias anteriores não se desfaz pela interface.
+- **Faixas de horário:** parse e validação de `HH:MM-HH:MM`, "está dentro da faixa agora?" (inclusive atravessando a meia-noite). No banco, cada faixa fica gravada como foi marcada. **No resumo, faixas vizinhas e sobrepostas viram um intervalo só** (ex.: 20h–22h, 22h–24h e 23:30–01:00 aparecem como "20h–01h"). Uma faixa personalizada igual a uma das 12 fixas não vira duplicata.
 - **Horário do check-in:** minutos desde a meia-noite, de 0 a 1439.
 - `isAppRoleAllowed` aplicado em toda gravação de app monitorado (pendência herdada).
 
@@ -122,13 +123,15 @@ Em `src/domain/`, sem React nem banco, com testes que incluem virada de dia e ho
 
 | # | Etapa | Conteúdo | Validação |
 |---|---|---|---|
-| 1 | Boas-vindas | Apresentação curta e acolhedora; pergunta "Você tem 18 anos ou mais?" com "Sim" e "Não" | "Não" leva à tela de bloqueio (sem seguir, sem gravar nada). "Sim" grava `age_confirmed_at` |
+| 1 | Boas-vindas | Apresentação curta e acolhedora; pergunta "Você tem 18 anos ou mais?" com "Sim" e "Não" | "Não" leva à tela de bloqueio (sem seguir, sem gravar nada), que tem um "Voltar" para as boas-vindas, para corrigir um toque errado. "Sim" grava `age_confirmed_at` |
 | 2 | O que você quer mudar | Escolha de uma ou ambas as compulsões, com uma linha explicando cada uma | Pelo menos uma |
-| 3 | Configuração | Uma seção por compulsão escolhida. **Vídeos curtos:** lista de apps (da `listTargets()`), com os sugeridos pré-marcados se presentes, e o limite (chips 30/45/60/90/120 + "outro", padrão 60). **Conteúdo adulto:** início da streak (hoje ou há N dias), apps de risco com os sugeridos pré-marcados e, para cada app marcado, "Você costuma consumir esse tipo de conteúdo neste app?" (Sim/Não), e o horário do check-in (padrão 21h) | Vídeos curtos: pelo menos um app; limite inteiro de 5 a 600 min. Conteúdo adulto: apps de risco opcionais; N válido |
+| 3 | Configuração | Uma seção por compulsão escolhida. **Vídeos curtos:** lista de apps (da `listTargets()`), com os sugeridos pré-marcados se presentes, e o limite (chips 30/45/60/90/120 + "outro", padrão 60). **Conteúdo adulto:** início da streak (hoje ou há N dias), apps de risco com os sugeridos pré-marcados e, para cada app marcado, "Você costuma consumir esse tipo de conteúdo neste app?" (Sim/Não), e o horário do check-in (padrão 21h) | Vídeos curtos: pelo menos um app; limite inteiro de 5 a 600 min. Conteúdo adulto: apps de risco opcionais, mas **cada app marcado precisa da resposta** sobre consumir o conteúdo nele (sem resposta pré-marcada); N válido |
 | 4 | Gatilhos | Horários: 12 faixas de 2 horas em chips de seleção múltipla + "Adicionar faixa personalizada" (início e fim). Dias: 7 chips + atalhos "Dias úteis" e "Fim de semana". Emoções: 6 chips | Tudo opcional |
 | 5 | Sua motivação | Campo "Por que eu quero mudar?" com exemplos neutros de inspiração | Obrigatório, 3 a 280 caracteres, contador visível |
 | 6 | Permissões | Para cada permissão (acesso ao uso, sobreposição, notificações): o que é, para que o Quedo usa, o que **não** faz, e o botão para conceder, com "Agora não". Inclui o aviso da notificação permanente e da janela após reiniciar o aparelho (doc 01, seção 4.3). Nesta fase os pedidos vão ao `FakeMonitoringModule` | Nada obrigatório: negar mantém o modo reduzido |
 | 7 | Seu plano | Resumo das escolhas: compulsões, apps e limite, check-in, gatilhos (faixas agrupadas), motivação. Botão "Começar" | Conclui: grava `onboarding_completed = true` e `onboarding_step = null` |
+
+**Um app nas duas listas.** O mesmo app (ex.: X) pode estar em vídeos curtos e nos apps de risco. Em qual compulsão a interrupção conta fica para a spec de monitoramento (Fase 4).
 
 **Apps sugeridos.** Identificadores em um único lugar (`src/domain/`), a confirmar no aparelho na Fase 4:
 
@@ -161,6 +164,8 @@ Um card por compulsão ativa, na ordem em que foram escolhidas.
 - Sem permissão ou sem suporte: "O acompanhamento do tempo ainda não está ativo", com atalho para o estado das permissões (por enquanto, a etapa de permissões reaproveitada).
 - Streak e próximo marco.
 
+**Sem nenhuma compulsão** (caso de quem concluiu o onboarding vazio da Fase 2, só no aparelho de desenvolvimento): estado vazio com atalho para "Adicionar compulsão" no Perfil.
+
 Tocar no card não leva a outra tela nesta fase (a aba Progresso é da Fase 5). O botão de emergência fica para a Fase 4; o layout do Início deve deixar espaço previsto para ele.
 
 ### 4.6 Perfil (doc 01, seção 6.9)
@@ -175,6 +180,7 @@ Reaproveitáveis entre onboarding e Perfil, com acessibilidade (área de toque d
 - `Chip` de seleção (simples e múltipla);
 - `TextField` com rótulo, contador e mensagem de erro;
 - `TimePicker` e seletor de faixa (início e fim). Se exigir biblioteca com código nativo, **explicar as opções e pedir confirmação** antes;
+- as permissões do `FakeMonitoringModule` ficam só na memória nesta fase: depois de reabrir o app, voltam a "não concedidas". Isso é esperado até a Fase 4;
 - `ConfirmDialog` (ou o padrão do sistema, com textos do i18n).
 
 ### 4.8 Privacidade
@@ -267,3 +273,4 @@ Todas em `NOTAS-APP.md` e cobertas acima:
 | Versão | Data | Alterações |
 |---|---|---|
 | 0.1 | 02/11/2026 | Primeira versão |
+| 0.2 | 02/11/2026 | Oito pontos esclarecidos com o Claude Code: início no dia do "Começar"; check-in o dia todo nesta fase; desfazer tudo o que foi registrado hoje; "ontem" só dentro do período; "Voltar" na tela de bloqueio de idade; faixas vizinhas unidas no resumo; resposta obrigatória por app de risco; app nas duas listas permitido e Início vazio sem compulsão |
