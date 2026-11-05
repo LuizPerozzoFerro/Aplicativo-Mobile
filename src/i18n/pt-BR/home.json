@@ -1,0 +1,43 @@
+{
+  "streak_zero": "0 dias",
+  "streak_one": "{{count}} dia",
+  "streak_other": "{{count}} dias",
+  "streakCaption": {
+    "abstinence": "sem recair",
+    "moderation": "seguindo o seu plano"
+  },
+  "nextMilestone_one": "Próximo marco: {{count}} dia",
+  "nextMilestone_other": "Próximo marco: {{count}} dias",
+  "allMilestones": "Você já passou por todos os marcos.",
+  "checkIn": {
+    "question": "Como foi hoje?",
+    "noRelapse": "Sem recaída",
+    "relapse": "Tive uma recaída",
+    "answeredNoRelapse": "Hoje: sem recaída.",
+    "answeredRelapse": "Hoje: recaída registrada.",
+    "undo": "Desfazer"
+  },
+  "relapse": {
+    "register": "Registrar recaída",
+    "yesterdayRecorded": "Recaída registrada para ontem.",
+    "dialogTitle": "Registrar uma recaída?",
+    "dialogTodayOnly": "A contagem recomeça hoje. Seu histórico e seus marcos continuam com você.",
+    "dialogYesterdayOnly": "A recaída fica registrada para ontem. Seu histórico e seus marcos continuam com você.",
+    "dialogChooseDay": "Quando foi? A contagem recomeça a partir desse dia. Seu histórico e seus marcos continuam com você.",
+    "confirm": "Registrar",
+    "cancel": "Cancelar",
+    "today": "Hoje",
+    "yesterday": "Ontem",
+    "support": "Tudo bem. Uma recaída não apaga o que você já conquistou: seus marcos continuam com você. Recomeçar também é avançar."
+  },
+  "usage": {
+    "today": "{{used}} min de {{limit}} hoje",
+    "inactive": "O acompanhamento do tempo ainda não está ativo.",
+    "permissions": "Ver permissões"
+  },
+  "empty": {
+    "title": "Nada para acompanhar ainda",
+    "description": "Escolha o que você quer mudar para ver o seu dia aqui.",
+    "action": "Escolher no Perfil"
+  }
+}

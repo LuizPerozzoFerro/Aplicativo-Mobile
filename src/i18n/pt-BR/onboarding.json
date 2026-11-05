@@ -98,6 +98,7 @@
     "notNow": "Agora não",
     "granted": "Permitido",
     "denied": "Não permitido agora. Dá para permitir depois, no Perfil.",
+    "deniedHere": "Não permitido agora. Dá para permitir quando quiser, nesta tela.",
     "usesFor": "Para que serve",
     "doesNot": "O que o Quedo não faz",
     "notifications": {

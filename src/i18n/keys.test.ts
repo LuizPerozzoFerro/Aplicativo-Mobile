@@ -55,6 +55,8 @@ describe('chaves de tradução usadas no código', () => {
 const PLURALS_WITHOUT_ZERO: string[] = [
   // Só aparece com 1 a 3650 dias; com zero, o resumo mostra "Começando hoje".
   'onboarding:summary.startDaysAgo',
+  // Os marcos começam em 1 dia (MILESTONE_DAYS).
+  'home:nextMilestone',
 ];
 
 describe('plurais do pt-BR', () => {

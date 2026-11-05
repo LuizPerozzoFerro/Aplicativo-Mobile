@@ -3,6 +3,10 @@
     "back": "Voltar",
     "continue": "Continuar"
   },
+  "compulsions": {
+    "pornography": "Conteúdo adulto",
+    "short_videos": "Vídeos curtos e redes sociais"
+  },
   "errors": {
     "database": {
       "title": "Não foi possível abrir seus dados",
