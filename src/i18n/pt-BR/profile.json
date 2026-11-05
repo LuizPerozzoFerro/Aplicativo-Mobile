@@ -1,0 +1,60 @@
+{
+  "sections": {
+    "choices": "Minhas escolhas",
+    "app": "O app"
+  },
+  "items": {
+    "compulsions": "O que você quer mudar",
+    "shortVideos": "Apps e limite",
+    "shortVideosHint": "Limite de {{minutes}} min por dia, somado entre os apps",
+    "riskApps": "Apps de risco",
+    "riskAppsHint": "Onde o Quedo fica mais atento",
+    "checkIn": "Horário do check-in",
+    "checkInHint": "Todos os dias às {{time}}",
+    "triggers": "Gatilhos",
+    "triggersHint": "Horários, dias e sentimentos",
+    "motivation": "Minha motivação",
+    "motivationHint": "Por que eu quero mudar",
+    "permissions": "Permissões",
+    "permissionsHint": "Notificações, acesso a dados de uso e sobreposição",
+    "deleteData": "Apagar meus dados",
+    "deleteDataHint": "Apaga tudo o que o Quedo guardou neste aparelho"
+  },
+  "edit": {
+    "save": "Salvar",
+    "cancel": "Cancelar"
+  },
+  "compulsions": {
+    "title": "O que você quer mudar",
+    "body": "Você pode acompanhar uma ou as duas opções.",
+    "active": "Acompanhando",
+    "inactive": "Não acompanhado",
+    "add": "Adicionar",
+    "remove": "Remover",
+    "lastOne": "Pelo menos uma opção precisa continuar.",
+    "removeDialog": {
+      "title": "Parar de acompanhar?",
+      "message": "O histórico desta opção será apagado deste aparelho: a contagem de dias, os check-ins, as recaídas e os apps escolhidos. Não dá para desfazer.",
+      "confirm": "Remover",
+      "cancel": "Cancelar"
+    }
+  },
+  "add": {
+    "title": "Adicionar",
+    "body": "Ajuste do seu jeito. A contagem começa a partir de hoje."
+  },
+  "deleteData": {
+    "first": {
+      "title": "Apagar todos os seus dados?",
+      "message": "Isso apaga deste aparelho suas escolhas, a contagem de dias, os check-ins, as recaídas, os gatilhos e a sua motivação.",
+      "confirm": "Continuar",
+      "cancel": "Cancelar"
+    },
+    "second": {
+      "title": "Tem certeza?",
+      "message": "Não dá para desfazer. Depois de apagar, o Quedo volta ao começo.",
+      "confirm": "Apagar tudo",
+      "cancel": "Cancelar"
+    }
+  }
+}

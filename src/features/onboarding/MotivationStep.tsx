@@ -2,12 +2,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { getRepositories } from '@/data/bootstrap';
-import {
-  getMotivationLength,
-  getMotivationProblem,
-  MAX_MOTIVATION_LENGTH,
-} from '@/domain/onboarding';
-import { Text, TextField } from '@/ui';
+import { getMotivationProblem } from '@/domain/onboarding';
+import { MotivationField, useMotivationProblemText } from '@/features/setup/MotivationField';
 
 import { OnboardingStepScreen } from './OnboardingStepScreen';
 
@@ -19,7 +15,7 @@ export function MotivationStep() {
   const { t } = useTranslation('onboarding');
   const [text, setText] = useState(() => getRepositories().motivation.get()?.text ?? '');
   const problem = getMotivationProblem(text);
-  const problemText = { too_short: t('motivation.tooShort'), too_long: t('motivation.tooLong') };
+  const problemText = useMotivationProblemText();
 
   return (
     <OnboardingStepScreen
@@ -29,20 +25,7 @@ export function MotivationStep() {
       blockedReason={problem ? problemText[problem] : null}
       onContinue={() => getRepositories().motivation.save(text.trim())}
     >
-      <Text color="textMuted">{t('motivation.examples')}</Text>
-      <TextField
-        label={t('motivation.label')}
-        value={text}
-        onChangeText={setText}
-        multiline
-        counter={t('motivation.counter', {
-          current: getMotivationLength(text),
-          max: MAX_MOTIVATION_LENGTH,
-        })}
-        // O erro só aparece quando passa do limite; o mínimo fica no motivo do botão.
-        error={problem === 'too_long' ? problemText.too_long : undefined}
-        testID="motivation-input"
-      />
+      <MotivationField value={text} onChange={setText} />
     </OnboardingStepScreen>
   );
 }

@@ -4,6 +4,7 @@ import {
   MECHANICS,
   getCompulsionDefinition,
   isAppRoleAllowed,
+  isCompulsionType,
 } from './compulsion';
 
 describe('definições das compulsões do MVP', () => {
@@ -29,5 +30,15 @@ describe('definições das compulsões do MVP', () => {
   it('as duas mecânicas estão em uso', () => {
     const used = new Set(COMPULSION_TYPES.map((type) => getCompulsionDefinition(type).mechanic));
     expect([...used].sort()).toEqual([...MECHANICS].sort());
+  });
+});
+
+describe('isCompulsionType', () => {
+  it('aceita só os valores técnicos do MVP', () => {
+    expect(isCompulsionType('pornography')).toBe(true);
+    expect(isCompulsionType('short_videos')).toBe(true);
+    expect(isCompulsionType('games')).toBe(false);
+    expect(isCompulsionType(undefined)).toBe(false);
+    expect(isCompulsionType(['short_videos'])).toBe(false);
   });
 });

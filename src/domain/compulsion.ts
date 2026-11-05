@@ -5,6 +5,11 @@
 export const COMPULSION_TYPES = ['pornography', 'short_videos'] as const;
 export type CompulsionType = (typeof COMPULSION_TYPES)[number];
 
+/** Valor vindo de fora (ex.: parâmetro de rota) é uma das compulsões do MVP? */
+export function isCompulsionType(value: unknown): value is CompulsionType {
+  return typeof value === 'string' && (COMPULSION_TYPES as readonly string[]).includes(value);
+}
+
 export const COMPULSION_STATUSES = ['active', 'paused'] as const;
 export type CompulsionStatus = (typeof COMPULSION_STATUSES)[number];
 
