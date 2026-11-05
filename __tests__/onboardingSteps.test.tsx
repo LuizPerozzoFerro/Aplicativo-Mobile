@@ -398,6 +398,10 @@ describe('etapa 6: permissões', () => {
       expect(card(kind).getByText('Para que serve')).toBeOnTheScreen();
       expect(card(kind).getByText('O que o Quedo não faz')).toBeOnTheScreen();
     }
+    // Relatório da Fase 1: a lista de apps instalados precisa de justificativa.
+    expect(
+      card('usageAccess').getByText(/lista de apps instalados, só para você escolher/),
+    ).toBeOnTheScreen();
     expect(screen.getByText(/notificação discreta na barra do celular/)).toBeOnTheScreen();
     expect(screen.getByText(/Depois de reiniciar o celular/)).toBeOnTheScreen();
     expect(continueButton()).toBeEnabled();
@@ -490,5 +494,15 @@ describe('etapa 7: seu plano', () => {
     await renderRouter(APP_DIR, { initialUrl: '/summary' });
     expect(await screen.findByText('Nenhum gatilho marcado')).toBeOnTheScreen();
     expect(screen.getByText('Nenhum app escolhido')).toBeOnTheScreen();
+  });
+
+  it('usa o singular para quem está sem recair há 1 dia', async () => {
+    const adult = mockRepositories.compulsions.add({
+      type: 'pornography',
+      startedAt: new Date(),
+    });
+    mockRepositories.compulsions.setInitialStreakDays(adult.id, 1);
+    await renderRouter(APP_DIR, { initialUrl: '/summary' });
+    expect(await screen.findByText('Sem recair há 1 dia')).toBeOnTheScreen();
   });
 });

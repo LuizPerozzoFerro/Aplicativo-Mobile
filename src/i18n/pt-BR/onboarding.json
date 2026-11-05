@@ -107,7 +107,7 @@
     },
     "usageAccess": {
       "title": "Acesso a dados de uso",
-      "usesFor": "Saber quanto tempo você passa em cada app escolhido, para avisar quando um limite for atingido.",
+      "usesFor": "Saber quanto tempo você passa em cada app escolhido, para avisar quando um limite for atingido. Também vê a lista de apps instalados, só para você escolher quais acompanhar.",
       "doesNot": "Não lê mensagens, fotos nem o que você vê dentro dos apps. Esses dados ficam só neste aparelho e não são enviados para ninguém."
     },
     "overlay": {
@@ -130,7 +130,8 @@
     "noApps": "Nenhum app escolhido",
     "limit": "Limite de {{minutes}} min por dia, somado entre os apps",
     "startToday": "Começando hoje",
-    "startDaysAgo": "Sem recair há {{days}} dias",
+    "startDaysAgo_one": "Sem recair há {{count}} dia",
+    "startDaysAgo_other": "Sem recair há {{count}} dias",
     "riskApps": "Apps de risco: {{apps}}",
     "noRiskApps": "Nenhum app de risco",
     "checkIn": "Check-in todos os dias às {{time}}",

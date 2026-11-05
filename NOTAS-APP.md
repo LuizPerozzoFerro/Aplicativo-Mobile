@@ -1691,6 +1691,27 @@ cima ou para baixo para mudar".
   desatualizado:** ele toca "Continuar" nas boas-vindas. É reescrito no passo
   7, com os quatro fluxos da spec.
 
+### Revisão do responsável no PR #17 (04/11/2026)
+
+- **Acesso a dados de uso:** o "Para que serve" ganhou "Também vê a lista de
+  apps instalados, só para você escolher quais acompanhar." O relatório da
+  Fase 1 exige essa justificativa para a lista de apps. O teste da etapa 6
+  confere a frase no cartão.
+- **Plural no resumo:** "Sem recair há {{days}} dias" não tinha plural, e com
+  N = 1 saía "há 1 dias". Passou a `startDaysAgo_one`/`_other` com `count`.
+  - Sem `_zero`: o texto só aparece com 1 a 3650 dias (com zero, o resumo
+    mostra "Começando hoje"). É a primeira entrada de `PLURALS_WITHOUT_ZERO`
+    no `keys.test.ts`.
+  - Teste novo: "Sem recair há 1 dia". Antes da correção, ele falhou.
+- **408 testes no total.**
+
+### Para o passo 6 (Perfil)
+
+- **Item "Permissões" no Perfil**, reaproveitando a etapa 6 do onboarding
+  (`PermissionsStep`). O texto "Dá para permitir depois, no Perfil", mostrado
+  ao recusar, promete isso (doc 01, seção 6.9). Pedido do responsável na
+  revisão do PR #17.
+
 ## Problemas
 
 ### AP1 · Build Android falha no C++ do `react-native-worklets` (caminho longo)

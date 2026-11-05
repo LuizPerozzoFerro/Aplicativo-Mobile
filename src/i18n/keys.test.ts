@@ -52,7 +52,10 @@ describe('chaves de tradução usadas no código', () => {
 
 // Plurais cuja contagem nunca chega a zero e que, por isso, dispensam _zero.
 // Cada entrada é uma decisão consciente: `namespace:caminho.base`.
-const PLURALS_WITHOUT_ZERO: string[] = [];
+const PLURALS_WITHOUT_ZERO: string[] = [
+  // Só aparece com 1 a 3650 dias; com zero, o resumo mostra "Começando hoje".
+  'onboarding:summary.startDaysAgo',
+];
 
 describe('plurais do pt-BR', () => {
   it('têm a forma _zero, salvo os listados em PLURALS_WITHOUT_ZERO', () => {

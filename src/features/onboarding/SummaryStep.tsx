@@ -100,7 +100,7 @@ export function SummaryStep() {
             <Text variant="bodyStrong">{t('setup.adult.heading')}</Text>
             <Text>
               {(compulsion.initialStreakDays ?? 0) > 0
-                ? t('summary.startDaysAgo', { days: compulsion.initialStreakDays })
+                ? t('summary.startDaysAgo', { count: compulsion.initialStreakDays ?? 0 })
                 : t('summary.startToday')}
             </Text>
             <Text>
