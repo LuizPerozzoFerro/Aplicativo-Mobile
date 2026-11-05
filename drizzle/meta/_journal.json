@@ -22,6 +22,13 @@
       "when": 1793674836168,
       "tag": "0002_initial_streak_days",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1793843976361,
+      "tag": "0003_check_in_previous_answer",
+      "breakpoints": true
     }
   ]
 }

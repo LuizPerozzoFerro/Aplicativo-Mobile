@@ -1769,14 +1769,30 @@ Nenhuma biblioteca nova. Branch `fase3/inicio`.
   em vez de "…depois, no Perfil".
 - O item "Permissões" do Perfil (passo 6) abre esta mesma tela.
 
-### Ponto para o responsável
+### Recaída sobre um check-in: restaurar ao desfazer (decisão do responsável, 04/11/2026)
 
-- **Recaída para ontem apaga a resposta de ontem.** Se ontem foi respondido
-  "Sem recaída" e hoje a pessoa registra recaída para ontem, o check-in de
-  ontem vira "recaída" (regra do repositório, passo 2). Desfazer apaga os dois,
-  e o "Sem recaída" original não volta. Não muda a streak (dia sem resposta
-  não quebra), mas some do histórico. Para as Estatísticas (Fase 5), dá para
-  guardar a resposta anterior e restaurá-la ao desfazer.
+- **O problema:** com "Sem recaída" ontem e recaída registrada hoje para
+  ontem, o check-in de ontem virava "recaída", e o "Desfazer" apagava os dois.
+  O "Sem recaída" original sumia do histórico.
+- **Decisão (revisão do PR #18):** ao registrar recaída para um dia que já
+  tinha check-in, guardar a resposta anterior e restaurá-la no "Desfazer".
+- **Migração 004** (`drizzle/0003_check_in_previous_answer.sql`): três
+  colunas nulas em `check_ins`, `previous_answer`, `previous_source` e
+  `previous_answered_at`, só com `ALTER TABLE ... ADD`. Sem CHECK, para não
+  recriar tabela. Passa no teste das tabelas filhas.
+- **Repositório:**
+  - recaída (pelo check-in ou por "Registrar recaída") sobre outra resposta
+    guarda resposta, origem e horário; sobre outra recaída, mantém o que já
+    estava guardado;
+  - "Sem recaída" por cima de uma recaída não guarda nada;
+  - desfazer (pelos dois caminhos) apaga a recaída e restaura a resposta
+    guardada, ou apaga o check-in se não havia nenhuma. Desfazer de novo apaga
+    a resposta restaurada;
+  - as três colunas andam juntas: guardada pela metade, o desfazer recusa e a
+    transação volta.
+- Na tela, o mesmo vale para hoje: "Sem recaída", "Registrar recaída" e
+  "Desfazer" voltam a "Hoje: sem recaída.".
+- Textos do PR #18 aprovados pelo responsável.
 
 ### Testes e aparelho
 
@@ -1798,6 +1814,19 @@ Nenhuma biblioteca nova. Branch `fase3/inicio`.
 | H4 | Uso soma apps fora da lista | 2 |
 | H5 | Sem mensagem de apoio | 4 |
 | H6 | Mostra compulsão pausada | 1 |
+| R1 | Desfazer sempre apaga o check-in (comportamento antigo) | 5 |
+| R2 | Segunda recaída perde a resposta guardada | 1 |
+| R3 | Restaura sem limpar a resposta guardada | 3 |
+
+- **Depois da revisão: 445 testes** (5 novos no repositório, 1 de tela para
+  "ontem Sem recaída → recaída para ontem → Desfazer → volta Sem recaída" e a
+  volta de "Hoje: sem recaída." no teste de hoje).
+- **No S22, migração 004 sobre o banco existente:** com o app aberto pelo
+  Metro, o banco passou a 4 migrações, com onboarding concluído, 2
+  compulsões e a recaída de hoje preservados. No fluxo temporário, "Sem
+  recaída" → "Registrar recaída" → "Desfazer" voltou a "Hoje: sem recaída.";
+  no banco, o check-in ficou `no_relapse` com as três colunas nulas. Sem erro
+  de JavaScript no `logcat`.
 
 - **No S22** (tema escuro, fonte no máximo), com um fluxo Maestro temporário
   (fora do repositório), a partir da etapa de motivação:

@@ -195,7 +195,7 @@ describe('card de conteúdo adulto', () => {
     expect(mockRepositories.relapses.listByCompulsion(adult.id)).toEqual([]);
   });
 
-  it('"Registrar recaída" depois de "Sem recaída" substitui a resposta de hoje', async () => {
+  it('"Registrar recaída" depois de "Sem recaída" substitui a resposta de hoje, e "Desfazer" a devolve', async () => {
     const adult = addAdult(12);
     await renderRouter(APP_DIR, { initialUrl: '/' });
     await press('Sem recaída');
@@ -206,6 +206,43 @@ describe('card de conteúdo adulto', () => {
     expect(await screen.findByText('Hoje: recaída registrada.')).toBeOnTheScreen();
     expect(mockRepositories.checkIns.listByCompulsion(adult.id)).toEqual([
       expect.objectContaining({ dayKey: todayKey(), answer: 'relapse' }),
+    ]);
+
+    await press('Desfazer');
+    expect(await screen.findByText('Hoje: sem recaída.')).toBeOnTheScreen();
+    expect(mockRepositories.relapses.listByCompulsion(adult.id)).toEqual([]);
+  });
+
+  it('ontem "Sem recaída" → recaída para ontem → "Desfazer": volta "Sem recaída"', async () => {
+    const adult = addAdult(12);
+    mockRepositories.checkIns.answer({
+      compulsionId: adult.id,
+      dayKey: yesterdayKey(),
+      answer: 'no_relapse',
+    });
+    const [original] = mockRepositories.checkIns.listByCompulsion(adult.id);
+    answerNextAlert('Ontem');
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+    await press('Registrar recaída');
+
+    const card = await adultCard();
+    expect(await card.findByText('1 dia')).toBeOnTheScreen();
+    expect(mockRepositories.checkIns.listByCompulsion(adult.id)).toEqual([
+      expect.objectContaining({ dayKey: yesterdayKey(), answer: 'relapse' }),
+    ]);
+
+    await userEvent
+      .setup()
+      .press(within(card.getByTestId('home-yesterday-relapse')).getByRole('button'));
+    expect(await card.findByText('12 dias')).toBeOnTheScreen();
+    expect(mockRepositories.relapses.listByCompulsion(adult.id)).toEqual([]);
+    expect(mockRepositories.checkIns.listByCompulsion(adult.id)).toEqual([
+      expect.objectContaining({
+        dayKey: yesterdayKey(),
+        answer: 'no_relapse',
+        answeredAt: original?.answeredAt,
+        previousAnswer: null,
+      }),
     ]);
   });
 

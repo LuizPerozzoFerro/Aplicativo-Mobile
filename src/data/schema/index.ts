@@ -182,6 +182,15 @@ export const checkIns = sqliteTable(
     answer: text('answer', { enum: CHECK_IN_ANSWERS }).notNull(),
     source: text('source', { enum: CHECK_IN_SOURCES }).notNull().default('app'),
     answeredAt: integer('answered_at', { mode: 'timestamp_ms' }).notNull(),
+    /**
+     * Resposta que uma recaída registrada depois substituiu (ex.: "sem
+     * recaída" de ontem), para o "Desfazer" restaurar. As três são nulas ou
+     * preenchidas juntas. Sem CHECK: só `ALTER TABLE ADD` (NOTAS-APP.md,
+     * passo 5); a validação fica no repositório.
+     */
+    previousAnswer: text('previous_answer', { enum: CHECK_IN_ANSWERS }),
+    previousSource: text('previous_source', { enum: CHECK_IN_SOURCES }),
+    previousAnsweredAt: integer('previous_answered_at', { mode: 'timestamp_ms' }),
   },
   (table) => [
     uniqueIndex('check_ins_compulsion_day_unique').on(table.compulsionId, table.dayKey),

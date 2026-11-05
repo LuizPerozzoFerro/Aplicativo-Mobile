@@ -76,10 +76,13 @@ describe('migrações', () => {
     );
   });
 
-  it('as migrações criam as tabelas da 001 e as da 002, e a 003 a coluna do início informado', async () => {
+  it('as migrações criam as tabelas da 001 e as da 002, a coluna do início informado (003) e a resposta anterior do check-in (004)', async () => {
     const { raw } = await createTestDatabase();
     expect(tableNames(raw)).toEqual(expect.arrayContaining([...TABLES_001, ...TABLES_002]));
     expect(columnNames(raw, 'user_compulsions')).toContain('initial_streak_days');
+    expect(columnNames(raw, 'check_ins')).toEqual(
+      expect.arrayContaining(['previous_answer', 'previous_source', 'previous_answered_at']),
+    );
     expect(appliedCount(raw)).toBe(APP_MIGRATIONS);
   });
 

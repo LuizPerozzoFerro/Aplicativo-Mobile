@@ -5,6 +5,7 @@ import { createTestDatabase, query, type TestDatabase } from './testing';
 
 const NOW = new Date('2026-11-02T12:00:00.000Z');
 const LATER = new Date('2026-11-02T20:00:00.000Z');
+const EARLIER = new Date('2026-11-01T23:00:00.000Z');
 
 let database: TestDatabase;
 let repositories: Repositories;
@@ -328,6 +329,77 @@ describe('check-in e recaída', () => {
     repositories.checkIns.undo({ compulsionId: adultId, dayKey: today });
     expect(checkIns()).toEqual([]);
     expect(relapseDays()).toEqual([]);
+  });
+
+  it('ontem "Sem recaída" → recaída para ontem → desfazer: volta o "Sem recaída" original', () => {
+    clock = EARLIER;
+    repositories.checkIns.answer({
+      compulsionId: adultId,
+      dayKey: yesterday,
+      answer: 'no_relapse',
+      source: 'notification',
+    });
+    clock = NOW;
+    repositories.relapses.record({ compulsionId: adultId, dayKey: yesterday });
+    expect(repositories.checkIns.listByCompulsion(adultId)).toEqual([
+      expect.objectContaining({
+        dayKey: yesterday,
+        answer: 'relapse',
+        previousAnswer: 'no_relapse',
+        previousSource: 'notification',
+        previousAnsweredAt: EARLIER,
+      }),
+    ]);
+
+    repositories.relapses.undo({ compulsionId: adultId, dayKey: yesterday });
+    expect(repositories.checkIns.listByCompulsion(adultId)).toEqual([
+      expect.objectContaining({
+        dayKey: yesterday,
+        answer: 'no_relapse',
+        source: 'notification',
+        answeredAt: EARLIER,
+        previousAnswer: null,
+        previousSource: null,
+        previousAnsweredAt: null,
+      }),
+    ]);
+    expect(relapseDays()).toEqual([]);
+  });
+
+  it('o mesmo vale para hoje: "Sem recaída", recaída e desfazer pelo check-in', () => {
+    repositories.checkIns.answer({ compulsionId: adultId, dayKey: today, answer: 'no_relapse' });
+    clock = LATER;
+    repositories.relapses.record({ compulsionId: adultId, dayKey: today });
+    repositories.checkIns.undo({ compulsionId: adultId, dayKey: today });
+    expect(checkIns()).toEqual([{ dayKey: today, answer: 'no_relapse', source: 'app' }]);
+    // Desfazer de novo apaga a resposta restaurada.
+    repositories.checkIns.undo({ compulsionId: adultId, dayKey: today });
+    expect(checkIns()).toEqual([]);
+  });
+
+  it('registrar a recaída duas vezes mantém a resposta guardada', () => {
+    repositories.checkIns.answer({ compulsionId: adultId, dayKey: today, answer: 'no_relapse' });
+    repositories.relapses.record({ compulsionId: adultId, dayKey: today });
+    repositories.checkIns.answer({ compulsionId: adultId, dayKey: today, answer: 'relapse' });
+    repositories.relapses.undo({ compulsionId: adultId, dayKey: today });
+    expect(checkIns()).toEqual([{ dayKey: today, answer: 'no_relapse', source: 'app' }]);
+  });
+
+  it('"Sem recaída" por cima de uma recaída não guarda nada', () => {
+    repositories.relapses.record({ compulsionId: adultId, dayKey: today });
+    repositories.checkIns.answer({ compulsionId: adultId, dayKey: today, answer: 'no_relapse' });
+    expect(repositories.checkIns.listByCompulsion(adultId)[0]?.previousAnswer).toBeNull();
+    repositories.checkIns.undo({ compulsionId: adultId, dayKey: today });
+    expect(checkIns()).toEqual([]);
+  });
+
+  it('resposta guardada pela metade é recusada no desfazer', () => {
+    repositories.relapses.record({ compulsionId: adultId, dayKey: today });
+    database.raw.run("UPDATE check_ins SET previous_answer = 'no_relapse'");
+    expect(() => repositories.relapses.undo({ compulsionId: adultId, dayKey: today })).toThrow(
+      'Resposta anterior do check-in incompleta',
+    );
+    expect(relapseDays()).toEqual([today]);
   });
 
   it('check-in e recaída só na abstinência, com dia válido', () => {
