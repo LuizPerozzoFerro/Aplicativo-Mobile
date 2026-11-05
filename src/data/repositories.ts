@@ -106,19 +106,26 @@ export type CheckInRepository = {
   listByCompulsion(compulsionId: number): CheckIn[];
   /**
    * Responde o check-in do dia, substituindo uma resposta anterior. "Recaída"
-   * também grava a recaída do dia; "sem recaída" apaga a recaída do dia, se
-   * houver. Tudo numa transação.
+   * também grava a recaída do dia e guarda a resposta substituída, para o
+   * "Desfazer"; "sem recaída" apaga a recaída do dia, se houver. Tudo numa
+   * transação.
    */
   answer(input: CompulsionDay & { answer: CheckInAnswer; source?: CheckInSource }): CheckIn;
-  /** Desfaz o check-in do dia e a recaída do mesmo dia, se houver. */
+  /**
+   * Desfaz o dia: apaga a recaída e volta o check-in à resposta que a recaída
+   * substituiu, ou o apaga se não havia nenhuma.
+   */
   undo(day: CompulsionDay): void;
 };
 
 export type RelapseRepository = {
   listByCompulsion(compulsionId: number): Relapse[];
-  /** Registra a recaída do dia e grava o check-in desse dia como "recaída", numa transação. */
+  /**
+   * Registra a recaída do dia e grava o check-in desse dia como "recaída",
+   * guardando a resposta que já existia (ex.: "sem recaída"), numa transação.
+   */
   record(day: CompulsionDay): Relapse;
-  /** Desfaz a recaída do dia e o check-in do mesmo dia. */
+  /** Igual a `checkIns.undo`: apaga a recaída e restaura a resposta anterior, se houver. */
   undo(day: CompulsionDay): void;
 };
 
@@ -215,6 +222,26 @@ function insertTrigger(executor: Executor, { kind, value, compulsionId = null }:
   );
 }
 
+const NO_PREVIOUS_RESPONSE = {
+  previousAnswer: null,
+  previousSource: null,
+  previousAnsweredAt: null,
+} as const;
+
+/** Resposta guardada num check-in de recaída, ou null. As três colunas andam juntas. */
+function previousResponse(
+  checkIn: CheckIn,
+): { answer: CheckInAnswer; source: CheckInSource; answeredAt: Date } | null {
+  const { previousAnswer, previousSource, previousAnsweredAt } = checkIn;
+  if (previousAnswer === null && previousSource === null && previousAnsweredAt === null) {
+    return null;
+  }
+  if (previousAnswer === null || previousSource === null || previousAnsweredAt === null) {
+    throw new Error('Resposta anterior do check-in incompleta');
+  }
+  return { answer: previousAnswer, source: previousSource, answeredAt: previousAnsweredAt };
+}
+
 function sameDay<T extends typeof checkIns | typeof relapses | typeof dayStates>(
   table: T,
   { compulsionId, dayKey }: CompulsionDay,
@@ -261,10 +288,23 @@ export function createRepositories(
     },
   };
 
-  /** Apaga o check-in e a recaída de um dia. */
+  /**
+   * Desfaz o dia: apaga a recaída e, se o check-in guardou a resposta que a
+   * recaída substituiu, restaura essa resposta; senão, apaga o check-in.
+   */
   function clearAbstinenceDay(executor: Executor, day: CompulsionDay) {
-    executor.delete(checkIns).where(sameDay(checkIns, day)).run();
+    const checkIn = executor.select().from(checkIns).where(sameDay(checkIns, day)).get();
+    const previous = checkIn ? previousResponse(checkIn) : null;
     executor.delete(relapses).where(sameDay(relapses, day)).run();
+    if (previous) {
+      executor
+        .update(checkIns)
+        .set({ ...previous, ...NO_PREVIOUS_RESPONSE })
+        .where(sameDay(checkIns, day))
+        .run();
+    } else {
+      executor.delete(checkIns).where(sameDay(checkIns, day)).run();
+    }
   }
 
   function upsertCheckIn(
@@ -273,7 +313,22 @@ export function createRepositories(
     answer: CheckInAnswer,
     source: CheckInSource,
   ): CheckIn {
-    const values = { answer, source, answeredAt: now() };
+    const existing = executor.select().from(checkIns).where(sameDay(checkIns, day)).get();
+    // Uma recaída sobre outra resposta guarda essa resposta para o "Desfazer"
+    // restaurar; sobre outra recaída, mantém o que já estava guardado.
+    let previous: Pick<CheckIn, 'previousAnswer' | 'previousSource' | 'previousAnsweredAt'> =
+      NO_PREVIOUS_RESPONSE;
+    if (answer === 'relapse' && existing) {
+      const kept = existing.answer === 'relapse' ? previousResponse(existing) : existing;
+      if (kept) {
+        previous = {
+          previousAnswer: kept.answer,
+          previousSource: kept.source,
+          previousAnsweredAt: kept.answeredAt,
+        };
+      }
+    }
+    const values = { answer, source, answeredAt: now(), ...previous };
     return required(
       executor
         .insert(checkIns)

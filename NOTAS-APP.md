@@ -1712,6 +1712,145 @@ cima ou para baixo para mudar".
   ao recusar, promete isso (doc 01, seção 6.9). Pedido do responsável na
   revisão do PR #17.
 
+## Fase 3 · Passo 5 · Tela Início (04/11/2026)
+
+Nenhuma biblioteca nova. Branch `fase3/inicio`.
+
+### Domínio (`src/domain/overview.ts`)
+
+- `getAbstinenceOverview` junta streak, próximo marco e check-in num resumo do
+  dia, para a interface só desenhar:
+  - check-in de hoje (pendente ou respondido, com `canUndo`);
+  - `yesterdayRelapseUndoable`: recaída de ontem registrada hoje;
+  - `relapseDays`: os dias que "Registrar recaída" oferece, **sem os que já
+    têm recaída**. Com recaída hoje e ontem, o botão some;
+  - `relapseRecordedToday`: mostra a mensagem de apoio (P8) no dia em que a
+    recaída foi registrada, para hoje ou para ontem.
+- `getModerationOverview`: streak e próximo marco a partir dos dias
+  reprovados.
+- `sumUsageMinutes`: uso de hoje somado só entre os apps escolhidos,
+  arredondado para baixo.
+
+### Tela (`src/features/home/`, `app/(tabs)/index.tsx`)
+
+- Um card por compulsão **ativa** (pausada não aparece), na ordem da escolha.
+- **Recarrega** ao ganhar o foco (volta das permissões e, no passo 6, do
+  Perfil), ao voltar do segundo plano (`AppState`) e à meia-noite (um
+  `setTimeout` até `startOfNextDay`).
+- As gravações usam o dia do momento do toque, não o do último carregamento.
+- **Card de conteúdo adulto:** streak ("0 dias", com `_zero`), "sem recair",
+  próximo marco, "Como foi hoje?" com "Sem recaída" e "Tive uma recaída",
+  resposta com "Desfazer" e "Registrar recaída".
+- **Registrar recaída:** diálogo do sistema em que confirmar já é escolher o
+  dia. Com os dois dias: "Cancelar", "Ontem" e "Hoje". Com um só: "Cancelar"
+  e "Registrar", com a mensagem do dia. `choiceDialog` novo em `src/ui/`, ao
+  lado do `confirmDialog` (o Android mostra no máximo três botões, então são
+  até duas escolhas).
+- **Card de vídeos curtos:** "42 min de 60 hoje", lido de `getUsageToday()`.
+  Sem permissão ou sem suporte: "O acompanhamento do tempo ainda não está
+  ativo." com "Ver permissões". Outro erro do monitoramento não é escondido.
+- **Sem compulsão:** estado vazio com "Escolher no Perfil", que abre a aba
+  Perfil. O "Adicionar compulsão" entra no passo 6.
+- **Botão de emergência (Fase 4):** o espaço previsto é acima dos cards,
+  marcado no código.
+- Tocar no card não faz nada nesta fase.
+- Os rótulos das compulsões ganharam `common:compulsions` (spec 4.1), para o
+  Início e o Perfil. O onboarding segue com as suas chaves.
+- O doc 01 (6.1) cita "Dia 12" para a abstinência; segui a spec 4.5 ("12
+  dias").
+
+### Permissões fora do onboarding (`app/permission-status.tsx`)
+
+- Os cartões da etapa 6 viraram `src/features/permissions/PermissionCards.tsx`,
+  usados pela etapa e pela tela nova.
+- A rota não pode se chamar `/permissions`: a etapa do onboarding já ocupa
+  esse caminho (grupos não entram no caminho).
+- Na tela nova, recusar mostra "Dá para permitir quando quiser, nesta tela."
+  em vez de "…depois, no Perfil".
+- O item "Permissões" do Perfil (passo 6) abre esta mesma tela.
+
+### Recaída sobre um check-in: restaurar ao desfazer (decisão do responsável, 04/11/2026)
+
+- **O problema:** com "Sem recaída" ontem e recaída registrada hoje para
+  ontem, o check-in de ontem virava "recaída", e o "Desfazer" apagava os dois.
+  O "Sem recaída" original sumia do histórico.
+- **Decisão (revisão do PR #18):** ao registrar recaída para um dia que já
+  tinha check-in, guardar a resposta anterior e restaurá-la no "Desfazer".
+- **Migração 004** (`drizzle/0003_check_in_previous_answer.sql`): três
+  colunas nulas em `check_ins`, `previous_answer`, `previous_source` e
+  `previous_answered_at`, só com `ALTER TABLE ... ADD`. Sem CHECK, para não
+  recriar tabela. Passa no teste das tabelas filhas.
+- **Repositório:**
+  - recaída (pelo check-in ou por "Registrar recaída") sobre outra resposta
+    guarda resposta, origem e horário; sobre outra recaída, mantém o que já
+    estava guardado;
+  - "Sem recaída" por cima de uma recaída não guarda nada;
+  - desfazer (pelos dois caminhos) apaga a recaída e restaura a resposta
+    guardada, ou apaga o check-in se não havia nenhuma. Desfazer de novo apaga
+    a resposta restaurada;
+  - as três colunas andam juntas: guardada pela metade, o desfazer recusa e a
+    transação volta.
+- Na tela, o mesmo vale para hoje: "Sem recaída", "Registrar recaída" e
+  "Desfazer" voltam a "Hoje: sem recaída.".
+- Textos do PR #18 aprovados pelo responsável.
+
+### Testes e aparelho
+
+- **438 testes no total:**
+  - `src/domain/overview.test.ts` (13);
+  - `__tests__/home.test.tsx` (14): estado vazio, ordem dos cards, pausada,
+    check-in e desfazer (R7), "Tive uma recaída", recaída para ontem e
+    desfazer (R8), dia do início só com "hoje", substituir "Sem recaída",
+    uso somado, dia reprovado, permissões e volta com o uso, texto da recusa
+    fora do onboarding;
+  - `choiceDialog` (3).
+- Mutação de controle, cada uma derrubando ao menos um teste:
+
+| # | Mutação | Falhas |
+|---|---|---|
+| H1 | Desfazer a recaída de ontem desfaz a de hoje | 1 |
+| H2 | "Registrar recaída" oferece dias que já têm recaída | 4 |
+| H3 | Sem recarregar ao ganhar o foco | 1 |
+| H4 | Uso soma apps fora da lista | 2 |
+| H5 | Sem mensagem de apoio | 4 |
+| H6 | Mostra compulsão pausada | 1 |
+| R1 | Desfazer sempre apaga o check-in (comportamento antigo) | 5 |
+| R2 | Segunda recaída perde a resposta guardada | 1 |
+| R3 | Restaura sem limpar a resposta guardada | 3 |
+
+- **Depois da revisão: 445 testes** (5 novos no repositório, 1 de tela para
+  "ontem Sem recaída → recaída para ontem → Desfazer → volta Sem recaída" e a
+  volta de "Hoje: sem recaída." no teste de hoje).
+- **No S22, migração 004 sobre o banco existente:** com o app aberto pelo
+  Metro, o banco passou a 4 migrações, com onboarding concluído, 2
+  compulsões e a recaída de hoje preservados. No fluxo temporário, "Sem
+  recaída" → "Registrar recaída" → "Desfazer" voltou a "Hoje: sem recaída.";
+  no banco, o check-in ficou `no_relapse` com as três colunas nulas. Sem erro
+  de JavaScript no `logcat`.
+
+- **No S22** (tema escuro, fonte no máximo), com um fluxo Maestro temporário
+  (fora do repositório), a partir da etapa de motivação:
+  1. "Começar" levou ao Início: vídeos curtos e depois conteúdo adulto, os
+     dois com "0 dias" e "Próximo marco: 1 dia"; vídeos curtos com "O
+     acompanhamento do tempo ainda não está ativo.";
+  2. "Sem recaída" mostrou "Hoje: sem recaída.", e "Desfazer" voltou a "Como
+     foi hoje?" (R7);
+  3. "Registrar recaída" no dia do início abriu o diálogo só com "Cancelar" e
+     "Registrar"; "Registrar" mostrou a mensagem de apoio e "Hoje: recaída
+     registrada.";
+  4. "Ver permissões" → "Permitir" no acesso a dados de uso → "Voltar": o
+     card passou a "0 min de 60 hoje";
+  5. no banco: check-in e recaída de hoje gravados, sem erro de JavaScript no
+     `logcat`.
+- **Não conferido no aparelho:** a recaída para ontem (R8), porque o início
+  foi hoje e "ontem" ainda não é oferecido. Coberta em Jest; fica para o
+  roteiro manual.
+- O fluxo Maestro do repositório continua desatualizado (passo 7). Ele também
+  procura o texto antigo do Início ("Seu dia aparece aqui"), que saiu.
+- **Maestro:** `takeScreenshot` não aceita caminho fora da pasta de saída
+  dele. Para guardar capturas, usar `adb exec-out screencap -p > arquivo.png`
+  entre fluxos curtos.
+
 ## Problemas
 
 ### AP1 · Build Android falha no C++ do `react-native-worklets` (caminho longo)

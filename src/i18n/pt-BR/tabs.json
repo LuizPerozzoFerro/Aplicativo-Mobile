@@ -4,10 +4,6 @@
   "progress": "Progresso",
   "profile": "Perfil",
   "empty": {
-    "home": {
-      "title": "Seu dia aparece aqui",
-      "description": "Quando a configuração estiver pronta, o resumo do dia fica nesta tela."
-    },
     "stats": {
       "title": "Ainda sem dados",
       "description": "Suas estatísticas aparecem aqui com o uso do app."

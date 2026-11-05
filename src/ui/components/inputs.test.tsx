@@ -2,7 +2,7 @@ import { fireEvent, render, screen, userEvent } from '@testing-library/react-nat
 import { useState } from 'react';
 import { Alert } from 'react-native';
 
-import { confirmDialog } from '../confirmDialog';
+import { choiceDialog, confirmDialog } from '../confirmDialog';
 import { getTheme } from '../theme';
 import { MIN_TOUCH_TARGET } from '../tokens';
 import { Chip, ChipGroup, type ChipMode } from './Chip';
@@ -241,6 +241,66 @@ describe('confirmDialog', () => {
     const dismissed = open();
     lastCall()[3]?.onDismiss?.();
     await expect(dismissed).resolves.toBe(false);
+  });
+});
+
+describe('choiceDialog', () => {
+  type AlertButtons = Parameters<typeof Alert.alert>[2];
+  type AlertOptions = Parameters<typeof Alert.alert>[3];
+  let alertSpy: jest.SpyInstance;
+  const lastCall = () =>
+    alertSpy.mock.calls.at(-1) as [string, string | undefined, AlertButtons, AlertOptions];
+
+  beforeEach(() => {
+    alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+  });
+  afterEach(() => alertSpy.mockRestore());
+
+  const open = () =>
+    choiceDialog({
+      title: 'Quando foi?',
+      choices: [
+        { value: 'yesterday', label: 'Ontem' },
+        { value: 'today', label: 'Hoje' },
+      ],
+      cancelLabel: 'Cancelar',
+    });
+
+  it('mostra o cancelar e depois as escolhas, na ordem', () => {
+    void open();
+    expect(lastCall()[2]?.map((button) => [button.text, button.style])).toEqual([
+      ['Cancelar', 'cancel'],
+      ['Ontem', undefined],
+      ['Hoje', undefined],
+    ]);
+  });
+
+  it('escolher resolve o valor; cancelar ou fechar, null', async () => {
+    const chosen = open();
+    lastCall()[2]?.[2]?.onPress?.();
+    await expect(chosen).resolves.toBe('today');
+
+    const cancelled = open();
+    lastCall()[2]?.[0]?.onPress?.();
+    await expect(cancelled).resolves.toBeNull();
+
+    const dismissed = open();
+    lastCall()[3]?.onDismiss?.();
+    await expect(dismissed).resolves.toBeNull();
+  });
+
+  it('recusa mais de duas escolhas (o Android mostra até três botões)', () => {
+    expect(() =>
+      choiceDialog({
+        title: 'Escolha',
+        choices: [
+          { value: 'a', label: 'A' },
+          { value: 'b', label: 'B' },
+          { value: 'c', label: 'C' },
+        ],
+        cancelLabel: 'Cancelar',
+      }),
+    ).toThrow(RangeError);
   });
 });
 

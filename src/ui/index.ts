@@ -20,5 +20,10 @@ export {
   type TimeRangePickerProps,
   type TimeRangeValue,
 } from './components/TimeRangePicker';
-export { confirmDialog, type ConfirmDialogOptions } from './confirmDialog';
+export {
+  choiceDialog,
+  confirmDialog,
+  type ChoiceDialogOptions,
+  type ConfirmDialogOptions,
+} from './confirmDialog';
 export { getTheme, useTheme, type Theme } from './theme';

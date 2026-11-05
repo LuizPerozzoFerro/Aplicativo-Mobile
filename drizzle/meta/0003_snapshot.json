@@ -1,0 +1,594 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "4d300c0c-69ac-47b9-8c3f-2e6d0c9e2342",
+  "prevId": "20b3d6cf-ba47-4755-9461-1fb3afd19a1b",
+  "tables": {
+    "check_ins": {
+      "name": "check_ins",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "compulsion_id": {
+          "name": "compulsion_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "day_key": {
+          "name": "day_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "answer": {
+          "name": "answer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'app'"
+        },
+        "answered_at": {
+          "name": "answered_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "previous_answer": {
+          "name": "previous_answer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "previous_source": {
+          "name": "previous_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "previous_answered_at": {
+          "name": "previous_answered_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "check_ins_compulsion_day_unique": {
+          "name": "check_ins_compulsion_day_unique",
+          "columns": [
+            "compulsion_id",
+            "day_key"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "check_ins_compulsion_id_user_compulsions_id_fk": {
+          "name": "check_ins_compulsion_id_user_compulsions_id_fk",
+          "tableFrom": "check_ins",
+          "tableTo": "user_compulsions",
+          "columnsFrom": [
+            "compulsion_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "check_ins_day_key_valid": {
+          "name": "check_ins_day_key_valid",
+          "value": "`day_key` glob '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'"
+        },
+        "check_ins_answer_valid": {
+          "name": "check_ins_answer_valid",
+          "value": "`answer` in ('no_relapse', 'relapse')"
+        },
+        "check_ins_source_valid": {
+          "name": "check_ins_source_valid",
+          "value": "`source` in ('app', 'notification')"
+        }
+      }
+    },
+    "day_states": {
+      "name": "day_states",
+      "columns": {
+        "compulsion_id": {
+          "name": "compulsion_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "day_key": {
+          "name": "day_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "interruptions": {
+          "name": "interruptions",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "continues": {
+          "name": "continues",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "failed": {
+          "name": "failed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "failed_reason": {
+          "name": "failed_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "day_states_compulsion_id_user_compulsions_id_fk": {
+          "name": "day_states_compulsion_id_user_compulsions_id_fk",
+          "tableFrom": "day_states",
+          "tableTo": "user_compulsions",
+          "columnsFrom": [
+            "compulsion_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "day_states_compulsion_id_day_key_pk": {
+          "columns": [
+            "compulsion_id",
+            "day_key"
+          ],
+          "name": "day_states_compulsion_id_day_key_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "day_states_day_key_valid": {
+          "name": "day_states_day_key_valid",
+          "value": "`day_key` glob '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'"
+        },
+        "day_states_counts_valid": {
+          "name": "day_states_counts_valid",
+          "value": "`interruptions` >= 0 and `continues` >= 0"
+        },
+        "day_states_failed_reason_valid": {
+          "name": "day_states_failed_reason_valid",
+          "value": "(`failed` = 0 and `failed_reason` is null) or (`failed` = 1 and `failed_reason` is not null and `failed_reason` in ('ignored_limit', 'third_continue'))"
+        }
+      }
+    },
+    "monitored_apps": {
+      "name": "monitored_apps",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "compulsion_id": {
+          "name": "compulsion_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "package_name": {
+          "name": "package_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "declared_consumption": {
+          "name": "declared_consumption",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "monitored_apps_compulsion_package_unique": {
+          "name": "monitored_apps_compulsion_package_unique",
+          "columns": [
+            "compulsion_id",
+            "package_name"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "monitored_apps_compulsion_id_user_compulsions_id_fk": {
+          "name": "monitored_apps_compulsion_id_user_compulsions_id_fk",
+          "tableFrom": "monitored_apps",
+          "tableTo": "user_compulsions",
+          "columnsFrom": [
+            "compulsion_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "monitored_apps_role_valid": {
+          "name": "monitored_apps_role_valid",
+          "value": "\"monitored_apps\".\"role\" in ('short_video', 'risk')"
+        }
+      }
+    },
+    "motivation": {
+      "name": "motivation",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "relapses": {
+      "name": "relapses",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "compulsion_id": {
+          "name": "compulsion_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "day_key": {
+          "name": "day_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "relapses_compulsion_day_unique": {
+          "name": "relapses_compulsion_day_unique",
+          "columns": [
+            "compulsion_id",
+            "day_key"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "relapses_compulsion_id_user_compulsions_id_fk": {
+          "name": "relapses_compulsion_id_user_compulsions_id_fk",
+          "tableFrom": "relapses",
+          "tableTo": "user_compulsions",
+          "columnsFrom": [
+            "compulsion_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "relapses_day_key_valid": {
+          "name": "relapses_day_key_valid",
+          "value": "`day_key` glob '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'"
+        }
+      }
+    },
+    "settings": {
+      "name": "settings",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "onboarding_completed": {
+          "name": "onboarding_completed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "age_confirmed_at": {
+          "name": "age_confirmed_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "proactive_notification_daily_limit": {
+          "name": "proactive_notification_daily_limit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 6
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "onboarding_step": {
+          "name": "onboarding_step",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "check_in_minutes": {
+          "name": "check_in_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1260
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "settings_single_row": {
+          "name": "settings_single_row",
+          "value": "`id` = 1"
+        },
+        "settings_onboarding_step_valid": {
+          "name": "settings_onboarding_step_valid",
+          "value": "`onboarding_step` is null or `onboarding_step` in ('welcome', 'compulsions', 'setup', 'triggers', 'motivation', 'permissions', 'summary')"
+        },
+        "settings_check_in_minutes_valid": {
+          "name": "settings_check_in_minutes_valid",
+          "value": "`check_in_minutes` between 0 and 1439"
+        }
+      }
+    },
+    "triggers": {
+      "name": "triggers",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "compulsion_id": {
+          "name": "compulsion_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "triggers_compulsion_id_user_compulsions_id_fk": {
+          "name": "triggers_compulsion_id_user_compulsions_id_fk",
+          "tableFrom": "triggers",
+          "tableTo": "user_compulsions",
+          "columnsFrom": [
+            "compulsion_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "triggers_kind_valid": {
+          "name": "triggers_kind_valid",
+          "value": "`kind` in ('time', 'weekday', 'emotion')"
+        },
+        "triggers_value_valid": {
+          "name": "triggers_value_valid",
+          "value": "case `kind` when 'time' then (`value` glob '[0-2][0-9]:[0-5][0-9]-[0-2][0-9]:[0-5][0-9]' and substr(`value`, 1, 2) <= '23' and substr(`value`, 7, 2) <= '23' and substr(`value`, 1, 5) <> substr(`value`, 7, 5)) when 'weekday' then `value` in ('0', '1', '2', '3', '4', '5', '6') when 'emotion' then `value` in ('boredom', 'loneliness', 'stress', 'anxiety', 'tiredness', 'sadness') else 0 end"
+        }
+      }
+    },
+    "user_compulsions": {
+      "name": "user_compulsions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'active'"
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "daily_limit_minutes": {
+          "name": "daily_limit_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "initial_streak_days": {
+          "name": "initial_streak_days",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "user_compulsions_type_unique": {
+          "name": "user_compulsions_type_unique",
+          "columns": [
+            "type"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "user_compulsions_type_valid": {
+          "name": "user_compulsions_type_valid",
+          "value": "\"user_compulsions\".\"type\" in ('pornography', 'short_videos')"
+        },
+        "user_compulsions_status_valid": {
+          "name": "user_compulsions_status_valid",
+          "value": "\"user_compulsions\".\"status\" in ('active', 'paused')"
+        }
+      }
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}
