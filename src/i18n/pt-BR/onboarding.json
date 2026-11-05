@@ -62,19 +62,85 @@
   },
   "triggers": {
     "title": "Gatilhos",
-    "body": "Aqui você vai indicar os horários, dias e emoções de maior risco."
+    "body": "Marque os momentos em que fica mais difícil. O Quedo usa isso para ficar mais atento nesses momentos. Tudo aqui é opcional.",
+    "times": {
+      "heading": "Horários de maior risco",
+      "hint": "Marque quantas faixas quiser.",
+      "custom": "Faixas personalizadas",
+      "customHint": "Toque numa faixa para tirar.",
+      "add": "Adicionar faixa personalizada",
+      "confirmAdd": "Adicionar faixa",
+      "cancel": "Cancelar"
+    },
+    "days": {
+      "heading": "Dias de maior risco",
+      "workdays": "Dias úteis",
+      "weekend": "Fim de semana"
+    },
+    "emotions": {
+      "heading": "Como você costuma se sentir nesses momentos?",
+      "hint": "O Quedo usa isso para escolher as palavras dos avisos."
+    }
   },
   "motivation": {
     "title": "Sua motivação",
-    "body": "Aqui você vai escrever por que quer mudar."
+    "body": "Escreva com as suas palavras por que você quer mudar. O Quedo mostra esse texto nos momentos difíceis, para lembrar você do que importa.",
+    "examples": "Alguns exemplos: ter mais tempo para quem eu amo; dormir melhor; voltar a me concentrar no que gosto.",
+    "label": "Por que eu quero mudar?",
+    "counter": "{{current}}/{{max}}",
+    "tooShort": "Escreva pelo menos 3 caracteres.",
+    "tooLong": "Use no máximo 280 caracteres."
   },
   "permissions": {
     "title": "Permissões",
-    "body": "Aqui o app vai explicar e pedir as permissões de que precisa."
+    "body": "Para avisar você na hora certa, o Quedo precisa de algumas permissões do Android. Veja o que cada uma faz antes de decidir. Nenhuma é obrigatória: sem elas, o app funciona com menos recursos.",
+    "allow": "Permitir",
+    "notNow": "Agora não",
+    "granted": "Permitido",
+    "denied": "Não permitido agora. Dá para permitir depois, no Perfil.",
+    "usesFor": "Para que serve",
+    "doesNot": "O que o Quedo não faz",
+    "notifications": {
+      "title": "Notificações",
+      "usesFor": "Mandar avisos nos momentos de risco e o lembrete do check-in.",
+      "doesNot": "Os avisos não mostram o tema na tela de bloqueio."
+    },
+    "usageAccess": {
+      "title": "Acesso a dados de uso",
+      "usesFor": "Saber quanto tempo você passa em cada app escolhido, para avisar quando um limite for atingido. Também vê a lista de apps instalados, só para você escolher quais acompanhar.",
+      "doesNot": "Não lê mensagens, fotos nem o que você vê dentro dos apps. Esses dados ficam só neste aparelho e não são enviados para ninguém."
+    },
+    "overlay": {
+      "title": "Aparecer sobre outros apps",
+      "usesFor": "Mostrar a tela de pausa do Quedo por cima de um app quando o limite for atingido.",
+      "doesNot": "Não bloqueia nem fecha apps: você sempre decide se continua."
+    },
+    "notes": {
+      "heading": "Bom saber",
+      "ongoing": "Enquanto o Quedo acompanha seu uso, fica uma notificação discreta na barra do celular. O Android exige isso de apps que funcionam em segundo plano.",
+      "restart": "Depois de reiniciar o celular, o acompanhamento leva alguns minutos para voltar e só volta depois que você desbloquear a tela."
+    }
   },
   "summary": {
     "title": "Seu plano",
-    "body": "Aqui vai o resumo do que o app vai fazer por você."
+    "body": "Confira suas escolhas. Dá para mudar tudo depois, no Perfil.",
+    "start": "Começar",
+    "choices": "Suas escolhas",
+    "apps": "Apps: {{apps}}",
+    "noApps": "Nenhum app escolhido",
+    "limit": "Limite de {{minutes}} min por dia, somado entre os apps",
+    "startToday": "Começando hoje",
+    "startDaysAgo_one": "Sem recair há {{count}} dia",
+    "startDaysAgo_other": "Sem recair há {{count}} dias",
+    "riskApps": "Apps de risco: {{apps}}",
+    "noRiskApps": "Nenhum app de risco",
+    "checkIn": "Check-in todos os dias às {{time}}",
+    "triggers": "Gatilhos",
+    "times": "Horários: {{times}}",
+    "days": "Dias: {{days}}",
+    "emotions": "Sentimentos: {{emotions}}",
+    "noTriggers": "Nenhum gatilho marcado",
+    "motivation": "Sua motivação"
   },
   "exit": {
     "title": "Sair do app?",

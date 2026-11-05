@@ -32,8 +32,8 @@ const AGE_YES = 'Sim, tenho 18 anos ou mais';
 
 /**
  * Avança da etapa com o mínimo válido: idade confirmada nas boas-vindas,
- * vídeos curtos escolhidos (se nada estiver escolhido) e, na configuração, os
- * apps sugeridos pré-marcados. Espera o "Continuar" habilitar.
+ * vídeos curtos escolhidos (se nada estiver escolhido), na configuração os
+ * apps sugeridos pré-marcados e uma motivação curta. Espera o botão habilitar.
  */
 async function advanceFrom(step: OnboardingStep) {
   if (step === 'welcome') return pressButton(AGE_YES);
@@ -41,8 +41,14 @@ async function advanceFrom(step: OnboardingStep) {
     const card = await screen.findByRole('checkbox', { name: /^Vídeos curtos e redes sociais/ });
     if (!card.props.accessibilityState?.checked) await userEvent.setup().press(card);
   }
-  await waitFor(() => expect(screen.getByRole('button', { name: 'Continuar' })).toBeEnabled());
-  return pressButton('Continuar');
+  if (step === 'motivation' && mockRepositories.motivation.get() === null) {
+    await userEvent
+      .setup()
+      .type(await screen.findByLabelText('Por que eu quero mudar?'), 'Por mim');
+  }
+  const name = step === 'summary' ? 'Começar' : 'Continuar';
+  await waitFor(() => expect(screen.getByRole('button', { name })).toBeEnabled());
+  return pressButton(name);
 }
 
 // Voltar do Android: o mock do BackHandler do React Native não simula o botão;
@@ -97,7 +103,7 @@ describe('sem onboarding concluído', () => {
 
   it('a última tela conclui o onboarding e leva às abas, sem volta ao onboarding', async () => {
     await renderRouter(APP_DIR, { initialUrl: '/summary' });
-    await pressButton('Continuar');
+    await pressButton('Começar');
     expect(onboardingStatus.isCompleted()).toBe(true);
     await expectPath('/');
     expect(await screen.findByRole('header', { name: 'Início' })).toBeOnTheScreen();
@@ -136,7 +142,7 @@ describe('progresso do onboarding salvo (spec 02, seção 4.4)', () => {
   it('a última tela grava a etapa como nula ao concluir', async () => {
     openAppWithStep('summary');
     await renderRouter(APP_DIR, { initialUrl: '/summary' });
-    await pressButton('Continuar');
+    await pressButton('Começar');
     expect(saved).toHaveBeenLastCalledWith(null);
     expect(onboardingStatus.isCompleted()).toBe(true);
   });

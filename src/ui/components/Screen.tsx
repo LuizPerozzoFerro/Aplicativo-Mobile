@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 import { useTheme } from '../theme';
@@ -13,7 +13,14 @@ export type ScreenProps = {
   testID?: string;
 };
 
-/** Raiz de toda tela: fundo do tema, área segura e rolagem. */
+/**
+ * Raiz de toda tela: fundo do tema, área segura, rolagem e teclado. Com o
+ * teclado aberto, a área visível encolhe e a rolagem leva o campo com foco
+ * para a vista (spec 02, seção 4.4). `padding` também no Android: com
+ * edge-to-edge (Android 15+), o `adjustResize` não encolhe a janela, e sem
+ * `behavior` o KeyboardAvoidingView não faz nada (medido no S22;
+ * NOTAS-APP.md, passo 4).
+ */
 export function Screen({
   children,
   scroll = true,
@@ -29,11 +36,19 @@ export function Screen({
       edges={edges}
       style={{ flex: 1, backgroundColor: theme.colors.background }}
     >
-      {scroll ? (
-        <ScrollView contentContainerStyle={[contentStyle, { flexGrow: 1 }]}>{children}</ScrollView>
-      ) : (
-        <View style={[contentStyle, { flex: 1 }]}>{children}</View>
-      )}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+        {scroll ? (
+          <ScrollView
+            contentContainerStyle={[contentStyle, { flexGrow: 1 }]}
+            // Um toque num botão com o teclado aberto já age, sem precisar fechar o teclado antes.
+            keyboardShouldPersistTaps="handled"
+          >
+            {children}
+          </ScrollView>
+        ) : (
+          <View style={[contentStyle, { flex: 1 }]}>{children}</View>
+        )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
