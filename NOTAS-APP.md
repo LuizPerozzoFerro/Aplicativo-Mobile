@@ -1851,6 +1851,122 @@ Nenhuma biblioteca nova. Branch `fase3/inicio`.
   dele. Para guardar capturas, usar `adb exec-out screencap -p > arquivo.png`
   entre fluxos curtos.
 
+## Fase 3 · Passo 6 · Perfil (05/11/2026)
+
+Nenhuma biblioteca nova. Branch `fase3/perfil`.
+
+### Campos do onboarding reaproveitados (`src/features/setup/`)
+
+- As etapas 3, 4 e 5 viraram componentes controlados (`value` e
+  `onChange`), usados pelo onboarding e pelo Perfil:
+  - `ShortVideoFields`: apps e limite;
+  - `AbstinenceFields`: início da streak (opcional, `showStart`) e apps de
+    risco com as declarações;
+  - `CheckInTimeField`: horário do check-in com a explicação;
+  - `TriggerFields`: horários, dias e sentimentos;
+  - `MotivationField`: campo, exemplos e contador.
+- Cada um vem com as funções de carregar, validar e gravar
+  (`loadShortVideoSetup`, `getShortVideoProblem`, `saveRiskApps`,
+  `loadTriggers`, `saveTriggers`…) e o texto de cada problema.
+- `useAppTargets`: a lista de apps instalados, num lugar só.
+- **Pré-marcação dos sugeridos:** passou de um efeito com `setState` para um
+  valor calculado no render (`preselectShortVideoApps`, `preselectRiskApps`).
+  A regra `react-hooks/set-state-in-effect` do lint recusa o efeito, e o valor
+  calculado faz o mesmo: enquanto a lista não foi escolhida (`null`), mostra
+  os sugeridos instalados.
+- Os textos continuam no namespace `onboarding`. Os 25 testes das etapas
+  passaram sem mudança depois da extração.
+
+### Telas (`app/edit/`, `src/features/profile/`)
+
+- **Perfil** (`app/(tabs)/profile.tsx`), em duas seções:
+  - **Minhas escolhas:** "O que você quer mudar" (com as escolhas atuais),
+    "Apps e limite" (com o limite), "Apps de risco", "Horário do check-in"
+    (com o horário), "Gatilhos" e "Minha motivação". Os itens de cada
+    compulsão só aparecem se ela está ativa;
+  - **O app:** "Permissões" (abre `/permission-status`, pedido da revisão do
+    PR #17), "Sobre o app", os dois itens de desenvolvimento e "Apagar meus
+    dados".
+  - Recarrega ao ganhar o foco, depois de cada edição.
+- **Edição** (`EditScreen`): título, campos, "Salvar" (desabilitado com o
+  motivo à vista) e "Cancelar". Só grava ao salvar; "Cancelar" e o Voltar do
+  Android descartam.
+- **Rotas** em `app/edit/` (`/edit/compulsions`, `/edit/add-compulsion`,
+  `/edit/short-videos`, `/edit/risk-apps`, `/edit/check-in`,
+  `/edit/triggers`, `/edit/motivation`), com um `_layout` próprio e um só
+  `Stack.Screen name="edit"` nas rotas protegidas. Uma pasta `app/profile/`
+  teria o mesmo caminho da aba (`/profile`).
+- **O que você quer mudar:**
+  - um cartão por compulsão, com "Acompanhando" e "Remover", ou "Não
+    acompanhado" e "Adicionar";
+  - remover pede confirmação, porque apaga o histórico (cascata);
+  - com uma só, "Remover" fica desabilitado, com o motivo (o mesmo
+    `getCompulsionChoiceProblem` do onboarding);
+  - "Adicionar" abre `/edit/add-compulsion?type=…` com a configuração do
+    onboarding. **Nada é gravado antes do "Salvar"**, então cancelar não deixa
+    compulsão pela metade. O tipo da rota é validado por `isCompulsionType`
+    (novo, no domínio).
+- **Apps de risco:** sem a pergunta do início da streak (a spec não lista o
+  início entre o que se edita no Perfil).
+- **Apagar meus dados:** duas confirmações do sistema ("Continuar", depois
+  "Apagar tudo", destrutivo); `deleteAllData()`, depois
+  `onboardingProgress.setStep(null)` e `onboardingStatus.setCompleted(false)`.
+  As rotas protegidas levam às boas-vindas (pendência herdada da Fase 2).
+
+### "Há N dias" ao adicionar pelo Perfil (decidido na revisão do PR #19)
+
+- A spec 02 (4.3) diz que uma compulsão adicionada pelo Perfil "começa no dia
+  em que é adicionada". Ao adicionar conteúdo adulto, a pergunta "Desde quando
+  você está sem recair?" continua, e "há N dias" conta a partir do dia em que
+  ela é adicionada, como o "Começar" do onboarding. **O responsável decidiu
+  manter a pergunta.**
+- Para combinar com isso, o texto da tela de adicionar ficou diferente por
+  opção (`profile:add.body.*`):
+  - vídeos curtos: "Ajuste do seu jeito. A contagem começa a partir de hoje.";
+  - conteúdo adulto: "Ajuste do seu jeito. A contagem começa hoje, a não ser
+    que você informe que já está sem recair há alguns dias."
+- Os dois testes de adicionar conferem o texto de cada opção (mutação P7:
+  mostrar sempre o texto de vídeos curtos derruba 1 teste). Os demais textos
+  do PR #19 foram aprovados.
+
+### Testes e aparelho
+
+- **463 testes no total:** `__tests__/profile.test.tsx` (17) e
+  `isCompulsionType` no domínio.
+- Mutação de controle, cada uma derrubando ao menos um teste:
+
+| # | Mutação | Falhas |
+|---|---|---|
+| P1 | "Apagar meus dados" não zera o onboarding | 1 |
+| P2 | Segunda confirmação ignorada | 1 |
+| P3 | Deixa remover a última compulsão | 1 |
+| P4 | Ignora o "há N dias" ao adicionar | 1 |
+| P5 | "Salvar" não grava | 7 |
+| P6 | Remove sem confirmar | 1 |
+| P7 | Texto de vídeos curtos também ao adicionar conteúdo adulto | 1 |
+
+- **No S22** (tema escuro, fonte no máximo), com fluxos Maestro temporários:
+  1. **R8 no aparelho, com o início em 04/11 e hoje 05/11:** "Registrar
+     recaída" mostrou "Ontem" e "Hoje"; "Ontem" deu a mensagem de apoio e,
+     no banco, o check-in de 04/11 virou `relapse` com `previous_answer =
+     no_relapse`. "Desfazer" voltou o check-in a `no_relapse`, sem recaída
+     (restauração do PR #18);
+  2. Perfil: "Apps e limite" → 90 min → "Salvar" mostrou "Limite de 90 min
+     por dia" no item;
+  3. "Remover" vídeos curtos, depois "Adicionar": os quatro sugeridos vieram
+     pré-marcados e foi gravado com início hoje;
+  4. "Remover" conteúdo adulto (os check-ins dele sumiram) e "Adicionar" com
+     "há 5 dias" e "Não" para X e Reddit: início em 31/10, `initial_streak_days
+     = 5`, declarações gravadas, e o Início mostrou "5 dias";
+  5. "Permissões" abriu a tela de permissões;
+  6. **R11:** "Apagar meus dados" → "Continuar" → "Apagar tudo" levou às
+     boas-vindas, com todas as tabelas vazias e `settings` no padrão;
+     `am force-stop` e reabrir: continuou nas boas-vindas;
+  7. sem erro de JavaScript no `logcat`.
+- Cuidado com fluxos Maestro em telas de cartões iguais: `text: Remover,
+  index: 1` tocou no segundo cartão (vídeos curtos), porque a ordem nessa tela
+  é a de `COMPULSION_TYPES` (conteúdo adulto primeiro).
+
 ## Problemas
 
 ### AP1 · Build Android falha no C++ do `react-native-worklets` (caminho longo)

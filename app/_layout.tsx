@@ -55,6 +55,7 @@ function AppNavigator() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="about" />
         <Stack.Screen name="permission-status" />
+        <Stack.Screen name="edit" />
         <Stack.Screen name="dev-components" />
       </Stack.Protected>
     </Stack>
