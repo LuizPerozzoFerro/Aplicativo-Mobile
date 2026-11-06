@@ -41,7 +41,10 @@
   },
   "add": {
     "title": "Adicionar",
-    "body": "Ajuste do seu jeito. A contagem começa a partir de hoje."
+    "body": {
+      "pornography": "Ajuste do seu jeito. A contagem começa hoje, a não ser que você informe que já está sem recair há alguns dias.",
+      "short_videos": "Ajuste do seu jeito. A contagem começa a partir de hoje."
+    }
   },
   "deleteData": {
     "first": {

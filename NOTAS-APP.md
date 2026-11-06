@@ -1913,14 +1913,21 @@ Nenhuma biblioteca nova. Branch `fase3/perfil`.
   `onboardingProgress.setStep(null)` e `onboardingStatus.setCompleted(false)`.
   As rotas protegidas levam às boas-vindas (pendência herdada da Fase 2).
 
-### Ponto para o responsável
+### "Há N dias" ao adicionar pelo Perfil (decidido na revisão do PR #19)
 
-- **"Há N dias" ao adicionar pelo Perfil.** A spec 02 (4.3) diz que uma
-  compulsão adicionada pelo Perfil "começa no dia em que é adicionada". Ao
-  adicionar conteúdo adulto, mantive a pergunta "Desde quando você está sem
-  recair?", e "há N dias" conta a partir do dia em que ela é adicionada, como
-  o "Começar" do onboarding. Se a intenção era começar sempre no dia, basta
-  esconder a pergunta (`showStart={false}`).
+- A spec 02 (4.3) diz que uma compulsão adicionada pelo Perfil "começa no dia
+  em que é adicionada". Ao adicionar conteúdo adulto, a pergunta "Desde quando
+  você está sem recair?" continua, e "há N dias" conta a partir do dia em que
+  ela é adicionada, como o "Começar" do onboarding. **O responsável decidiu
+  manter a pergunta.**
+- Para combinar com isso, o texto da tela de adicionar ficou diferente por
+  opção (`profile:add.body.*`):
+  - vídeos curtos: "Ajuste do seu jeito. A contagem começa a partir de hoje.";
+  - conteúdo adulto: "Ajuste do seu jeito. A contagem começa hoje, a não ser
+    que você informe que já está sem recair há alguns dias."
+- Os dois testes de adicionar conferem o texto de cada opção (mutação P7:
+  mostrar sempre o texto de vídeos curtos derruba 1 teste). Os demais textos
+  do PR #19 foram aprovados.
 
 ### Testes e aparelho
 
@@ -1936,6 +1943,7 @@ Nenhuma biblioteca nova. Branch `fase3/perfil`.
 | P4 | Ignora o "há N dias" ao adicionar | 1 |
 | P5 | "Salvar" não grava | 7 |
 | P6 | Remove sem confirmar | 1 |
+| P7 | Texto de vídeos curtos também ao adicionar conteúdo adulto | 1 |
 
 - **No S22** (tema escuro, fonte no máximo), com fluxos Maestro temporários:
   1. **R8 no aparelho, com o início em 04/11 e hoje 05/11:** "Registrar

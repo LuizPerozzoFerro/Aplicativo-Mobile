@@ -65,6 +65,10 @@ export function AddCompulsionScreen({ type }: { type: CompulsionType }) {
     pornography: t('common:compulsions.pornography'),
     short_videos: t('common:compulsions.short_videos'),
   } satisfies Record<CompulsionType, string>;
+  const bodies = {
+    pornography: t('add.body.pornography'),
+    short_videos: t('add.body.short_videos'),
+  } satisfies Record<CompulsionType, string>;
 
   const shortVideoProblem = type === 'short_videos' ? getShortVideoProblem(shortVideo) : null;
   const abstinenceProblem = type === 'pornography' ? getAbstinenceProblem(abstinence) : null;
@@ -94,7 +98,7 @@ export function AddCompulsionScreen({ type }: { type: CompulsionType }) {
   return (
     <EditScreen
       title={titles[type]}
-      body={t('add.body')}
+      body={bodies[type]}
       blockedReason={
         apps.targets === null
           ? t('onboarding:setup.loadingApps')

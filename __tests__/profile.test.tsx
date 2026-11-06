@@ -215,6 +215,9 @@ describe('O que você quer mudar', () => {
     await expectPath('/edit/add-compulsion');
 
     const apps = within(await screen.findByTestId('short-video-apps'));
+    expect(
+      screen.getByText('Ajuste do seu jeito. A contagem começa a partir de hoje.'),
+    ).toBeOnTheScreen();
     expect(apps.getByRole('checkbox', { name: 'Instagram' })).toBeChecked();
     expect(mockRepositories.compulsions.list()).toHaveLength(1);
     await press('Salvar');
@@ -235,6 +238,11 @@ describe('O que você quer mudar', () => {
     addVideos();
     await renderRouter(APP_DIR, { initialUrl: '/edit/add-compulsion?type=pornography' });
     const user = userEvent.setup();
+    expect(
+      await screen.findByText(
+        'Ajuste do seu jeito. A contagem começa hoje, a não ser que você informe que já está sem recair há alguns dias.',
+      ),
+    ).toBeOnTheScreen();
     await user.press(
       await screen.findByRole('radio', { name: 'Já estou sem recair há alguns dias' }),
     );
