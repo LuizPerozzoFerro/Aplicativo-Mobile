@@ -10,8 +10,9 @@ do protótipo continua em `prototype/NOTAS.md`.
 - **Fase 3 encerrada:** passos 1 a 7 integrados na `main` (PRs #12 a #20).
 - **Fase 4 (spec 03 v0.2):** documentos e decisões da leitura da spec
   integrados (PR #21). Seção "Fase 4 · Leitura da spec 03".
-- **Passo 1 (base nativa)** em andamento na branch `fase4/base-nativa`. Seção
-  "Fase 4 · Passo 1".
+- **Passo 1 (base nativa)** pronto para revisão no PR da branch
+  `fase4/base-nativa`. Seção "Fase 4 · Passo 1". Próximo: passo 2
+  (configuração e eventos).
 
 ---
 
@@ -2272,6 +2273,17 @@ Depois do prebuild, o `AndroidManifest.xml` gerado traz
   depois (`Window{91d9c9f ...}` às 14:11:19, 14:12:35 e 14:12:44), no mesmo
   processo, e o Metro não registrou nenhum aviso do React Navigation: a
   Activity **não foi recriada**.
+- **M16, confirmação do responsável:** o texto do app acompanhou o novo
+  tamanho na hora. Com a Activity mantida (acima), o M16 está atendido.
+- **M14, reinício do S22 (responsável, 07/11):** com o serviço ligado.
+  `/proc/uptime` dá o boot por volta de 14:26:25; `boot_progress_enable_screen`
+  às 14:27:29. O receptor recebeu o `BOOT_COMPLETED` e religou o serviço às
+  14:28:59 (`Background started FGS: Allowed ... uidState: RCVR`), ~2,5 min
+  depois de ligar, a mesma janela cega do A9. Estado em disco preservado
+  (`active`, `serviceStarts` 4, verificações seguindo de 45),
+  `lastBootResult = started`, serviço em primeiro plano. Os agendamentos do
+  M14 entram no passo 5.
+
 - **JUnit:** 15 testes (3 da borda do dia, 10 da reconstrução do uso, 2 dos
   lançadores), todos passando. Mutação de controle: sem o corte da
   meia-noite, 2 falham.
