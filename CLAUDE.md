@@ -136,7 +136,10 @@ Preencher e manter atualizado na Fase 2.
 | Testes | `npm test` |
 | Gerar migração do banco (depois de mudar `src/data/schema/`) | `npm run db:generate` |
 | Ler o banco do app de desenvolvimento no aparelho | `adb exec-out run-as br.com.quedo.app.dev cat files/SQLite/app.db > app.db` |
-| Fluxo Maestro (ponta a ponta no S22) | `npm run e2e`, com o Metro ligado e o `adb reverse` feito. Apaga os dados do app de desenvolvimento. Maestro em `C:\Users\User\tools\maestro` (`NOTAS-APP.md`, passo 10) |
+| Fluxos Maestro (ponta a ponta no S22) | `npm run e2e` roda os quatro de `.maestro/` (~12 min), com o Metro ligado e o `adb reverse` feito. Apaga os dados do app de desenvolvimento. Maestro em `C:\Users\User\tools\maestro` (`NOTAS-APP.md`, passo 10 da Fase 2 e passo 7 da Fase 3) |
+| Um fluxo Maestro só | `C:\Users\User\tools\maestro\bin\maestro test .maestro/<arquivo>.yaml`, com `MAESTRO_CLI_NO_ANALYTICS=true` |
+| Ver o que o Maestro enxerga na tela | `C:\Users\User\tools\maestro\bin\maestro hierarchy --compact` |
+| Instalação pelo `adb` recusada (`INSTALL_FAILED_VERIFICATION_FAILURE`) | `adb logcat -d`, filtrando `VerifyApps`; em geral, basta tentar de novo (`NOTAS-APP.md`, AP4) |
 | Verificar permissões proibidas no manifesto | `npm run check:manifest` (depois de um build) |
 
 ## 11. Ao final de cada fase
