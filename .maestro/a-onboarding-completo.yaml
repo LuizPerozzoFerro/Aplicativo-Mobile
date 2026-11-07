@@ -1,0 +1,266 @@
+# Fluxo (a) da spec 02 (seção 4.10): onboarding completo com as duas opções
+# até o Início. Cobre também, do roteiro da seção 6, partes de R2, R5 e R6, e
+# repete da Fase 2 a troca de abas, a reabertura no Início e o "Sobre".
+#
+# Roda no build de desenvolvimento com o Metro ligado e
+# `adb reverse tcp:8081 tcp:8081` (npm run e2e). Apaga os dados do app de
+# desenvolvimento antes de começar.
+appId: br.com.quedo.app.dev
+name: (a) Onboarding completo com as duas opções até o Início
+---
+- clearState
+- runFlow: subflows/abrir-app.yaml
+
+# Etapa 1: boas-vindas, sem "Voltar".
+- extendedWaitUntil:
+    visible: Boas-vindas
+    timeout: 60000
+- assertNotVisible: Voltar
+- tapOn: Sim, tenho 18 anos ou mais
+- tapOn: Continuar
+
+# Etapa 2: as duas opções; "Continuar" só depois de escolher.
+- extendedWaitUntil:
+    visible: O que você quer mudar
+    timeout: 10000
+- assertVisible:
+    text: Continuar
+    enabled: false
+- assertVisible: Escolha pelo menos uma opção para continuar.
+- tapOn: Conteúdo adulto
+- tapOn: Vídeos curtos e redes sociais
+- tapOn: Continuar
+
+# Etapa 3, conteúdo adulto (vem antes, na ordem das opções): sem recair há
+# 3 dias.
+- extendedWaitUntil:
+    visible: Configuração
+    timeout: 10000
+- tapOn: Já estou sem recair há alguns dias
+- scrollUntilVisible:
+    element: Há quantos dias?
+    direction: DOWN
+- tapOn: Há quantos dias?
+- inputText: '3'
+- hideKeyboard
+
+# Apps de risco sugeridos já marcados (X e Reddit): cada um precisa da
+# resposta, e "Continuar" espera as duas.
+- scrollUntilVisible:
+    element:
+      text: X
+      checked: true
+    direction: DOWN
+- assertVisible:
+    text: Reddit
+    checked: true
+- assertVisible:
+    text: Instagram
+    checked: false
+- scrollUntilVisible:
+    element: Você costuma ver esse tipo de conteúdo em X?
+    direction: DOWN
+- tapOn:
+    text: Não
+    below: Você costuma ver esse tipo de conteúdo em X?
+- scrollUntilVisible:
+    element: Você costuma ver esse tipo de conteúdo em Reddit?
+    direction: DOWN
+- scrollUntilVisible:
+    element: Responda à pergunta de cada app de risco marcado.
+    direction: DOWN
+- scrollUntilVisible:
+    element: Você costuma ver esse tipo de conteúdo em Reddit?
+    direction: UP
+- tapOn:
+    text: Sim
+    below: Você costuma ver esse tipo de conteúdo em Reddit?
+
+# Vídeos curtos: os sugeridos já marcados (o Instagram marcado só existe
+# nesta lista) e limite de 45 min.
+- scrollUntilVisible:
+    element: Quais apps acompanhar?
+    direction: DOWN
+- scrollUntilVisible:
+    element:
+      text: Instagram
+      checked: true
+    direction: DOWN
+- scrollUntilVisible:
+    element:
+      text: YouTube
+      checked: true
+    direction: DOWN
+- scrollUntilVisible:
+    element: 45 min
+    direction: DOWN
+- tapOn: 45 min
+- scrollUntilVisible:
+    element: Continuar
+    direction: DOWN
+- assertNotVisible: Responda à pergunta de cada app de risco marcado.
+- tapOn: Continuar
+
+# Etapa 4: duas faixas fixas, uma personalizada 23:30–01:00 (R5),
+# fim de semana e um sentimento.
+- extendedWaitUntil:
+    visible: Gatilhos
+    timeout: 10000
+- scrollUntilVisible:
+    element: 20h–22h
+    direction: DOWN
+- tapOn: 20h–22h
+- tapOn: 22h–24h
+- scrollUntilVisible:
+    element: Adicionar faixa personalizada
+    direction: DOWN
+- tapOn: Adicionar faixa personalizada
+# A faixa nova começa em 23h–01h; seis toques de 5 min levam a 23h30.
+- scrollUntilVisible:
+    element:
+      id: new-range-start-minute-increase
+    direction: DOWN
+- tapOn:
+    id: new-range-start-minute-increase
+    repeat: 6
+- scrollUntilVisible:
+    element: Adicionar faixa
+    direction: DOWN
+- tapOn: Adicionar faixa
+- scrollUntilVisible:
+    element: 23h30–01h
+    direction: UP
+- scrollUntilVisible:
+    element: Fim de semana
+    direction: DOWN
+- tapOn: Fim de semana
+- scrollUntilVisible:
+    element: Tédio
+    direction: DOWN
+- tapOn: Tédio
+- scrollUntilVisible:
+    element: Continuar
+    direction: DOWN
+- tapOn: Continuar
+
+# Etapa 5: motivação obrigatória (3 a 280 caracteres).
+- extendedWaitUntil:
+    visible: Sua motivação
+    timeout: 10000
+- tapOn:
+    id: motivation-input
+- inputText: Ter mais tempo para quem eu amo
+- hideKeyboard
+- scrollUntilVisible:
+    element: Continuar
+    direction: DOWN
+- tapOn: Continuar
+
+# Etapa 6: "Agora não" nas três permissões (modo reduzido).
+- extendedWaitUntil:
+    visible: Permissões
+    timeout: 10000
+- scrollUntilVisible:
+    element: Agora não
+    direction: DOWN
+- tapOn: Agora não
+- scrollUntilVisible:
+    element: Agora não
+    direction: DOWN
+- tapOn: Agora não
+- scrollUntilVisible:
+    element: Agora não
+    direction: DOWN
+- tapOn: Agora não
+- scrollUntilVisible:
+    element: Continuar
+    direction: DOWN
+- tapOn: Continuar
+
+# Etapa 7: o resumo, com as faixas unidas (R5).
+- extendedWaitUntil:
+    visible: Seu plano
+    timeout: 10000
+- scrollUntilVisible:
+    element: Limite de 45 min por dia, somado entre os apps
+    direction: DOWN
+- scrollUntilVisible:
+    element: Sem recair há 3 dias
+    direction: DOWN
+- scrollUntilVisible:
+    element: 'Apps de risco: X, Reddit'
+    direction: DOWN
+- scrollUntilVisible:
+    element: 'Horários: 20h–01h'
+    direction: DOWN
+- scrollUntilVisible:
+    element: 'Dias: .*Sábado.*'
+    direction: DOWN
+- scrollUntilVisible:
+    element: 'Sentimentos: Tédio'
+    direction: DOWN
+- scrollUntilVisible:
+    element: Ter mais tempo para quem eu amo
+    direction: DOWN
+- scrollUntilVisible:
+    element: Começar
+    direction: DOWN
+- tapOn: Começar
+
+# Início (R6): um card por opção, com a contagem e o próximo marco.
+- extendedWaitUntil:
+    visible:
+      id: home-card-pornography
+    timeout: 10000
+- assertVisible: 3 dias
+- assertVisible: 'Próximo marco: 7 dias'
+- assertVisible: Como foi hoje?
+- scrollUntilVisible:
+    element:
+      id: home-card-short_videos
+    direction: DOWN
+- scrollUntilVisible:
+    element: 0 dias
+    direction: DOWN
+- scrollUntilVisible:
+    element: 'Próximo marco: 1 dia'
+    direction: DOWN
+- scrollUntilVisible:
+    element: O acompanhamento do tempo ainda não está ativo.
+    direction: DOWN
+- assertNotVisible: Boas-vindas
+
+# As quatro abas.
+- tapOn: Estatísticas
+- assertVisible: Ainda sem dados
+- tapOn: Progresso
+- assertVisible: Sua jornada começa em breve
+- tapOn: Perfil
+- assertVisible: Minhas escolhas
+- tapOn: Início
+- extendedWaitUntil:
+    visible: Como foi hoje?
+    timeout: 10000
+
+# Fechado e reaberto, abre direto no Início.
+- stopApp
+- runFlow: subflows/abrir-app.yaml
+- extendedWaitUntil:
+    visible: Como foi hoje?
+    timeout: 60000
+- assertNotVisible: Boas-vindas
+
+# Sobre o app.
+- tapOn: Perfil
+- scrollUntilVisible:
+    element: Sobre o app
+    direction: DOWN
+- tapOn: Sobre o app
+- assertVisible: Número do build
+- assertVisible: Desenvolvimento
+# De volta ao Perfil, ainda rolado até o "Sobre o app".
+- tapOn: Voltar
+- extendedWaitUntil:
+    visible: Sobre o app
+    timeout: 10000
+- assertNotVisible: Número do build

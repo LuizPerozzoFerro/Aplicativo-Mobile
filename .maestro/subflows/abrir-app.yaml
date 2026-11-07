@@ -1,0 +1,14 @@
+# Abre o build de desenvolvimento pelo link do dev client, que carrega o
+# bundle do Metro, e fecha o menu do dev client se ele aparecer.
+# Com um launchApp antes, o link chega enquanto o dev client abre e é
+# ignorado (NOTAS-APP.md, passo 10 da Fase 2).
+appId: br.com.quedo.app.dev
+---
+- openLink: quedo-dev://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081
+# Menu do expo-dev-client (não é do app).
+- tapOn:
+    text: Continue
+    optional: true
+- tapOn:
+    text: Close
+    optional: true

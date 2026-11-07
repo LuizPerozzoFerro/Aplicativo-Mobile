@@ -5,6 +5,24 @@ do protótipo continua em `prototype/NOTAS.md`.
 
 ---
 
+## Onde paramos (05/11/2026)
+
+- **Fase 3, passos 1 a 6 integrados na `main`** (PRs #12 a #19; o último é o
+  merge `fd3964b`, do PR #19, Perfil).
+- **Próximo: passo 7 · Maestro e roteiro manual.** Reescrever os quatro fluxos
+  Maestro da spec 02 (o `.maestro/onboarding-e-abas.yaml` do repositório está
+  desatualizado) e executar o roteiro manual R1 a R13 com o responsável.
+- **Estado do ambiente ao parar:**
+  - Metro encerrado por inteiro (pai e servidor filho), porta 8081 livre.
+  - O `adb reverse --remove-all` travou; o `adb.exe` foi encerrado e, ao
+    reiniciar, o S22 apareceu como `unauthorized`. Ao retomar: desbloquear o
+    S22, tocar em **Permitir** em "Permitir depuração USB?", conferir com
+    `adb devices` e rodar `adb reverse --remove-all` antes de subir o Metro.
+  - O app de desenvolvimento no S22 ficou com os dados apagados, nas
+    boas-vindas.
+
+---
+
 ## Divergências a levar ao chat de planejamento
 
 ### DV1 · Docs 01, 02 e spec 01 citam o relatório v0.2 e não incorporam a D6 (01/11/2026)
@@ -1967,6 +1985,45 @@ Nenhuma biblioteca nova. Branch `fase3/perfil`.
   index: 1` tocou no segundo cartão (vídeos curtos), porque a ordem nessa tela
   é a de `COMPULSION_TYPES` (conteúdo adulto primeiro).
 
+## Fase 3 · Passo 7 · Maestro e roteiro manual (07/11/2026)
+
+### Os quatro fluxos (spec 02, seção 4.10)
+
+O `onboarding-e-abas.yaml` da Fase 2 (onboarding vazio) saiu: o que ele
+conferia (as quatro abas, reabrir no Início, o "Sobre") foi para o fluxo (a).
+Todos apagam os dados do app de desenvolvimento (`clearState`).
+
+| Arquivo | O que faz | Roteiro |
+|---|---|---|
+| `a-onboarding-completo.yaml` | As 7 etapas com as duas opções: "Continuar" desabilitado com o motivo na etapa 2 e sem as declarações dos apps de risco na etapa 3; sugeridos pré-marcados; 45 min; "há 3 dias"; X "Não" e Reddit "Sim"; 20h–22h, 22h–24h e a faixa 23:30–01:00 (seis toques de 5 min no início da faixa nova, que começa em 23h–01h); fim de semana; "Agora não" nas três permissões. Resumo com "Horários: 20h–01h". Início com os dois cards ("3 dias", "Próximo marco: 7 dias"; "0 dias", "Próximo marco: 1 dia"; uso inativo). As quatro abas, reabrir no Início e o "Sobre" | R2, R5, R6 |
+| `b-retomar-onboarding.yaml` | Fecha o app na etapa 4 e reabre: volta na etapa 4, com 90 min e os apps da etapa 3. Volta à etapa 2, tenta tirar vídeos curtos ("Manter" desiste), tira de vez ("Tirar"), e a configuração dela some | R3, R4 |
+| `c-check-in-e-recaida.yaml` | "Sem recaída" e "Desfazer"; recaída para ontem (1 dia, "Próximo marco: 3 dias", mensagem de apoio) e "Desfazer"; "Sem recaída", recaída para hoje (0 dias) e "Desfazer" devolve o "Sem recaída"; reabrir mantém a resposta | R7, R8 |
+| `d-apagar-dados.yaml` | Desiste na primeira e na segunda confirmação (nada apagado); depois apaga: boas-vindas, sem "Voltar"; reabrir continua nas boas-vindas | R11 |
+
+Subfluxos em `.maestro/subflows/` (o `maestro test .maestro` não entra em
+subpastas, conferido: só os quatro rodaram):
+- `abrir-app.yaml`: o link do dev client e o menu dele;
+- `onboarding-curto.yaml`: só conteúdo adulto, "há 3 dias" (para "ontem" já
+  estar no período), sem apps de risco; usado por (c) e (d).
+
+Seletores descobertos (`maestro hierarchy --compact` mostra o que o Maestro
+vê):
+- Na etapa 3, **conteúdo adulto vem antes de vídeos curtos**, e as duas listas
+  têm os mesmos apps. O estado ajuda a separar: o Instagram marcado só existe
+  em vídeos curtos, e o X marcado só nos apps de risco.
+- O cartão de opção da etapa 2 é lido como título e descrição juntos: para o
+  estado, `text: "Vídeos curtos e redes sociais,.*"` com `checked`.
+- Declarações: `text: Não` com `below:` na pergunta do app.
+- O "Voltar" do onboarding fica no fim da rolagem: `scrollUntilVisible` antes.
+- Os botões dos diálogos podem vir em maiúsculas: `ONTEM|Ontem`.
+- Depois de voltar do "Sobre", o Perfil continua rolado até embaixo.
+
+**Execução no S22 (`npm run e2e`): 4/4 aprovados em 11m28s** ((a) 4m03s,
+(b) 2m10s, (c) 2m33s, (d) 2m41s). Antes, cada fluxo sozinho, também
+aprovado. As falhas durante a escrita (o Instagram desmarcado da lista de
+risco, o "Voltar" fora da tela, o cartão com a descrição) mostraram que os
+fluxos acusam quando a tela não bate. Duas tentativas caíram no AP4 (abaixo).
+
 ## Problemas
 
 ### AP1 · Build Android falha no C++ do `react-native-worklets` (caminho longo)
@@ -2050,6 +2107,34 @@ respondiam (`timeout` com código 124). É o mesmo P7 do protótipo.
 **Prevenção:** antes de um build longo, conferir `adb shell echo ok`. Em
 builds em segundo plano, considerar o tempo: se o log não mudar por vários
 minutos em `installDebug`, é o `adb`.
+
+### AP4 · Maestro não instala o app auxiliar: verificação de desenvolvedor (07/11/2026)
+
+**Sintoma:** `maestro test` cai antes do primeiro passo com
+`INSTALL_FAILED_VERIFICATION_FAILURE: Install not allowed` ao instalar o
+`dev.mobile.maestro` (o app auxiliar que o Maestro instala a cada execução).
+Em 07/11, três instalações seguidas foram recusadas (10:39 a 10:41); as de
+antes (10:37 e 10:38) e todas as de depois passaram, sem nenhuma mudança no
+aparelho nem no fluxo.
+
+**Causa (no `logcat`, `adb logcat -d | grep VerifyApps`):** é a verificação de
+desenvolvedor do Android (`[ADV]` nas linhas do Play Protect, processo
+`Finsky`), que o Google passou a aplicar no Brasil em 2026. A cada instalação, o
+Play Protect consulta o serviço de verificação:
+- respondeu a tempo: `Verifier app returned response ... verdict=1`, depois
+  `VERIFICATION_ALLOW`;
+- não respondeu em 5 s: `Verification task timed out`, o padrão é recusar
+  (`Scan verdict: 18`, `VERIFICATION_REJECT`). A janela de "instalar mesmo
+  assim" não aparece porque quem instala é o `adb` (`com.android.shell`), "em
+  segundo plano".
+
+**Solução usada:** tentar de novo. Não mexi em nenhuma configuração de
+segurança do aparelho (Play Protect, "Verificar apps via USB"): isso é decisão
+do responsável.
+
+**Atenção:** o próprio app (`npm run android:install`, que também instala pelo
+`adb`) pode cair na mesma verificação. Se um build terminar com esse erro, ver
+o `logcat` antes de investigar o build.
 
 ## Decisões do responsável (01/11/2026)
 

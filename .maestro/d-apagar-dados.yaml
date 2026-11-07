@@ -1,0 +1,75 @@
+# Fluxo (d) da spec 02 (seção 4.10): Perfil → Apagar meus dados, com duas
+# confirmações, volta às boas-vindas e continua nelas ao reabrir (R11).
+# Desistir em qualquer uma das confirmações não apaga nada.
+#
+# Apaga os dados do app de desenvolvimento antes de começar.
+appId: br.com.quedo.app.dev
+name: (d) Apagar dados e voltar às boas-vindas
+---
+- runFlow: subflows/onboarding-curto.yaml
+
+- tapOn: Perfil
+- extendedWaitUntil:
+    visible: Minhas escolhas
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: delete-data
+    direction: DOWN
+
+# Desiste na primeira confirmação.
+- tapOn:
+    id: delete-data
+- extendedWaitUntil:
+    visible: Apagar todos os seus dados?
+    timeout: 10000
+- tapOn: CANCELAR|Cancelar
+- assertNotVisible: Apagar todos os seus dados?
+
+# Desiste na segunda.
+- tapOn:
+    id: delete-data
+- extendedWaitUntil:
+    visible: Apagar todos os seus dados?
+    timeout: 10000
+- tapOn: CONTINUAR|Continuar
+- extendedWaitUntil:
+    visible: Tem certeza?
+    timeout: 10000
+- tapOn: CANCELAR|Cancelar
+- assertNotVisible: Tem certeza?
+
+# Nada foi apagado.
+- tapOn: Início
+- extendedWaitUntil:
+    visible: 3 dias
+    timeout: 10000
+
+# Agora apaga.
+- tapOn: Perfil
+- scrollUntilVisible:
+    element:
+      id: delete-data
+    direction: DOWN
+- tapOn:
+    id: delete-data
+- extendedWaitUntil:
+    visible: Apagar todos os seus dados?
+    timeout: 10000
+- tapOn: CONTINUAR|Continuar
+- extendedWaitUntil:
+    visible: Tem certeza?
+    timeout: 10000
+- tapOn: APAGAR TUDO|Apagar tudo
+- extendedWaitUntil:
+    visible: Boas-vindas
+    timeout: 10000
+- assertNotVisible: Voltar
+
+# Fechado e reaberto, continua nas boas-vindas.
+- stopApp
+- runFlow: subflows/abrir-app.yaml
+- extendedWaitUntil:
+    visible: Boas-vindas
+    timeout: 60000
+- assertNotVisible: Início

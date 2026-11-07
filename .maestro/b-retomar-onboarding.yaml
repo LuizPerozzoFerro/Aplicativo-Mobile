@@ -1,0 +1,118 @@
+# Fluxo (b) da spec 02 (seção 4.10): sair no meio do onboarding e retomar na
+# mesma etapa, com as respostas preenchidas (R3). Depois, voltar à etapa 2 e
+# tirar uma opção, com o aviso (R4).
+#
+# Apaga os dados do app de desenvolvimento antes de começar.
+appId: br.com.quedo.app.dev
+name: (b) Sair no meio do onboarding e retomar na mesma etapa
+---
+- clearState
+- runFlow: subflows/abrir-app.yaml
+
+- extendedWaitUntil:
+    visible: Boas-vindas
+    timeout: 60000
+- tapOn: Sim, tenho 18 anos ou mais
+- tapOn: Continuar
+
+- extendedWaitUntil:
+    visible: O que você quer mudar
+    timeout: 10000
+- tapOn: Conteúdo adulto
+- tapOn: Vídeos curtos e redes sociais
+- tapOn: Continuar
+
+# Etapa 3: tira os apps de risco sugeridos (sem declarações) e escolhe 90 min.
+- extendedWaitUntil:
+    visible: Configuração
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      text: X
+      checked: true
+    direction: DOWN
+- tapOn:
+    text: X
+    checked: true
+- tapOn:
+    text: Reddit
+    checked: true
+- scrollUntilVisible:
+    element: 90 min
+    direction: DOWN
+- tapOn: 90 min
+- scrollUntilVisible:
+    element: Continuar
+    direction: DOWN
+- tapOn: Continuar
+
+# Etapa 4: marca uma faixa, mas fecha o app antes de avançar.
+- extendedWaitUntil:
+    visible: Gatilhos
+    timeout: 10000
+- scrollUntilVisible:
+    element: 08h–10h
+    direction: DOWN
+- tapOn: 08h–10h
+
+# R3: fechado e reaberto, volta na etapa 4.
+- stopApp
+- runFlow: subflows/abrir-app.yaml
+- extendedWaitUntil:
+    visible: Gatilhos
+    timeout: 60000
+- assertNotVisible: Boas-vindas
+
+# As respostas da etapa 3 continuam lá.
+- scrollUntilVisible:
+    element: Voltar
+    direction: DOWN
+- tapOn: Voltar
+- extendedWaitUntil:
+    visible: Configuração
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      text: 90 min
+      checked: true
+    direction: DOWN
+- scrollUntilVisible:
+    element:
+      text: Instagram
+      checked: true
+    direction: UP
+
+# R4: voltar à etapa 2 e tirar vídeos curtos, com aviso.
+- scrollUntilVisible:
+    element: Voltar
+    direction: DOWN
+- tapOn: Voltar
+- extendedWaitUntil:
+    visible: O que você quer mudar
+    timeout: 10000
+- tapOn: Vídeos curtos e redes sociais
+- extendedWaitUntil:
+    visible: Tirar esta escolha?
+    timeout: 10000
+# "Manter" desiste: a escolha continua. O cartão é lido como título e
+# descrição juntos, por isso o ",.*".
+- tapOn: MANTER|Manter
+- assertVisible:
+    text: Vídeos curtos e redes sociais,.*
+    checked: true
+- tapOn: Vídeos curtos e redes sociais
+- extendedWaitUntil:
+    visible: Tirar esta escolha?
+    timeout: 10000
+- tapOn: TIRAR|Tirar
+- assertVisible:
+    text: Vídeos curtos e redes sociais,.*
+    checked: false
+- tapOn: Continuar
+
+# A configuração de vídeos curtos sumiu.
+- extendedWaitUntil:
+    visible: Configuração
+    timeout: 10000
+- assertNotVisible: Quais apps acompanhar?
+- assertNotVisible: Limite diário
