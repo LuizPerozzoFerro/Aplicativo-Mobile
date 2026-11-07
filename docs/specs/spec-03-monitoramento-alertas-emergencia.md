@@ -1,6 +1,6 @@
 # Spec 03 — Monitoramento, Alertas e Emergência (Fase 4)
 
-> **Status:** rascunho v0.1 · **Última atualização:** 07/11/2026
+> **Status:** rascunho v0.2 · **Última atualização:** 07/11/2026
 > **Documentos base:** `docs/01-visao-e-escopo-mvp.md` (v0.8, seções 3, 6.2, 6.5 a 6.7 e 6.10) · `docs/02-plano-tecnico.md` (v0.7, seções 3.4, 4 e 4.1) · `docs/relatorios/01-viabilidade-monitoramento.md` (v0.4, seções 6.2, 7 e 9.6) · `NOTAS-APP.md` (pendências herdadas)
 > **Tipo:** código definitivo. **Só Android.** Sem VPN (D6).
 
@@ -113,7 +113,7 @@ Todo estado do nativo que importa (configuração, contagens do dia, pausa, aler
 - Correções obrigatórias (doc 02, 4.1): acumular o uso incrementalmente, borda do dia explícita, filtrar lançadores, descontar o tempo diante da tela de interrupção, contador de verificações no serviço.
 - Receptor de boot (e de atualização do app) que religa o serviço quando o monitoramento estava ativo. A janela cega depois do reinício (~2,5 min, só depois do primeiro desbloqueio) é aceita e já é avisada no onboarding.
 - Listagem de apps por `queries` MAIN/LAUNCHER, **nunca** `QUERY_ALL_PACKAGES`.
-- Confirmar no S22 os pacotes sugeridos da Fase 3 (Instagram, TikTok, YouTube, Kwai, X, Reddit) com os apps reais instalados.
+- Confirmar no S22 os pacotes sugeridos da Fase 3 (Instagram, TikTok, YouTube, Kwai, X, Reddit) com os apps reais instalados. Se algum não estiver instalado (ex.: Kwai), registrar quais foram confirmados.
 
 ### 5.2 Regras do momento (tabela única)
 
@@ -138,16 +138,18 @@ Todo estado do nativo que importa (configuração, contagens do dia, pausa, aler
 | 10 min de uso no dia naquele app | Notificação (uma vez por app no dia) |
 | App **declarado**: continua em primeiro plano, ou reaberto fora da pausa | Tela de interrupção (Emergência · Ir para a tela inicial · Continuar) |
 | App **não declarado** | Nunca tela |
-| "Continuar mesmo assim" | `continues += 1` na compulsão; pausa de 5 min; sinal registrado (sem recaída). No 3º, a tela para de aparecer até a meia-noite |
+| "Continuar mesmo assim" | `continues += 1` na compulsão; pausa de 5 min **para a compulsão inteira** (vale em todos os apps de risco); sinal registrado (sem recaída). No 3º, a tela para de aparecer até a meia-noite |
 
 **Regras comuns:**
 - Contagens por **compulsão**, somando os apps dela; zeram na borda do dia.
-- App nas duas listas: uma tela só, da compulsão que disparou primeiro no dia; a outra não gera tela naquele app enquanto a primeira estiver ativa.
+- **Pausa por compulsão:** a pausa de 5 min vale para todos os apps da compulsão, como as contagens.
+- App nas duas listas: uma tela só, da compulsão que **atingiu primeiro o seu limite naquele dia**; a outra não gera tela naquele app enquanto a primeira estiver ativa. Quando a primeira para de interromper (dia reprovado, alertas encerrados ou telas encerradas), a outra passa a valer naquele app, se as regras dela pedirem tela.
 - Carência curta depois de qualquer saída da tela, para não reabrir sobre a tela inicial (o `EXIT_GRACE_MS` do protótipo).
 - Todas as regras com vetores de teste compartilhados (4.1).
 
 ### 5.3 Tela de interrupção
-- **Sobreposição como principal; tela própria (Activity) como reserva** quando a sobreposição não puder aparecer (relatório, 7.2).
+- **Sobreposição como principal; tela própria (Activity) como reserva** (relatório, 7.2). As duas dependem da mesma permissão ("aparecer sobre outros apps"): sem ela, fica só a notificação. Quando a sobreposição for escondida por outro app (I-25), tentar a tela própria **uma vez** antes de entrar no recuo progressivo.
+- **Chamada recebida:** a tela de interrupção nunca cobre uma chamada. Se uma chamada começar com ela aberta, ela sai e volta depois, se ainda fizer sentido. Sem permissão nova.
 - Conteúdo: identidade "Quedo" (sem imitar avisos do sistema), a motivação do usuário, uma frase de apoio e os botões da seção 5.2. **Nenhum termo explícito**, nem o nome da compulsão como "Conteúdo adulto": a tela aparece por cima de outro app e pode ser vista por terceiros.
 - Fundo opaco; textos do i18n (via configuração); tema claro e escuro; fonte do sistema até o máximo; leitor de tela com foco inicial no título.
 - **Voltar do Android** tratado explicitamente: não fecha a tela sem escolha. Testado **com o voltar preditivo ligado** (pendência herdada).
@@ -167,7 +169,7 @@ Todo estado do nativo que importa (configuração, contagens do dia, pausa, aler
 **Regras gerais:**
 - Toda notificação com **versão pública neutra** na tela bloqueada (só "Quedo" e um texto genérico); o texto completo só desbloqueado.
 - Ação "Emergência" nas notificações de aviso e nas preventivas; abre o app direto na emergência.
-- **Sem alarme exato:** não usar `SCHEDULE_EXACT_ALARM` nem `USE_EXACT_ALARM` (política do Google Play). Agendamento inexato, com tolerância de até 15 minutos, aceita.
+- **Sem alarme exato:** não usar `SCHEDULE_EXACT_ALARM` nem `USE_EXACT_ALARM` (política do Google Play). Usar o `AlarmManager` em modo inexato **que dispara também em economia profunda** (ex.: `setAndAllowWhileIdle`), sem WorkManager. Tolerância de até 15 minutos aceita; em economia profunda, o atraso pode ser maior, e isso é aceito.
 - Agendamentos sobrevivem ao reinício e à morte do processo.
 - Funcionam **mesmo sem a permissão de uso**: check-in, preventivas e recomeço não dependem do serviço de monitoramento.
 - **Limite de 6 proativas por dia** controlado no nativo: check-in e recomeço sempre têm vaga; preventivas no máximo 4. Avisos de monitoramento ficam fora do limite.
@@ -180,11 +182,16 @@ Todo estado do nativo que importa (configuração, contagens do dia, pausa, aler
 
 **Preventivas por gatilho:**
 - No início de cada faixa (faixas vizinhas e sobrepostas unidas, regra do resumo da Fase 3), só nos dias marcados ou em todos, se nenhum foi marcado.
+- Mais de 4 faixas no dia: valem as 4 primeiras, em ordem de horário.
+- Faixas cobrindo o dia todo ("O dia todo" no resumo): não há início de faixa, então nenhuma preventiva.
 - Texto escolhido entre variações que usam a emoção declarada e, quando couber, a motivação.
 
 **Recomeço:**
 - Depois de uma quebra (recaída registrada ou dia reprovado) quando a streak era de 1 dia ou mais.
-- No dia seguinte, às 9h ou no primeiro desbloqueio depois das 9h. Uma só.
+- No dia seguinte à quebra: às 9h se o celular estiver em uso; se estiver bloqueado, no primeiro desbloqueio depois das 9h. Sem a permissão de uso (sem serviço rodando para perceber o desbloqueio), sai às 9h.
+- Recaída registrada **hoje para ontem**: o "dia seguinte" seria hoje, mas o usuário acabou de ver a mensagem de apoio no app. **Nesse caso, não há notificação de recomeço.**
+- Quebra nas duas compulsões no mesmo dia: uma notificação só.
+- "Desfazer" a quebra cancela o recomeço agendado.
 
 **Proteção pausada:**
 - Quando a vigilância (5.7) percebe uma permissão perdida ou o serviço parado sem querer, uma notificação neutra leva à tela de permissões. No máximo uma por dia por motivo.
@@ -221,7 +228,8 @@ Só `CREATE TABLE` e `ALTER TABLE ... ADD`, sem recriar tabela-pai, e passando n
 
 ### 5.8 Manifesto
 - A verificação do manifesto passa a usar uma **lista de permissões permitidas** (além da de proibidas). Qualquer permissão nova fora da lista quebra a verificação.
-- Permitidas nesta fase (a conferir na documentação atual): `INTERNET`, `VIBRATE`, `SYSTEM_ALERT_WINDOW`, `PACKAGE_USAGE_STATS`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE`, `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`.
+- Permitidas nesta fase (a conferir na documentação atual): `INTERNET`, `VIBRATE`, `SYSTEM_ALERT_WINDOW`, `PACKAGE_USAGE_STATS`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE`, `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED` e a permissão própria do app `<pacote>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` (vem do AndroidX).
+- Só na variante de desenvolvimento, as do dev client: `ACCESS_NETWORK_STATE`, `ACCESS_LOCAL_NETWORK` e `CHANGE_WIFI_MULTICAST_STATE`. Prévia e produção são conferidas pela lista estrita.
 - Proibidas, somando às atuais: `QUERY_ALL_PACKAGES`, `SCHEDULE_EXACT_ALARM`, `USE_EXACT_ALARM`, `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`.
 - Qualquer permissão a mais exige explicação e confirmação do responsável.
 
@@ -300,10 +308,11 @@ Com as ferramentas de teste (5.10) para encurtar os tempos.
 | M13 | Recomeço disparado pela ferramenta depois de uma quebra | Uma notificação; nenhuma se a streak era 0 |
 | M14 | Reiniciar o S22 | Depois do desbloqueio e de alguns minutos, o monitoramento volta sozinho e os agendamentos continuam |
 | M15 | Revogar o acesso ao uso nos Ajustes | Notificação de proteção pausada e aviso no Início; a tela de estado mostra o que fazer |
-| M16 | Mudar o tamanho da fonte com o app aberto | O app não recria a tela nem mostra erro |
+| M16 | Mudar o tamanho da fonte com o app aberto | O app não recria a tela nem mostra erro, e o texto acompanha o novo tamanho |
 | M17 | Voltar preditivo ligado, gesto de voltar na tela de interrupção | A tela não fecha sem uma escolha |
 | M18 | Tema escuro e fonte no máximo na tela de interrupção e na emergência | Tudo legível, sem corte |
 | M19 | Ler todos os textos novos | Português correto, tom acolhedor, nenhum termo explícito, inclusive na tela de interrupção |
+| M20 | Receber uma chamada com a tela de interrupção aberta | A tela sai e não cobre a chamada |
 
 ---
 
@@ -320,7 +329,7 @@ Com as ferramentas de teste (5.10) para encurtar os tempos.
 - [ ] Manifesto só com as permissões da lista permitida.
 - [ ] Ferramentas de teste ausentes em prévia e produção.
 - [ ] Pendências herdadas resolvidas (5.12), com o resultado do AP4 registrado.
-- [ ] Roteiro M1 a M19 executado com o responsável.
+- [ ] Roteiro M1 a M20 executado com o responsável.
 - [ ] `lint`, `typecheck` e `test` no CI; `NOTAS-APP.md` atualizado.
 
 ---
@@ -342,3 +351,4 @@ Com as ferramentas de teste (5.10) para encurtar os tempos.
 | Versão | Data | Alterações |
 |---|---|---|
 | 0.1 | 07/11/2026 | Primeira versão |
+| 0.2 | 07/11/2026 | Doze pontos esclarecidos com o Claude Code: recomeço (bloqueado/desbloqueado, recaída para ontem sem notificação, uma só, desfazer cancela); pausa por compulsão; app nas duas listas depois que a primeira para; tela própria tentada uma vez antes do recuo; preventivas além de 4 e "dia todo"; fonte acompanha o novo tamanho; permissões do AndroidX e do dev client; `AlarmManager` que dispara em economia profunda; chamada recebida (M20); Kwai |

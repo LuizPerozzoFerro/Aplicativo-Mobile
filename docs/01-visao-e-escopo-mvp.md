@@ -2,7 +2,7 @@
 
 > **Status:** revisado v0.8 · **Última atualização:** 07/11/2026
 > **Nome do app:** **Quedo** (decidido em 01/11/2026, ver seção 7.4 e o documento de decisão do nome no Project)
-> **Documentos relacionados:** `02-plano-tecnico.md` (v0.6) · `relatorios/01-viabilidade-monitoramento.md` (v0.4, resultado da Fase 1 no Android)
+> **Documentos relacionados:** `02-plano-tecnico.md` (v0.7) · `relatorios/01-viabilidade-monitoramento.md` (v0.4, resultado da Fase 1 no Android)
 > Este documento descreve **o que** o app faz e **por quê**. Decisões de arquitetura, stack e padrões de código ficam em documentos técnicos próprios e no `CLAUDE.md`.
 
 ---
