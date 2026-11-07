@@ -2152,7 +2152,7 @@ investigação do AP4.
 |---|---|
 | `UsageReader.getUsageTodayFromEvents` e `currentForegroundPackage` | `UsageTimeline` (Kotlin puro, testado em JUnit) + `UsageReader` (só a conversa com o Android). Uma passada só devolve o total do dia e o app na tela |
 | Lia os eventos a partir da meia-noite | **Borda do dia explícita:** lê 24 h antes da meia-noite e corta cada intervalo em `[início do dia, agora]`. Um app aberto antes da meia-noite conta só a parte de hoje (o protótipo perdia esse uso) |
-| Tela inicial contada como app (I-8) | **Lançadores fora:** pacotes que respondem a `MAIN`/`HOME`, com o `<queries>` correspondente |
+| Tela inicial contada como app (I-8) | **Lançadores fora:** pacotes que respondem a `MAIN`/`HOME` com prioridade >= 0 (o `FallbackHome` das Configurações fica de fora; ver "No aparelho"), com o `<queries>` correspondente |
 | `startOfToday` com `Calendar` | `DayBoundary` com `java.time` (`atStartOfDay`), igual a `src/domain/day.ts`: dia de 23 e 25 horas e meia-noite inexistente (04/11/2018) testados em JUnit. Os vetores compartilhados com o Jest entram no passo 3 |
 | `UsageLimitService` com as regras do A2 a A5 | `MonitoringService` só com o laço de verificação (20 s, como no protótipo) e o **contador de verificações**. As regras entram no passo 3; o acúmulo incremental e o desconto do tempo diante da tela, nos passos 3 e 4 |
 | `LimitConfig` | `MonitoringState`: ligado ou não, criações do serviço, verificações, último boot e o resultado. Nada que identifique app ou compulsão |
@@ -2193,6 +2193,7 @@ Depois do prebuild, o `AndroidManifest.xml` gerado traz
 
 ### Testes JUnit
 
+- 15 testes JUnit (borda do dia, reconstrução do uso e lançadores).
 - `junit:junit:4.13.2` só como `testImplementation` do módulo: não vai para o
   APK. É a biblioteca de testes padrão do Android.
 - Comando (depois do prebuild): `cd android && gradlew.bat :monitoring-android:testDebugUnitTest`.
@@ -2246,6 +2247,34 @@ Depois do prebuild, o `AndroidManifest.xml` gerado traz
   consulta MAIN/LAUNCHER. O segundo pacote do TikTok
   (`com.ss.android.ugc.trill`, outra região da loja) não está instalado, como
   esperado.
+- **Permissões e serviço (responsável, 14:11):** acesso ao uso e notificações
+  concedidos pela tela; "Ligar o serviço" às 14:11:48. O `logcat` registrou
+  `Background started FGS: Allowed ... uidState: TOP` (iniciado com o app na
+  tela). `dumpsys activity services`: `isForeground=true`,
+  `types=0x40000000` (`specialUse`), notificação no canal `monitoring`. 6
+  verificações até 14:13:28, no ritmo de 20 s.
+- **Lançadores (achado novo):** no S22, a intenção HOME devolve o One UI Home
+  (prioridade 0) **e** `com.android.settings/.FallbackHome` (prioridade
+  -1000), a tela de reserva do boot. A primeira versão descontava as duas, e
+  o app de Configurações sumia do uso. Corrigido com `Launchers.select`
+  (só prioridade >= 0), com teste JUnit. Depois da correção: "Config.: 2 min"
+  na lista, One UI Home fora.
+- **Morte do processo (I-31):** `run-as br.com.quedo.app.dev kill -9` às
+  14:15:06 com o serviço ligado. O sistema recriou o processo e o serviço em
+  ~6 s (pid novo, `restartCount=1`, de novo em primeiro plano). O estado em
+  disco continuou: `serviceStarts` 1 → 2, verificações seguindo de 11 para 15
+  em ~80 s.
+- **Atualização do app com o monitoramento ligado:** a reinstalação das
+  14:18:24 disparou o `MY_PACKAGE_REPLACED`, e o receptor religou o serviço
+  sozinho (`lastBootResult = started`, `serviceStarts` 3, em primeiro plano).
+- **M16, mudança de fonte com o app aberto:** a fonte foi de 1.15 para 2.0 às
+  14:12:31 e voltou às 14:12:46. A janela da `MainActivity` é a mesma antes e
+  depois (`Window{91d9c9f ...}` às 14:11:19, 14:12:35 e 14:12:44), no mesmo
+  processo, e o Metro não registrou nenhum aviso do React Navigation: a
+  Activity **não foi recriada**.
+- **JUnit:** 15 testes (3 da borda do dia, 10 da reconstrução do uso, 2 dos
+  lançadores), todos passando. Mutação de controle: sem o corte da
+  meia-noite, 2 falham.
 
 ## Problemas
 
@@ -2358,6 +2387,32 @@ do responsável.
 **Atenção:** o próprio app (`npm run android:install`, que também instala pelo
 `adb`) pode cair na mesma verificação. Se um build terminar com esse erro, ver
 o `logcat` antes de investigar o build.
+
+**De novo em 07/11, às 14:18 a 14:20:** três recusas seguidas do
+`dev.mobile.maestro` (ids 203 a 205), todas com `Verification task timed out`.
+O `logcat` detalha a regra: `Dialog suppressed: true. Reason: installer is in
+background and was not recently interacted with. installer: com.android.shell`
+→ `VERIFICATION_REJECT`. A instalação do próprio app pelo Gradle, às 14:18:24,
+passou. Para ler a tela sem o Maestro, `adb shell uiautomator dump` (já vem no
+Android) e `adb shell input tap` resolvem.
+
+### AP5 · Metro para de responder depois de um build do Gradle (07/11/2026)
+
+**Sintoma:** depois do `gradlew installDebug`, o Metro (iniciado antes do
+build) continua com a porta 8081 aberta, mas não responde: `curl
+localhost:8081/status` estoura o tempo, e o app abre com a tela vazia. Aconteceu
+duas vezes no mesmo dia, as duas logo depois de um build.
+
+**Hipótese (não confirmada):** o vigia de arquivos do Metro olha o projeto
+inteiro, e o Gradle escreve milhares de arquivos em `android/` e em
+`modules/monitoring-android/android/build/`. Não mudei a configuração do Metro:
+se continuar, testar um `blockList` para essas pastas.
+
+**Solução usada:** parar o Metro inteiro (o processo dono da porta 8081, como
+em "Cuidado: encerrar o Metro inteiro"), subir de novo, refazer o `adb
+reverse` e abrir o app pelo link do dev client. Na dúvida, subir o Metro só
+depois do build.
+
 
 ## Decisões do responsável (01/11/2026)
 

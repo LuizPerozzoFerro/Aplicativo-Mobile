@@ -50,7 +50,10 @@ object UsageReader {
 
   /** Telas iniciais instaladas (I-8). Depende do `<queries>` HOME do manifesto. */
   fun launcherPackages(context: Context): Set<String> =
-    resolve(context, Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)).toSet()
+    Launchers.select(
+      query(context, Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME))
+        .mapNotNull { info -> info.activityInfo?.packageName?.let { Launchers.Candidate(it, info.priority) } }
+    )
 
   /**
    * Apps com ícone na gaveta, para o usuário escolher. `<queries>`
@@ -63,15 +66,17 @@ object UsageReader {
       .map { packageName -> mapOf("id" to packageName, "label" to appLabel(context, packageName)) }
       .sortedBy { (it["label"] as String).lowercase() }
 
-  private fun resolve(context: Context, intent: Intent): List<String> {
+  private fun resolve(context: Context, intent: Intent): List<String> =
+    query(context, intent).mapNotNull { it.activityInfo?.packageName }.distinct()
+
+  private fun query(context: Context, intent: Intent): List<ResolveInfo> {
     val packageManager = context.packageManager
-    val resolved: List<ResolveInfo> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
       packageManager.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(0L))
     } else {
       @Suppress("DEPRECATION")
       packageManager.queryIntentActivities(intent, 0)
     }
-    return resolved.mapNotNull { it.activityInfo?.packageName }.distinct()
   }
 
   private fun appLabel(context: Context, packageName: String): String {
