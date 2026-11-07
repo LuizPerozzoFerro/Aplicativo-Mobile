@@ -28,6 +28,8 @@ export type NativeServiceStatus = {
   readonly lastCheckAt: number | null;
   readonly lastBootAt: number | null;
   readonly lastBootResult: NativeBootResult | null;
+  /** Eventos gravados e ainda não confirmados pelo JS. */
+  readonly pendingEvents: number;
 };
 
 /** Código do erro quando falta o acesso ao uso (`UsageAccessRequiredException`). */
@@ -46,6 +48,15 @@ export type QuedoMonitoringNativeModule = {
   startMonitoring(): Promise<void>;
   stopMonitoring(): Promise<void>;
   getServiceStatus(): NativeServiceStatus;
+  /** Configuração em JSON (`MonitoringConfig`). Falha com ERR_INVALID_CONFIG se o nativo recusar. */
+  configure(json: string): Promise<void>;
+  /** Configuração guardada, em JSON, ou nulo. Para a tela de desenvolvimento. */
+  getConfig(): string | null;
+  /** Eventos ainda não confirmados, em JSON (lista). */
+  getPendingEvents(): Promise<string>;
+  acknowledgeEvents(ids: string[]): Promise<void>;
+  /** Para o serviço e apaga configuração, estado e eventos. */
+  reset(): Promise<void>;
 };
 
 let cached: QuedoMonitoringNativeModule | null | undefined;

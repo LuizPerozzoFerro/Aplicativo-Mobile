@@ -22,6 +22,9 @@ import android.os.IBinder
  */
 class MonitoringService : Service() {
 
+  /** De onde veio o início, para o evento `service_started` (`ServiceStartOrigin` no JS). */
+  enum class Origin(val value: String) { APP("app"), BOOT("boot"), UPDATE("update") }
+
   companion object {
     /**
      * Intervalo entre verificações. O do protótipo, que custou 0,16% do
@@ -34,9 +37,13 @@ class MonitoringService : Service() {
     var isRunning = false
       private set
 
+    private const val EXTRA_ORIGIN = "br.com.quedo.monitoring.ORIGIN"
+
     /** Pelo app (com uma tela visível) ou pelo boot, que o Android também permite. */
-    fun start(context: Context) {
-      context.startForegroundService(Intent(context, MonitoringService::class.java))
+    fun start(context: Context, origin: Origin) {
+      context.startForegroundService(
+        Intent(context, MonitoringService::class.java).putExtra(EXTRA_ORIGIN, origin.value)
+      )
     }
 
     fun stop(context: Context) {
@@ -84,7 +91,19 @@ class MonitoringService : Service() {
     handler = Handler(worker.looper).also { it.post(check) }
   }
 
-  override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
+  /** Se o `service_started` desta criação já foi gravado. */
+  private var startRecorded = false
+
+  override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    if (isRunning && !startRecorded) {
+      startRecorded = true
+      // Sem intent: o sistema recriou o serviço depois de matar o processo
+      // (START_STICKY, I-31).
+      val origin = intent?.getStringExtra(EXTRA_ORIGIN) ?: "restart"
+      EventStore.append(this, "service_started", mapOf("origin" to origin))
+    }
+    return START_STICKY
+  }
 
   override fun onDestroy() {
     handler?.removeCallbacks(check)

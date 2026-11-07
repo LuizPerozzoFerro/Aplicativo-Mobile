@@ -9,6 +9,7 @@ import type { CompulsionType } from '@/domain/compulsion';
 import { onboardingProgress } from '@/features/onboarding/onboardingProgress';
 import { onboardingStatus } from '@/features/onboarding/onboardingStatus';
 import { useTriggerLabels } from '@/features/onboarding/useTriggerLabels';
+import { getMonitoringSync } from '@/monitoring';
 import { confirmDialog, ListItem, Screen, Text, useTheme } from '@/ui';
 
 function load() {
@@ -68,6 +69,13 @@ export function ProfileScreen() {
       destructive: true,
     });
     if (!second) return;
+    // Primeiro o nativo (configuração, estado e eventos ainda não importados,
+    // spec 03, 4.4), para nenhum evento antigo voltar ao banco vazio.
+    try {
+      await getMonitoringSync().reset();
+    } catch {
+      console.error('Monitoramento: falha ao apagar os dados do nativo');
+    }
     getRepositories().deleteAllData();
     // O banco já voltou ao padrão; a memória acompanha, e as rotas protegidas
     // levam às boas-vindas (pendência herdada da Fase 2).

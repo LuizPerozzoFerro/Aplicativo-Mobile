@@ -60,6 +60,11 @@ object MonitoringState {
       .apply()
   }
 
+  /** "Apagar meus dados": volta ao estado de instalação. */
+  fun clear(context: Context) {
+    prefs(context).edit().clear().commit()
+  }
+
   fun snapshot(context: Context): Map<String, Any?> {
     val p = prefs(context)
     return mapOf(

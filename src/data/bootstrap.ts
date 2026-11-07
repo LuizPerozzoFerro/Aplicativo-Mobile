@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { onboardingProgress } from '@/features/onboarding/onboardingProgress';
 import { onboardingStatus } from '@/features/onboarding/onboardingStatus';
 
+import { dataChanges, observeRepositories } from './changes';
 import { DATABASE_NAME, schema, type AppDatabase } from './database';
 import { runMigrations } from './migrations';
 import { createRepositories, type Repositories } from './repositories';
@@ -22,7 +23,8 @@ function openAppDatabase(): AppData {
   // O SQLite só respeita chaves estrangeiras (e a cascata) com este PRAGMA.
   expoDb.execSync('PRAGMA foreign_keys = ON;');
   const db = drizzle(expoDb, { schema });
-  return { db, repositories: createRepositories(db) };
+  // Toda gravação avisa a sincronização com o monitoramento (src/features/monitoring).
+  return { db, repositories: observeRepositories(createRepositories(db), dataChanges.notify) };
 }
 
 /**

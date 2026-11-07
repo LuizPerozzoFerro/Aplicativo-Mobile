@@ -10,6 +10,12 @@
 //   sem interpretá-lo;
 // - nada daqui vai para logs nem sai do aparelho (CLAUDE.md, seção 9).
 
+import type { CheckInAnswer } from '@/domain/checkIn';
+import type { CompulsionType } from '@/domain/compulsion';
+import type { InterruptionResponse } from '@/domain/monitoring';
+import type { DayFailureReason } from '@/domain/streak';
+import type { Emotion, Weekday } from '@/domain/triggers';
+
 export const UNSUPPORTED = 'unsupported';
 export type Unsupported = typeof UNSUPPORTED;
 
@@ -85,23 +91,148 @@ export type UsageEntry = {
   readonly milliseconds: number;
 };
 
+/**
+ * Configuração que o JS envia ao nativo (spec 03, seção 4.2) sempre que algo
+ * muda e ao abrir o app. O nativo guarda a última em disco e a usa depois do
+ * reinício, sem o JS. Montada em src/features/monitoring/config.ts.
+ */
+export type MonitoringConfig = {
+  /** Versão do formato. O nativo recusa uma que não conhece. */
+  readonly version: typeof MONITORING_CONFIG_VERSION;
+  readonly compulsions: readonly MonitoringCompulsionConfig[];
+  /** Moderação: um limite somado por compulsão, valendo para todos os apps dela. */
+  readonly moderationRules: readonly ModerationRuleConfig[];
+  /** Conteúdo adulto: um limite por app de risco. */
+  readonly riskAppRules: readonly RiskAppRuleConfig[];
+  /** Horário do check-in em minutos desde a meia-noite; nulo sem compulsão de abstinência ativa. */
+  readonly checkInMinutes: number | null;
+  readonly preventive: PreventiveConfig;
+  /** Motivação do usuário, para a tela de interrupção e as notificações. */
+  readonly motivation: string | null;
+  /** Todos os textos que o nativo exibe, já traduzidos (spec 03, 4.2). */
+  readonly texts: MonitoringTexts;
+};
+
+export const MONITORING_CONFIG_VERSION = 1;
+
+export type MonitoringCompulsionConfig = {
+  readonly id: number;
+  readonly type: CompulsionType;
+  /** Dia a partir do qual a streak conta (AAAA-MM-DD): diz se havia streak a perder. */
+  readonly streakBaseDayKey: string;
+  /** Último dia com check-in respondido (AAAA-MM-DD), ou nulo. Só na abstinência. */
+  readonly checkInAnsweredDayKey: string | null;
+};
+
+export type ModerationRuleConfig = {
+  readonly compulsionId: number;
+  readonly targetIds: readonly TargetId[];
+  readonly dailyLimitMinutes: number;
+};
+
+export type RiskAppRuleConfig = {
+  readonly compulsionId: number;
+  readonly targetId: TargetId;
+  readonly dailyLimitMinutes: number;
+  /** Se o usuário declarou consumir o conteúdo nele: só então há tela de interrupção. */
+  readonly interruption: boolean;
+};
+
+export type PreventiveConfig = {
+  /** Dias da semana (0 = domingo) com preventivas: os marcados, ou todos. */
+  readonly weekdays: readonly Weekday[];
+  /** Horários das preventivas, em minutos desde a meia-noite (no máximo 4). */
+  readonly startMinutes: readonly number[];
+  readonly emotions: readonly Emotion[];
+};
+
+/**
+ * Textos do nativo. Crescem a cada passo da Fase 4: aqui só os que o nativo
+ * já mostra. Neutros e sem termo explícito (CLAUDE.md, seção 9).
+ */
+export type MonitoringTexts = {
+  readonly channels: {
+    readonly tracking: string;
+    readonly alerts: string;
+    readonly reminders: string;
+  };
+  readonly ongoing: { readonly title: string; readonly text: string };
+};
+
 export const MONITORING_EVENT_TYPES = [
+  'service_started',
   'limit_reached',
   'notification_sent',
   'interruption_shown',
+  'interruption_response',
+  'day_failed',
+  'check_in_answered',
+  'emergency_requested',
   'permission_lost',
 ] as const;
 export type MonitoringEventType = (typeof MONITORING_EVENT_TYPES)[number];
 
-/** Evento gravado pelo monitoramento (o "log comum" do relatório, seção 7.3). */
-export type MonitoringEvent = {
+export const SERVICE_START_ORIGINS = ['app', 'boot', 'update', 'restart'] as const;
+export type ServiceStartOrigin = (typeof SERVICE_START_ORIGINS)[number];
+
+export const NOTIFICATION_KINDS = [
+  'limit',
+  'risk_app',
+  'check_in',
+  'preventive',
+  'restart',
+  'protection_paused',
+] as const;
+export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
+
+type EventBase = {
+  /** Identificador único, gerado pelo nativo. */
+  readonly id: string;
   /** Instante em milissegundos desde a época Unix. */
-  readonly timestamp: number;
-  readonly type: MonitoringEventType;
-  readonly ruleId?: string;
-  readonly targetId?: TargetId;
-  readonly permission?: PermissionKind;
+  readonly at: number;
+  /** Dia local do evento (AAAA-MM-DD), pela borda do dia do nativo. */
+  readonly dayKey: string;
 };
+
+/**
+ * Evento gravado pelo nativo (spec 03, seção 4.3). O JS importa de forma
+ * idempotente e só então pede para apagá-lo.
+ */
+export type MonitoringEvent = EventBase &
+  (
+    | { readonly type: 'service_started'; readonly origin: ServiceStartOrigin }
+    | {
+        readonly type: 'limit_reached';
+        readonly compulsionId: number;
+        /** Só no app de risco, cujo limite é por app. */
+        readonly targetId: TargetId | null;
+      }
+    | { readonly type: 'notification_sent'; readonly kind: NotificationKind }
+    | {
+        readonly type: 'interruption_shown';
+        readonly compulsionId: number;
+        readonly targetId: TargetId;
+      }
+    | {
+        readonly type: 'interruption_response';
+        /** O `id` do `interruption_shown` respondido. */
+        readonly interruptionId: string;
+        readonly compulsionId: number;
+        readonly response: InterruptionResponse;
+      }
+    | {
+        readonly type: 'day_failed';
+        readonly compulsionId: number;
+        readonly reason: DayFailureReason;
+      }
+    | {
+        readonly type: 'check_in_answered';
+        readonly compulsionId: number;
+        readonly answer: CheckInAnswer;
+      }
+    | { readonly type: 'emergency_requested'; readonly source: 'interruption' | 'notification' }
+    | { readonly type: 'permission_lost'; readonly permission: PermissionKind }
+  );
 
 export interface MonitoringModule {
   readonly platform: MonitoringPlatform;
@@ -138,7 +269,15 @@ export interface MonitoringModule {
   startDomainWatch(): Promise<void | Unsupported>;
   stopDomainWatch(): Promise<void | Unsupported>;
 
-  /** Eventos gravados desde a última limpeza, do mais antigo ao mais novo. */
-  getEvents(): Promise<MonitoringEvent[]>;
-  clearEvents(): Promise<void>;
+  /** Envia a configuração (spec 03, 4.2). Substitui a anterior, que o nativo guarda em disco. */
+  configure(config: MonitoringConfig): Promise<void>;
+  /**
+   * Eventos ainda não confirmados, do mais antigo ao mais novo. Os que vieram
+   * malformados do nativo aparecem em `invalidIds`, para serem apagados também.
+   */
+  getPendingEvents(): Promise<{ events: MonitoringEvent[]; invalidIds: string[] }>;
+  /** Apaga os eventos já importados. Ids desconhecidos são ignorados. */
+  acknowledgeEvents(ids: readonly string[]): Promise<void>;
+  /** "Apagar meus dados": para o monitoramento e apaga configuração, estado e eventos. */
+  reset(): Promise<void>;
 }

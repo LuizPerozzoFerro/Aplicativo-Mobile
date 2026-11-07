@@ -10,6 +10,7 @@ import {
 
 const TABLES_001 = ['monitored_apps', 'motivation', 'settings', 'triggers', 'user_compulsions'];
 const TABLES_002 = ['check_ins', 'day_states', 'relapses'];
+const TABLES_005 = ['emergency_sessions', 'imported_events', 'interruption_events'];
 /** Migrações do app no índice (drizzle/meta/_journal.json). */
 const APP_MIGRATIONS = loadMigrationBundle().journal.entries.length;
 
@@ -76,9 +77,11 @@ describe('migrações', () => {
     );
   });
 
-  it('as migrações criam as tabelas da 001 e as da 002, a coluna do início informado (003) e a resposta anterior do check-in (004)', async () => {
+  it('as migrações criam as tabelas da 001, da 002 e da 005, a coluna do início informado (003) e a resposta anterior do check-in (004)', async () => {
     const { raw } = await createTestDatabase();
-    expect(tableNames(raw)).toEqual(expect.arrayContaining([...TABLES_001, ...TABLES_002]));
+    expect(tableNames(raw)).toEqual(
+      expect.arrayContaining([...TABLES_001, ...TABLES_002, ...TABLES_005]),
+    );
     expect(columnNames(raw, 'user_compulsions')).toContain('initial_streak_days');
     expect(columnNames(raw, 'check_ins')).toEqual(
       expect.arrayContaining(['previous_answer', 'previous_source', 'previous_answered_at']),
@@ -267,6 +270,38 @@ describe('restrições do esquema', () => {
       "INSERT INTO day_states (compulsion_id, day_key) VALUES (2, '2026-11-02'), (2, '2026-11-02')",
       'dois estados no mesmo dia',
     ],
+    [
+      "INSERT INTO interruption_events (id, compulsion_id, day_key, shown_at, app_package) VALUES ('e1', 999, '2026-11-02', 0, 'app.test')",
+      'interrupção de compulsão que não existe',
+    ],
+    [
+      "INSERT INTO interruption_events (id, compulsion_id, day_key, shown_at, response, responded_at, app_package) VALUES ('e1', 2, '2026-11-02', 0, 'later', 1, 'app.test')",
+      'resposta de interrupção fora da lista',
+    ],
+    [
+      "INSERT INTO interruption_events (id, compulsion_id, day_key, shown_at, response, app_package) VALUES ('e1', 2, '2026-11-02', 0, 'home', 'app.test')",
+      'resposta sem horário',
+    ],
+    [
+      "INSERT INTO interruption_events (id, compulsion_id, day_key, shown_at, app_package) VALUES ('e1', 2, '2026-11-02', 0, 'app.test'), ('e1', 2, '2026-11-02', 0, 'app.test')",
+      'o mesmo evento duas vezes',
+    ],
+    [
+      "INSERT INTO emergency_sessions (started_at, source) VALUES (0, 'widget')",
+      'origem da emergência fora da lista',
+    ],
+    [
+      "INSERT INTO emergency_sessions (started_at, source, outcome) VALUES (0, 'home', 'passed')",
+      'resultado sem fim',
+    ],
+    [
+      "INSERT INTO emergency_sessions (started_at, source, ended_at, outcome) VALUES (0, 'home', 1, 'maybe')",
+      'resultado fora da lista',
+    ],
+    [
+      "INSERT INTO imported_events (event_id, imported_at) VALUES ('e1', 0), ('e1', 1)",
+      'o mesmo evento importado duas vezes',
+    ],
   ])('o banco recusa %s (%s)', async (statement) => {
     const raw = await seededDatabase();
     expect(() => raw.run(statement)).toThrow();
@@ -281,12 +316,24 @@ describe('restrições do esquema', () => {
       "INSERT INTO day_states (compulsion_id, day_key, failed, failed_reason) VALUES (2, '2026-11-02', 1, 'third_continue')",
       'dia reprovado com motivo',
     ],
+    [
+      "INSERT INTO interruption_events (id, compulsion_id, day_key, shown_at, app_package) VALUES ('e1', 2, '2026-11-02', 0, 'app.test')",
+      'interrupção ainda sem resposta',
+    ],
+    [
+      "INSERT INTO emergency_sessions (started_at, source) VALUES (0, 'interruption')",
+      'emergência em andamento',
+    ],
+    [
+      "INSERT INTO emergency_sessions (started_at, source, ended_at, outcome) VALUES (0, 'notification', 1, 'abandoned')",
+      'emergência abandonada',
+    ],
   ])('o banco aceita %s (%s)', async (statement) => {
     const raw = await seededDatabase();
     expect(() => raw.run(statement)).not.toThrow();
   });
 
-  it('apagar a compulsão apaga em cascata check-ins, recaídas e estados do dia', async () => {
+  it('apagar a compulsão apaga em cascata check-ins, recaídas, estados do dia e interrupções', async () => {
     const raw = await seededDatabase();
     raw.run(
       "INSERT INTO check_ins (compulsion_id, day_key, answer, answered_at) VALUES (1, '2026-11-02', 'relapse', 0)",
@@ -295,8 +342,11 @@ describe('restrições do esquema', () => {
       "INSERT INTO relapses (compulsion_id, day_key, recorded_at) VALUES (1, '2026-11-02', 0)",
     );
     raw.run("INSERT INTO day_states (compulsion_id, day_key) VALUES (2, '2026-11-02')");
+    raw.run(
+      "INSERT INTO interruption_events (id, compulsion_id, day_key, shown_at, app_package) VALUES ('e1', 2, '2026-11-02', 0, 'app.test')",
+    );
     raw.run('DELETE FROM user_compulsions');
-    for (const table of TABLES_002) {
+    for (const table of [...TABLES_002, 'interruption_events']) {
       expect(query(raw, `SELECT count(*) FROM ${table}`)[0]?.[0]).toBe(0);
     }
   });
@@ -335,6 +385,9 @@ const FIXTURE_ROWS: Record<string, readonly string[]> = {
   ],
   day_states: [
     "INSERT INTO day_states (compulsion_id, day_key, failed, failed_reason) VALUES (2, '2026-11-01', 1, 'ignored_limit')",
+  ],
+  interruption_events: [
+    "INSERT INTO interruption_events (id, compulsion_id, day_key, shown_at, response, responded_at, app_package) VALUES ('event-1', 2, '2026-11-01', 0, 'home', 1, 'com.example.clips')",
   ],
 };
 

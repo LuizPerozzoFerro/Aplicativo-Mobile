@@ -5,7 +5,7 @@
   não colidir com recursos de outras bibliotecas.
 -->
 <resources>
-  <string name="quedo_monitoring_channel_name">Proteção</string>
+  <string name="quedo_monitoring_channel_name">Acompanhamento</string>
   <string name="quedo_monitoring_ongoing_title">Quedo</string>
   <string name="quedo_monitoring_ongoing_text">Proteção ativa.</string>
 </resources>

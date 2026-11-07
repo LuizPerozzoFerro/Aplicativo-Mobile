@@ -5,6 +5,7 @@ import { AppState } from 'react-native';
 
 import { variant } from '@/config/variant';
 import { SUGGESTED_PACKAGES } from '@/domain/suggestedApps';
+import { getAppMonitoringSync } from '@/features/monitoring/useMonitoringSync';
 import { Button, Screen, Text } from '@/ui';
 
 import {
@@ -22,13 +23,35 @@ import {
 const REFRESH_MS = 5_000;
 const USAGE_ROWS = 8;
 
+type ConfigSummary = {
+  readonly compulsions: number;
+  readonly moderationRules: number;
+  readonly riskAppRules: number;
+};
+
 type Snapshot = {
   readonly permissions: NativePermissionStatus;
   readonly service: NativeServiceStatus;
   readonly targets: readonly NativeTarget[];
   /** Nulo sem o acesso ao uso. */
   readonly usage: readonly NativeUsageEntry[] | null;
+  /** O que o nativo guardou da configuração (passo 2), ou nulo se ainda não recebeu. */
+  readonly config: ConfigSummary | null;
 };
+
+function summarizeConfig(json: string | null): ConfigSummary | null {
+  if (json === null) return null;
+  try {
+    const config = JSON.parse(json) as Partial<Record<keyof ConfigSummary, unknown[]>>;
+    return {
+      compulsions: config.compulsions?.length ?? 0,
+      moderationRules: config.moderationRules?.length ?? 0,
+      riskAppRules: config.riskAppRules?.length ?? 0,
+    };
+  } catch {
+    return null;
+  }
+}
 
 function formatTime(epochMs: number | null): string | null {
   if (epochMs === null) return null;
@@ -52,6 +75,7 @@ async function readSnapshot(native: QuedoMonitoringNativeModule): Promise<Snapsh
     service: native.getServiceStatus(),
     targets,
     usage,
+    config: summarizeConfig(native.getConfig()),
   };
 }
 
@@ -59,9 +83,10 @@ function hasCode(error: unknown, code: string): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === code;
 }
 
-// Ferramenta do passo 1 da Fase 4, só em development: conferir no aparelho as
-// permissões reais, o serviço em primeiro plano, o boot, a lista de apps e o
-// uso de hoje, antes de o módulo nativo substituir o falso (passo 7). Nas
+// Ferramenta dos passos 1 e 2 da Fase 4, só em development: conferir no
+// aparelho as permissões reais, o serviço em primeiro plano, o boot, a lista
+// de apps, o uso de hoje, a configuração guardada no nativo e os eventos
+// pendentes, antes de o módulo nativo substituir o falso (passo 7). Nas
 // outras variantes, volta ao início. Vira parte das ferramentas de teste do
 // passo 8 (spec 03, seção 5.10).
 export default function DevMonitoringScreen() {
@@ -124,6 +149,12 @@ export default function DevMonitoringScreen() {
 
   const stopService = async () => {
     await native?.stopMonitoring();
+    await refresh();
+  };
+
+  // A mesma rodada que o app faz ao abrir: importa os eventos e reenvia a configuração.
+  const syncNow = async () => {
+    await getAppMonitoringSync().sync();
     await refresh();
   };
 
@@ -203,6 +234,25 @@ export default function DevMonitoringScreen() {
             label={t('monitoring.service.stop')}
             variant="secondary"
             onPress={() => void stopService()}
+          />
+
+          <Text variant="heading">{t('monitoring.sync.title')}</Text>
+          {snapshot.config ? (
+            <Text>
+              {t('monitoring.sync.config', {
+                compulsions: snapshot.config.compulsions,
+                moderation: snapshot.config.moderationRules,
+                risk: snapshot.config.riskAppRules,
+              })}
+            </Text>
+          ) : (
+            <Text>{t('monitoring.sync.noConfig')}</Text>
+          )}
+          <Text>{t('monitoring.sync.pending', { count: snapshot.service.pendingEvents })}</Text>
+          <Button
+            label={t('monitoring.sync.now')}
+            variant="secondary"
+            onPress={() => void syncNow()}
           />
 
           <Text variant="heading">{t('monitoring.suggested.title')}</Text>

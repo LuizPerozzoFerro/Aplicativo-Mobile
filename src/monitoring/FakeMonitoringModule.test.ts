@@ -53,8 +53,14 @@ describe('permissões', () => {
     const monitoring = createAndroid();
     monitoring.simulatePermission('usageAccess', 'denied');
     monitoring.simulatePermission('notifications', 'denied'); // já estava negada
-    expect(await monitoring.getEvents()).toEqual([
-      { timestamp: LATE_NIGHT.getTime(), type: 'permission_lost', permission: 'usageAccess' },
+    expect((await monitoring.getPendingEvents()).events).toEqual([
+      {
+        id: 'fake-1',
+        at: LATE_NIGHT.getTime(),
+        dayKey: '2026-03-15',
+        type: 'permission_lost',
+        permission: 'usageAccess',
+      },
     ]);
   });
 
@@ -125,26 +131,61 @@ describe('limite de uso', () => {
       code: 'invalid_config',
     });
   });
+});
 
-  it('grava limit_reached uma vez, quando a soma dos apps da regra chega ao limite', async () => {
+describe('configuração e eventos (spec 03, 4.2 e 4.3)', () => {
+  const config = {
+    version: 1 as const,
+    compulsions: [],
+    moderationRules: [],
+    riskAppRules: [],
+    checkInMinutes: null,
+    preventive: { weekdays: [], startMinutes: [], emotions: [] },
+    motivation: null,
+    texts: {
+      channels: { tracking: 'a', alerts: 'b', reminders: 'c' },
+      ongoing: { title: 'd', text: 'e' },
+    },
+  };
+
+  it('guarda a última configuração e recusa versão desconhecida', async () => {
     const monitoring = createAndroid();
-    await monitoring.startUsageLimit({ rules: [rule()] });
-    monitoring.simulateUsage(clips, 20);
-    expect(await monitoring.getEvents()).toEqual([]);
-    monitoring.simulateUsage(feed, 10);
-    monitoring.simulateUsage(clips, 5);
-    expect(await monitoring.getEvents()).toEqual([
-      { timestamp: LATE_NIGHT.getTime(), type: 'limit_reached', ruleId: 'videos', targetId: feed },
-    ]);
-    await monitoring.clearEvents();
-    expect(await monitoring.getEvents()).toEqual([]);
+    await monitoring.configure(config);
+    expect(monitoring.getLastConfig()).toBe(config);
+    await expect(
+      monitoring.configure({ ...config, version: 2 } as unknown as typeof config),
+    ).rejects.toMatchObject({ code: 'invalid_config' });
+    expect(monitoring.getLastConfig()).toBe(config);
   });
 
-  it('uso em app fora da regra não conta', async () => {
+  it('eventos com id único, instante e dia; confirmar apaga só os confirmados', async () => {
     const monitoring = createAndroid();
-    await monitoring.startUsageLimit({ rules: [rule({ targetIds: [clips] })] });
-    monitoring.simulateUsage(feed, 60);
-    expect(await monitoring.getEvents()).toEqual([]);
+    const first = monitoring.simulateEvent({ type: 'service_started', origin: 'app' });
+    const second = monitoring.simulateEvent({
+      type: 'day_failed',
+      compulsionId: 2,
+      reason: 'third_continue',
+    });
+    expect(first).toMatchObject({ id: 'fake-1', at: LATE_NIGHT.getTime(), dayKey: '2026-03-15' });
+    expect(second.id).toBe('fake-2');
+    expect(await monitoring.getPendingEvents()).toEqual({
+      events: [first, second],
+      invalidIds: [],
+    });
+
+    await monitoring.acknowledgeEvents([first.id, 'desconhecido']);
+    expect((await monitoring.getPendingEvents()).events).toEqual([second]);
+  });
+
+  it('reset apaga configuração, regras e eventos', async () => {
+    const monitoring = createAndroid();
+    await monitoring.configure(config);
+    await monitoring.startUsageLimit({ rules: [rule()] });
+    monitoring.simulateEvent({ type: 'service_started', origin: 'boot' });
+    await monitoring.reset();
+    expect(monitoring.getLastConfig()).toBeNull();
+    expect(await monitoring.getUsageLimitStatus()).toEqual({ active: false });
+    expect((await monitoring.getPendingEvents()).events).toEqual([]);
   });
 });
 
@@ -163,12 +204,6 @@ describe('uso de hoje', () => {
 
     now = NEXT_MORNING;
     expect(await monitoring.getUsageToday()).toEqual([]);
-    // O limite também recomeça: 25 minutos no dia novo atingem de novo.
-    monitoring.simulateUsage(clips, 25);
-    const reached = (await monitoring.getEvents()).filter(
-      (event) => event.type === 'limit_reached',
-    );
-    expect(reached.map((event) => event.timestamp)).toEqual([NEXT_MORNING.getTime()]);
   });
 
   it('no iOS responde UNSUPPORTED', async () => {

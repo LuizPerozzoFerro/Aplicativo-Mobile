@@ -10,6 +10,10 @@ import expo.modules.kotlin.modules.ModuleDefinition
 class UsageAccessRequiredException :
   CodedException("ERR_PERMISSION_REQUIRED", "Usage access is required", null)
 
+/** Configuração fora do formato. O JS converte em `MonitoringError('invalid_config')`. */
+class InvalidConfigException :
+  CodedException("ERR_INVALID_CONFIG", "Invalid monitoring configuration", null)
+
 /**
  * Fachada exposta ao JavaScript (`modules/monitoring-android/index.ts`). A
  * lógica fica nos outros arquivos.
@@ -52,7 +56,7 @@ class MonitoringModule : Module() {
     AsyncFunction("startMonitoring") {
       if (!Permissions.hasUsageAccess(context)) throw UsageAccessRequiredException()
       MonitoringState.setActive(context, true)
-      MonitoringService.start(context)
+      MonitoringService.start(context, MonitoringService.Origin.APP)
     }
 
     AsyncFunction("stopMonitoring") {
@@ -60,7 +64,32 @@ class MonitoringModule : Module() {
       MonitoringService.stop(context)
     }
 
-    Function("getServiceStatus") { MonitoringState.snapshot(context) }
+    Function("getServiceStatus") {
+      MonitoringState.snapshot(context) + mapOf("pendingEvents" to EventStore.count(context))
+    }
+
+    // Configuração e eventos (spec 03, 4.2 e 4.3).
+
+    AsyncFunction("configure") { json: String ->
+      if (!ConfigStore.save(context, json)) throw InvalidConfigException()
+      Notifier.refresh(context)
+    }
+
+    Function("getConfig") { ConfigStore.json(context) }
+
+    AsyncFunction("getPendingEvents") { EventStore.pendingJson(context) }
+
+    AsyncFunction("acknowledgeEvents") { ids: List<String> -> EventStore.acknowledge(context, ids) }
+
+    /** "Apagar meus dados": para o serviço e apaga configuração, estado e eventos. */
+    AsyncFunction("reset") {
+      MonitoringState.setActive(context, false)
+      MonitoringService.stop(context)
+      ConfigStore.clear(context)
+      EventStore.clear(context)
+      MonitoringState.clear(context)
+      Notifier.cancelAll(context)
+    }
   }
 
   private fun state(granted: Boolean) = if (granted) "granted" else "denied"

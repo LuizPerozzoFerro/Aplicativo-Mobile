@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
 
 import {
   getCompulsionDefinition,
@@ -14,11 +14,15 @@ import { fromDayKey } from '@/domain/day';
 import { isValidDailyLimit, type OnboardingStep } from '@/domain/onboarding';
 import { isValidDaysAlreadyWithoutRelapse, type DayFailureReason } from '@/domain/streak';
 import { isValidTriggerValue } from '@/domain/triggers';
+import type { MonitoringEvent } from '@/monitoring/types';
 
 import type { AppDatabase } from './database';
 import {
   checkIns,
   dayStates,
+  emergencySessions,
+  importedEvents,
+  interruptionEvents,
   monitoredApps,
   motivation,
   relapses,
@@ -40,6 +44,7 @@ export type Motivation = typeof motivation.$inferSelect;
 export type CheckIn = typeof checkIns.$inferSelect;
 export type Relapse = typeof relapses.$inferSelect;
 export type DayState = typeof dayStates.$inferSelect;
+export type InterruptionEvent = typeof interruptionEvents.$inferSelect;
 
 export type SettingsRepository = {
   /** Lê as configurações; cria a linha com os valores padrão na primeira vez. */
@@ -137,6 +142,18 @@ export type DayStateRepository = {
   markFailed(day: CompulsionDay, reason: DayFailureReason): void;
 };
 
+export type MonitoringEventRepository = {
+  /**
+   * Importa os eventos do nativo (spec 03, 4.3), cada um na sua transação e
+   * uma vez só: um evento já importado é pulado. Devolve os ids que o nativo
+   * já pode apagar, que são todos os recebidos, inclusive os que não se
+   * aplicam mais (compulsão apagada) e os que falharam (`failed`), para não
+   * travarem a fila.
+   */
+  importEvents(events: readonly MonitoringEvent[]): { handledIds: string[]; failed: number };
+  listInterruptions(compulsionId: number): InterruptionEvent[];
+};
+
 export type Repositories = {
   settings: SettingsRepository;
   compulsions: CompulsionRepository;
@@ -146,6 +163,7 @@ export type Repositories = {
   checkIns: CheckInRepository;
   relapses: RelapseRepository;
   dayStates: DayStateRepository;
+  monitoringEvents: MonitoringEventRepository;
   /** Apaga todos os dados do usuário; as configurações voltam ao padrão. */
   deleteAllData(): void;
 };
@@ -312,6 +330,7 @@ export function createRepositories(
     day: CompulsionDay,
     answer: CheckInAnswer,
     source: CheckInSource,
+    answeredAt: Date = now(),
   ): CheckIn {
     const existing = executor.select().from(checkIns).where(sameDay(checkIns, day)).get();
     // Uma recaída sobre outra resposta guarda essa resposta para o "Desfazer"
@@ -328,7 +347,7 @@ export function createRepositories(
         };
       }
     }
-    const values = { answer, source, answeredAt: now(), ...previous };
+    const values = { answer, source, answeredAt, ...previous };
     return required(
       executor
         .insert(checkIns)
@@ -340,14 +359,18 @@ export function createRepositories(
     );
   }
 
-  function upsertRelapse(executor: Executor, day: CompulsionDay): Relapse {
+  function upsertRelapse(
+    executor: Executor,
+    day: CompulsionDay,
+    recordedAt: Date = now(),
+  ): Relapse {
     return required(
       executor
         .insert(relapses)
-        .values({ ...day, recordedAt: now() })
+        .values({ ...day, recordedAt })
         .onConflictDoUpdate({
           target: [relapses.compulsionId, relapses.dayKey],
-          set: { recordedAt: now() },
+          set: { recordedAt },
         })
         .returning()
         .get(),
@@ -358,6 +381,142 @@ export function createRepositories(
   function requireAbstinenceDay(executor: Executor, day: CompulsionDay) {
     requireDayKey(day.dayKey);
     requireMechanic(executor, day.compulsionId, 'abstinence');
+  }
+
+  function answerCheckIn(
+    executor: Executor,
+    day: CompulsionDay,
+    answer: CheckInAnswer,
+    source: CheckInSource,
+    at: Date = now(),
+  ): CheckIn {
+    requireAbstinenceDay(executor, day);
+    if (answer === 'relapse') upsertRelapse(executor, day, at);
+    else executor.delete(relapses).where(sameDay(relapses, day)).run();
+    return upsertCheckIn(executor, day, answer, source, at);
+  }
+
+  function markDayFailed(executor: Executor, day: CompulsionDay, reason: DayFailureReason) {
+    requireDayKey(day.dayKey);
+    requireMechanic(executor, day.compulsionId, 'moderation');
+    const values = { failed: true, failedReason: reason };
+    executor
+      .insert(dayStates)
+      .values({ ...day, ...values })
+      .onConflictDoUpdate({ target: [dayStates.compulsionId, dayStates.dayKey], set: values })
+      .run();
+  }
+
+  /** Soma às contagens do dia (spec 03, 5.2: por compulsão, nas duas mecânicas). */
+  function addToDayCounts(
+    executor: Executor,
+    day: CompulsionDay,
+    counts: { interruptions?: number; continues?: number },
+  ) {
+    requireDayKey(day.dayKey);
+    const interruptions = counts.interruptions ?? 0;
+    const continues = counts.continues ?? 0;
+    executor
+      .insert(dayStates)
+      .values({ ...day, interruptions, continues })
+      .onConflictDoUpdate({
+        target: [dayStates.compulsionId, dayStates.dayKey],
+        set: {
+          interruptions: sql`${dayStates.interruptions} + ${interruptions}`,
+          continues: sql`${dayStates.continues} + ${continues}`,
+        },
+      })
+      .run();
+  }
+
+  function compulsionExists(executor: Executor, compulsionId: number): boolean {
+    const row = executor
+      .select({ id: userCompulsions.id })
+      .from(userCompulsions)
+      .where(eq(userCompulsions.id, compulsionId))
+      .get();
+    return row !== undefined;
+  }
+
+  /** Aplica um evento ao banco. Eventos de uma compulsão que não existe mais não fazem nada. */
+  function applyEvent(executor: Executor, event: MonitoringEvent) {
+    const at = new Date(event.at);
+    switch (event.type) {
+      case 'check_in_answered': {
+        if (!compulsionExists(executor, event.compulsionId)) return;
+        // Pela notificação, como pelo app: "Tive uma recaída" grava a recaída
+        // e o check-in do dia (spec 03, 4.3).
+        const day = { compulsionId: event.compulsionId, dayKey: event.dayKey };
+        answerCheckIn(executor, day, event.answer, 'notification', at);
+        return;
+      }
+      case 'day_failed': {
+        if (!compulsionExists(executor, event.compulsionId)) return;
+        const day = { compulsionId: event.compulsionId, dayKey: event.dayKey };
+        markDayFailed(executor, day, event.reason);
+        return;
+      }
+      case 'interruption_shown': {
+        if (!compulsionExists(executor, event.compulsionId)) return;
+        const day = { compulsionId: event.compulsionId, dayKey: event.dayKey };
+        executor
+          .insert(interruptionEvents)
+          .values({ id: event.id, ...day, shownAt: at, appPackage: event.targetId })
+          .run();
+        addToDayCounts(executor, day, { interruptions: 1 });
+        return;
+      }
+      case 'interruption_response': {
+        // Só a primeira resposta vale, e só de uma tela já importada.
+        const shown = executor
+          .select()
+          .from(interruptionEvents)
+          .where(
+            and(
+              eq(interruptionEvents.id, event.interruptionId),
+              isNull(interruptionEvents.response),
+            ),
+          )
+          .get();
+        if (!shown) return;
+        executor
+          .update(interruptionEvents)
+          .set({ response: event.response, respondedAt: at })
+          .where(eq(interruptionEvents.id, shown.id))
+          .run();
+        if (event.response === 'continue') {
+          const day = { compulsionId: shown.compulsionId, dayKey: shown.dayKey };
+          addToDayCounts(executor, day, { continues: 1 });
+        }
+        return;
+      }
+      // Sem tabela própria: ficam só como importados. A sessão de emergência é
+      // criada pela tela (passo 6); limites, notificações, permissões e o
+      // serviço servem à tela de estado e às ferramentas de teste.
+      case 'service_started':
+      case 'limit_reached':
+      case 'notification_sent':
+      case 'emergency_requested':
+      case 'permission_lost':
+        return;
+    }
+  }
+
+  function isImported(executor: Executor, eventId: string): boolean {
+    const row = executor
+      .select({ eventId: importedEvents.eventId })
+      .from(importedEvents)
+      .where(eq(importedEvents.eventId, eventId))
+      .get();
+    return row !== undefined;
+  }
+
+  function markImported(executor: Executor, eventId: string) {
+    executor
+      .insert(importedEvents)
+      .values({ eventId, importedAt: now() })
+      .onConflictDoNothing()
+      .run();
   }
 
   return {
@@ -459,12 +618,7 @@ export function createRepositories(
           .orderBy(asc(checkIns.dayKey))
           .all(),
       answer: ({ answer, source = 'app', ...day }) =>
-        db.transaction((tx) => {
-          requireAbstinenceDay(tx, day);
-          if (answer === 'relapse') upsertRelapse(tx, day);
-          else tx.delete(relapses).where(sameDay(relapses, day)).run();
-          return upsertCheckIn(tx, day, answer, source);
-        }),
+        db.transaction((tx) => answerCheckIn(tx, day, answer, source)),
       undo: (day) => db.transaction((tx) => clearAbstinenceDay(tx, day)),
     },
 
@@ -502,22 +656,45 @@ export function createRepositories(
           .all()
           .map((row) => row.dayKey),
       markFailed: (day, reason) => {
-        db.transaction((tx) => {
-          requireDayKey(day.dayKey);
-          requireMechanic(tx, day.compulsionId, 'moderation');
-          const values = { failed: true, failedReason: reason };
-          tx.insert(dayStates)
-            .values({ ...day, ...values })
-            .onConflictDoUpdate({ target: [dayStates.compulsionId, dayStates.dayKey], set: values })
-            .run();
-        });
+        db.transaction((tx) => markDayFailed(tx, day, reason));
       },
+    },
+
+    monitoringEvents: {
+      importEvents: (events) => {
+        let failed = 0;
+        for (const event of events) {
+          try {
+            db.transaction((tx) => {
+              if (isImported(tx, event.id)) return;
+              applyEvent(tx, event);
+              markImported(tx, event.id);
+            });
+          } catch {
+            // Não trava a fila: o evento fica marcado como importado, sem efeito.
+            // Quem chama registra só a contagem, sem dados (CLAUDE.md, seção 9).
+            failed += 1;
+            markImported(db, event.id);
+          }
+        }
+        return { handledIds: events.map((event) => event.id), failed };
+      },
+      listInterruptions: (compulsionId) =>
+        db
+          .select()
+          .from(interruptionEvents)
+          .where(eq(interruptionEvents.compulsionId, compulsionId))
+          .orderBy(asc(interruptionEvents.shownAt))
+          .all(),
     },
 
     deleteAllData() {
       db.transaction((tx) => {
         // Filhos antes dos pais; a cascata cobriria, mas a ordem explícita não
         // depende do PRAGMA foreign_keys.
+        tx.delete(interruptionEvents).run();
+        tx.delete(emergencySessions).run();
+        tx.delete(importedEvents).run();
         tx.delete(checkIns).run();
         tx.delete(relapses).run();
         tx.delete(dayStates).run();
