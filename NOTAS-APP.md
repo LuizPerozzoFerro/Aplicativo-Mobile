@@ -5,6 +5,16 @@ do protótipo continua em `prototype/NOTAS.md`.
 
 ---
 
+## Onde paramos (07/11/2026)
+
+- **Fase 3 pronta para revisão:** passos 1 a 6 integrados na `main` (PRs #12 a #19) e o
+  passo 7 (fluxos Maestro e roteiro R1 a R13) no PR da branch
+  `fase3/maestro`. Critérios de aceite no fim da seção do passo 7.
+- **Próximo:** revisão da Fase 3 no chat de planejamento; depois, a Fase 4
+  (monitoramento, spec a definir).
+
+---
+
 ## Divergências a levar ao chat de planejamento
 
 ### DV1 · Docs 01, 02 e spec 01 citam o relatório v0.2 e não incorporam a D6 (01/11/2026)
@@ -1967,6 +1977,109 @@ Nenhuma biblioteca nova. Branch `fase3/perfil`.
   index: 1` tocou no segundo cartão (vídeos curtos), porque a ordem nessa tela
   é a de `COMPULSION_TYPES` (conteúdo adulto primeiro).
 
+## Fase 3 · Passo 7 · Maestro e roteiro manual (07/11/2026)
+
+### Os quatro fluxos (spec 02, seção 4.10)
+
+O `onboarding-e-abas.yaml` da Fase 2 (onboarding vazio) saiu: o que ele
+conferia (as quatro abas, reabrir no Início, o "Sobre") foi para o fluxo (a).
+Todos apagam os dados do app de desenvolvimento (`clearState`).
+
+| Arquivo | O que faz | Roteiro |
+|---|---|---|
+| `a-onboarding-completo.yaml` | As 7 etapas com as duas opções: "Continuar" desabilitado com o motivo na etapa 2 e sem as declarações dos apps de risco na etapa 3; sugeridos pré-marcados; 45 min; "há 3 dias"; X "Não" e Reddit "Sim"; 20h–22h, 22h–24h e a faixa 23:30–01:00 (seis toques de 5 min no início da faixa nova, que começa em 23h–01h); fim de semana; "Agora não" nas três permissões. Resumo com "Horários: 20h–01h". Início com os dois cards ("3 dias", "Próximo marco: 7 dias"; "0 dias", "Próximo marco: 1 dia"; uso inativo). As quatro abas, reabrir no Início e o "Sobre" | R2, R5, R6 |
+| `b-retomar-onboarding.yaml` | Fecha o app na etapa 4 e reabre: volta na etapa 4, com 90 min e os apps da etapa 3. Volta à etapa 2, tenta tirar vídeos curtos ("Manter" desiste), tira de vez ("Tirar"), e a configuração dela some | R3, R4 |
+| `c-check-in-e-recaida.yaml` | "Sem recaída" e "Desfazer"; recaída para ontem (1 dia, "Próximo marco: 3 dias", mensagem de apoio) e "Desfazer"; "Sem recaída", recaída para hoje (0 dias) e "Desfazer" devolve o "Sem recaída"; reabrir mantém a resposta | R7, R8 |
+| `d-apagar-dados.yaml` | Desiste na primeira e na segunda confirmação (nada apagado); depois apaga: boas-vindas, sem "Voltar"; reabrir continua nas boas-vindas | R11 |
+
+Subfluxos em `.maestro/subflows/` (o `maestro test .maestro` não entra em
+subpastas, conferido: só os quatro rodaram):
+- `abrir-app.yaml`: o link do dev client e o menu dele;
+- `onboarding-curto.yaml`: só conteúdo adulto, "há 3 dias" (para "ontem" já
+  estar no período), sem apps de risco; usado por (c) e (d).
+
+Seletores descobertos (`maestro hierarchy --compact` mostra o que o Maestro
+vê):
+- Na etapa 3, **conteúdo adulto vem antes de vídeos curtos**, e as duas listas
+  têm os mesmos apps. O estado ajuda a separar: o Instagram marcado só existe
+  em vídeos curtos, e o X marcado só nos apps de risco.
+- O cartão de opção da etapa 2 é lido como título e descrição juntos: para o
+  estado, `text: "Vídeos curtos e redes sociais,.*"` com `checked`.
+- Declarações: `text: Não` com `below:` na pergunta do app.
+- O "Voltar" do onboarding fica no fim da rolagem: `scrollUntilVisible` antes.
+- Os botões dos diálogos podem vir em maiúsculas: `ONTEM|Ontem`.
+- Depois de voltar do "Sobre", o Perfil continua rolado até embaixo.
+
+**Execução no S22 (`npm run e2e`): 4/4 aprovados em 11m28s** ((a) 4m03s,
+(b) 2m10s, (c) 2m33s, (d) 2m41s). Antes, cada fluxo sozinho, também
+aprovado. As falhas durante a escrita (o Instagram desmarcado da lista de
+risco, o "Voltar" fora da tela, o cartão com a descrição) mostraram que os
+fluxos acusam quando a tela não bate. Três tentativas caíram no AP4 (abaixo).
+
+### Roteiro R1 a R13 (spec 02, seção 6)
+
+O responsável executou no S22, com as instruções passo a passo, R1, R2, R9,
+R12 e R13, e confirmou em 07/11/2026: "Executei, tudo ok". O resto foi
+coberto pelos fluxos Maestro, que rodam no mesmo aparelho.
+
+| # | Como foi verificado | Resultado |
+|---|---|---|
+| R1 | Responsável: "Não" → tela de bloqueio; fechar pelo multitarefa e reabrir → boas-vindas | ✅ |
+| R2 | Responsável (motivos com "Continuar" desabilitado) e fluxo (a) | ✅ |
+| R3 | Fluxo (b): fechado na etapa 4, reabre na etapa 4 com as respostas das etapas 1 a 3 | ✅ |
+| R4 | Fluxo (b): aviso ao tirar vídeos curtos; a configuração dela some | ✅ |
+| R5 | Fluxo (a): 20h–22h, 22h–24h, 23:30–01:00 e fim de semana; resumo "Horários: 20h–01h" | ✅ |
+| R6 | Fluxo (a): um card por opção, "3 dias" e "0 dias", com o próximo marco | ✅ |
+| R7 | Fluxo (c): "Sem recaída" → "Desfazer" → "Como foi hoje?" | ✅ |
+| R8 | Fluxo (c): recaída para ontem → 1 dia e mensagem de apoio (também no passo 6) | ✅ |
+| R9 | Responsável no Perfil: limite, check-in, motivação e gatilho; reabrir mantém. No banco: limite 45, check-in 1290 (21h30, o padrão é 1260), motivação gravada às 11:25 | ✅ |
+| R10 | Passo 2 (02/11): migração 002 sobre o banco da Fase 2 no S22. As 003 e 004 também foram aplicadas sobre banco existente no aparelho (passos 4 e 5); hoje, 4 migrações | ✅ |
+| R11 | Fluxo (d) e passo 6 | ✅ |
+| R12 | Responsável: tema escuro e fonte no máximo nas etapas e no Início; o teclado não cobre a motivação | ✅ |
+| R13 | Responsável leu os textos (já aprovados nos PRs de cada passo) | ✅ |
+
+### Ponto para a Fase 4: a Activity é recriada quando a fonte muda
+
+- No `logcat`, durante o R12, o mesmo processo rodou o `"main"` três vezes
+  (rootTag 1, 11 e 21, às 11:23, 11:24 e 11:25). Nas duas últimas, o React
+  Navigation avisou com `console.error`: "configured linking in multiple
+  places" e "multiple navigation containers consuming the shared imperative
+  routing queue".
+- **Causa provável:** o `configChanges` da `MainActivity` (gerado pelo Expo)
+  não inclui `fontScale`, então o Android recria a Activity quando o tamanho
+  da fonte muda. O JavaScript continua o mesmo e monta a raiz de novo antes de
+  a antiga sair. Coincide com o R12 (o responsável estava nas Configurações e
+  a fonte voltou a 1.15), mas não reproduzi: mudar a fonte é configuração do
+  aparelho.
+- Não travou nem apareceu nada na tela ("tudo ok"). São avisos do modo de
+  desenvolvimento.
+- **A ver na Fase 4** (quando o `android/` ganha o módulo nativo): incluir
+  `fontScale` (e `density`) no `configChanges` por um config plugin, ou
+  confirmar que a recriação não quebra a navegação. Testar mudando a fonte
+  com o app aberto.
+
+### Critérios de aceite da Fase 3 (spec 02, seção 7)
+
+| Critério | Evidência | |
+|---|---|---|
+| Onboarding com as 7 etapas, validações e textos revisados | Passo 4 (PRs #15 a #17, textos aprovados); fluxo (a); R2 e R13 | ✅ |
+| Progresso salvo e retomado (R3) | Fluxo (b); testes do passo 4 | ✅ |
+| Bloqueio de menores (R1) | Responsável no S22; testes do passo 4 | ✅ |
+| Migração 002 em Jest e no aparelho (R10) | `migrations.test.ts` (com a mutação D1); S22 no passo 2 | ✅ |
+| Streak, marcos, check-in, recaída e faixas em `src/domain/`, testados | Passo 1 e `overview.ts` (passo 5), com mutação de controle | ✅ |
+| Início com os dois cards, check-in, desfazer e recaída | Passo 5 (PR #18); fluxos (a) e (c) | ✅ |
+| Perfil com edição de tudo e "Apagar meus dados" | Passo 6 (PR #19); R9; fluxo (d) | ✅ |
+| Nenhum termo explícito e nenhum texto fixo | `npm run lint` (regra de texto bruto); R13 | ✅ |
+| Pendências herdadas (4.9) | Etapa e respostas salvas: fluxo (b). Sem "Voltar" na primeira tela: fluxos (a) e (d). Teclado na `Screen`: passo 4 e R12. "Apagar" zera o onboarding: fluxo (d). `isAppRoleAllowed`: passo 2 (mutação D2) | ✅ |
+| Quatro fluxos Maestro no S22 | `npm run e2e`: 4/4 | ✅ |
+| Roteiro R1 a R13 com o responsável | Tabela acima | ✅ |
+| `lint`, `typecheck` e `test` no CI; `NOTAS-APP.md` | 32 suítes, 463 testes; CI do PR do passo 7; este arquivo | ✅ |
+
+**Fase 3 pronta para revisão no chat de planejamento.** Pontos para as
+próximas fases, além dos já registrados na Fase 2: o AP4 (verificação de
+desenvolvedor nas instalações pelo `adb`) e a recriação da Activity quando a
+fonte muda (acima).
+
 ## Problemas
 
 ### AP1 · Build Android falha no C++ do `react-native-worklets` (caminho longo)
@@ -2050,6 +2163,34 @@ respondiam (`timeout` com código 124). É o mesmo P7 do protótipo.
 **Prevenção:** antes de um build longo, conferir `adb shell echo ok`. Em
 builds em segundo plano, considerar o tempo: se o log não mudar por vários
 minutos em `installDebug`, é o `adb`.
+
+### AP4 · Maestro não instala o app auxiliar: verificação de desenvolvedor (07/11/2026)
+
+**Sintoma:** `maestro test` cai antes do primeiro passo com
+`INSTALL_FAILED_VERIFICATION_FAILURE: Install not allowed` ao instalar o
+`dev.mobile.maestro` (o app auxiliar que o Maestro instala a cada execução).
+Em 07/11, três instalações seguidas foram recusadas (10:39 a 10:41); as de
+antes (10:37 e 10:38) e todas as de depois passaram, sem nenhuma mudança no
+aparelho nem no fluxo.
+
+**Causa (no `logcat`, `adb logcat -d | grep VerifyApps`):** é a verificação de
+desenvolvedor do Android (`[ADV]` nas linhas do Play Protect, processo
+`Finsky`), que o Google passou a aplicar no Brasil em 2026. A cada instalação, o
+Play Protect consulta o serviço de verificação:
+- respondeu a tempo: `Verifier app returned response ... verdict=1`, depois
+  `VERIFICATION_ALLOW`;
+- não respondeu em 5 s: `Verification task timed out`, o padrão é recusar
+  (`Scan verdict: 18`, `VERIFICATION_REJECT`). A janela de "instalar mesmo
+  assim" não aparece porque quem instala é o `adb` (`com.android.shell`), "em
+  segundo plano".
+
+**Solução usada:** tentar de novo. Não mexi em nenhuma configuração de
+segurança do aparelho (Play Protect, "Verificar apps via USB"): isso é decisão
+do responsável.
+
+**Atenção:** o próprio app (`npm run android:install`, que também instala pelo
+`adb`) pode cair na mesma verificação. Se um build terminar com esse erro, ver
+o `logcat` antes de investigar o build.
 
 ## Decisões do responsável (01/11/2026)
 

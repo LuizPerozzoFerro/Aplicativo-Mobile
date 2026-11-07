@@ -1,0 +1,85 @@
+# Onboarding curto, para os fluxos que começam no Início: só conteúdo
+# adulto, sem recair há 3 dias (assim "ontem" já está no período
+# acompanhado), sem apps de risco e sem gatilhos. Termina no Início.
+# Apaga os dados do app de desenvolvimento.
+appId: br.com.quedo.app.dev
+---
+- clearState
+- runFlow: abrir-app.yaml
+- extendedWaitUntil:
+    visible: Boas-vindas
+    timeout: 60000
+- tapOn: Sim, tenho 18 anos ou mais
+- tapOn: Continuar
+
+- extendedWaitUntil:
+    visible: O que você quer mudar
+    timeout: 10000
+- tapOn: Conteúdo adulto
+- tapOn: Continuar
+
+- extendedWaitUntil:
+    visible: Configuração
+    timeout: 10000
+- tapOn: Já estou sem recair há alguns dias
+- scrollUntilVisible:
+    element: Há quantos dias?
+    direction: DOWN
+- tapOn: Há quantos dias?
+- inputText: '3'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      text: X
+      checked: true
+    direction: DOWN
+- tapOn:
+    text: X
+    checked: true
+- tapOn:
+    text: Reddit
+    checked: true
+- scrollUntilVisible:
+    element: Continuar
+    direction: DOWN
+- tapOn: Continuar
+
+- extendedWaitUntil:
+    visible: Gatilhos
+    timeout: 10000
+- scrollUntilVisible:
+    element: Continuar
+    direction: DOWN
+- tapOn: Continuar
+
+- extendedWaitUntil:
+    visible: Sua motivação
+    timeout: 10000
+- tapOn:
+    id: motivation-input
+- inputText: Dormir melhor
+- hideKeyboard
+- scrollUntilVisible:
+    element: Continuar
+    direction: DOWN
+- tapOn: Continuar
+
+- extendedWaitUntil:
+    visible: Permissões
+    timeout: 10000
+- scrollUntilVisible:
+    element: Continuar
+    direction: DOWN
+- tapOn: Continuar
+
+- extendedWaitUntil:
+    visible: Seu plano
+    timeout: 10000
+- scrollUntilVisible:
+    element: Começar
+    direction: DOWN
+- tapOn: Começar
+- extendedWaitUntil:
+    visible:
+      id: home-card-pornography
+    timeout: 10000

@@ -1,0 +1,83 @@
+# Fluxo (c) da spec 02 (seção 4.10): check-in, desfazer e registrar recaída
+# (R7 e R8), inclusive a resposta anterior restaurada ao desfazer uma
+# recaída registrada por cima de "Sem recaída".
+#
+# Apaga os dados do app de desenvolvimento antes de começar.
+# Os botões dos diálogos do Android podem vir em maiúsculas: por isso
+# "ONTEM|Ontem".
+appId: br.com.quedo.app.dev
+name: (c) Check-in, desfazer e registrar recaída
+---
+- runFlow: subflows/onboarding-curto.yaml
+
+# Sem recair há 3 dias.
+- assertVisible: 3 dias
+- assertVisible: 'Próximo marco: 7 dias'
+- assertVisible: Como foi hoje?
+
+# R7: "Sem recaída", depois "Desfazer".
+- tapOn: Sem recaída
+- extendedWaitUntil:
+    visible: 'Hoje: sem recaída.'
+    timeout: 10000
+- assertNotVisible: Como foi hoje?
+- tapOn: Desfazer
+- extendedWaitUntil:
+    visible: Como foi hoje?
+    timeout: 10000
+
+# R8: recaída para ontem. A contagem recomeça de ontem (1 dia), com a
+# mensagem de apoio.
+- scrollUntilVisible:
+    element: Registrar recaída
+    direction: DOWN
+- tapOn: Registrar recaída
+- extendedWaitUntil:
+    visible: Registrar uma recaída?
+    timeout: 10000
+- tapOn: ONTEM|Ontem
+- extendedWaitUntil:
+    visible: Recaída registrada para ontem.
+    timeout: 10000
+- assertVisible: 1 dia
+- assertVisible: 'Próximo marco: 3 dias'
+- assertVisible: Tudo bem. Uma recaída não apaga o que você já conquistou.*
+- assertVisible: Como foi hoje?
+
+# Desfazer a recaída de ontem: volta aos 3 dias.
+- tapOn: Desfazer
+- extendedWaitUntil:
+    visible: 3 dias
+    timeout: 10000
+- assertNotVisible: Recaída registrada para ontem.
+
+# Recaída hoje por cima de "Sem recaída": "Desfazer" devolve o "Sem recaída".
+- tapOn: Sem recaída
+- extendedWaitUntil:
+    visible: 'Hoje: sem recaída.'
+    timeout: 10000
+- scrollUntilVisible:
+    element: Registrar recaída
+    direction: DOWN
+- tapOn: Registrar recaída
+- extendedWaitUntil:
+    visible: Registrar uma recaída?
+    timeout: 10000
+- tapOn: HOJE|Hoje
+- extendedWaitUntil:
+    visible: 'Hoje: recaída registrada.'
+    timeout: 10000
+- assertVisible: 0 dias
+- tapOn: Desfazer
+- extendedWaitUntil:
+    visible: 'Hoje: sem recaída.'
+    timeout: 10000
+- assertVisible: 3 dias
+
+# Fechado e reaberto, o check-in continua respondido.
+- stopApp
+- runFlow: subflows/abrir-app.yaml
+- extendedWaitUntil:
+    visible: 'Hoje: sem recaída.'
+    timeout: 60000
+- assertVisible: 3 dias
