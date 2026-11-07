@@ -145,6 +145,14 @@ export function ProfileScreen() {
             onPress={() => router.push('/dev-components')}
           />
         ) : null}
+        {/* Só em development: base nativa do monitoramento (Fase 4, passo 1). */}
+        {variant.environment === 'development' ? (
+          <ListItem
+            title={t('tabs:profileItems.monitoring')}
+            subtitle={t('tabs:profileItems.monitoringHint')}
+            onPress={() => router.push('/dev-monitoring')}
+          />
+        ) : null}
         <ListItem
           title={t('items.deleteData')}
           subtitle={t('items.deleteDataHint')}

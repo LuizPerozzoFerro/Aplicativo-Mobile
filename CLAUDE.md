@@ -140,7 +140,9 @@ Preencher e manter atualizado na Fase 2.
 | Um fluxo Maestro só | `C:\Users\User\tools\maestro\bin\maestro test .maestro/<arquivo>.yaml`, com `MAESTRO_CLI_NO_ANALYTICS=true` |
 | Ver o que o Maestro enxerga na tela | `C:\Users\User\tools\maestro\bin\maestro hierarchy --compact` |
 | Instalação pelo `adb` recusada (`INSTALL_FAILED_VERIFICATION_FAILURE`) | `adb logcat -d`, filtrando `VerifyApps`; em geral, basta tentar de novo (`NOTAS-APP.md`, AP4) |
-| Verificar permissões proibidas no manifesto | `npm run check:manifest` (depois de um build) |
+| Verificar o manifesto (proibidas e lista de permitidas) | `npm run check:manifest` (depois de um build) |
+| Testes JUnit do módulo nativo | `cd android && gradlew.bat :monitoring-android:testDebugUnitTest` (depois do prebuild); resultado em `modules/monitoring-android/android/build/test-results/` |
+| Tela de conferência do monitoramento (só development) | Perfil → "Monitoramento (base)" |
 
 ## 11. Ao final de cada fase
 

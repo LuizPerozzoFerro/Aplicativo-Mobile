@@ -1,0 +1,242 @@
+import { Redirect, router } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { AppState } from 'react-native';
+
+import { variant } from '@/config/variant';
+import { SUGGESTED_PACKAGES } from '@/domain/suggestedApps';
+import { Button, Screen, Text } from '@/ui';
+
+import {
+  ERR_PERMISSION_REQUIRED,
+  getQuedoMonitoring,
+  type NativeBootResult,
+  type NativePermissionState,
+  type NativePermissionStatus,
+  type NativeServiceStatus,
+  type NativeTarget,
+  type NativeUsageEntry,
+  type QuedoMonitoringNativeModule,
+} from '../modules/monitoring-android';
+
+const REFRESH_MS = 5_000;
+const USAGE_ROWS = 8;
+
+type Snapshot = {
+  readonly permissions: NativePermissionStatus;
+  readonly service: NativeServiceStatus;
+  readonly targets: readonly NativeTarget[];
+  /** Nulo sem o acesso ao uso. */
+  readonly usage: readonly NativeUsageEntry[] | null;
+};
+
+function formatTime(epochMs: number | null): string | null {
+  if (epochMs === null) return null;
+  const date = new Date(epochMs);
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)} ${pad(date.getHours())}:${pad(
+    date.getMinutes(),
+  )}:${pad(date.getSeconds())}`;
+}
+
+async function readSnapshot(native: QuedoMonitoringNativeModule): Promise<Snapshot> {
+  const targets = await native.listTargets();
+  let usage: NativeUsageEntry[] | null = null;
+  try {
+    usage = await native.getUsageToday();
+  } catch (error) {
+    if (!hasCode(error, ERR_PERMISSION_REQUIRED)) throw error;
+  }
+  return {
+    permissions: native.getPermissionStatus(),
+    service: native.getServiceStatus(),
+    targets,
+    usage,
+  };
+}
+
+function hasCode(error: unknown, code: string): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === code;
+}
+
+// Ferramenta do passo 1 da Fase 4, só em development: conferir no aparelho as
+// permissões reais, o serviço em primeiro plano, o boot, a lista de apps e o
+// uso de hoje, antes de o módulo nativo substituir o falso (passo 7). Nas
+// outras variantes, volta ao início. Vira parte das ferramentas de teste do
+// passo 8 (spec 03, seção 5.10).
+export default function DevMonitoringScreen() {
+  const { t } = useTranslation(['dev', 'common']);
+  const native = getQuedoMonitoring();
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (native) setSnapshot(await readSnapshot(native));
+  }, [native]);
+
+  useEffect(() => {
+    if (variant.environment !== 'development' || !native) return;
+    let mounted = true;
+    const load = () =>
+      void readSnapshot(native).then((current) => {
+        if (mounted) setSnapshot(current);
+      });
+    load();
+    const timer = setInterval(load, REFRESH_MS);
+    // Ao voltar dos Ajustes, as permissões podem ter mudado.
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') load();
+    });
+    return () => {
+      mounted = false;
+      clearInterval(timer);
+      subscription.remove();
+    };
+  }, [native]);
+
+  if (variant.environment !== 'development') return <Redirect href="/" />;
+
+  const permissionTexts = {
+    granted: t('monitoring.permissions.granted'),
+    denied: t('monitoring.permissions.denied'),
+  } satisfies Record<NativePermissionState, string>;
+  const permissionText = (state: NativePermissionState) => permissionTexts[state];
+  const bootResultTexts = {
+    started: t('monitoring.service.bootResults.started'),
+    inactive: t('monitoring.service.bootResults.inactive'),
+    no_usage_access: t('monitoring.service.bootResults.no_usage_access'),
+    failed: t('monitoring.service.bootResults.failed'),
+  } satisfies Record<NativeBootResult, string>;
+  const yesNo = (value: boolean) => (value ? t('monitoring.yes') : t('monitoring.no'));
+  const timeText = (epochMs: number | null) => formatTime(epochMs) ?? t('monitoring.never');
+
+  const startService = async () => {
+    if (!native) return;
+    setMessage(null);
+    try {
+      await native.startMonitoring();
+    } catch (error) {
+      if (!hasCode(error, ERR_PERMISSION_REQUIRED)) throw error;
+      setMessage(t('monitoring.service.usageRequired'));
+    }
+    await refresh();
+  };
+
+  const stopService = async () => {
+    await native?.stopMonitoring();
+    await refresh();
+  };
+
+  const labelOf = (id: string) => snapshot?.targets.find((target) => target.id === id)?.label ?? id;
+  const suggested = [...SUGGESTED_PACKAGES.short_video, ...SUGGESTED_PACKAGES.risk];
+  const usage = [...(snapshot?.usage ?? [])]
+    .sort((a, b) => b.milliseconds - a.milliseconds)
+    .slice(0, USAGE_ROWS);
+
+  return (
+    <Screen>
+      <Text variant="title">{t('monitoring.title')}</Text>
+      <Text color="textMuted">{t('monitoring.description')}</Text>
+
+      {!native ? <Text>{t('monitoring.missing')}</Text> : null}
+
+      {native && snapshot ? (
+        <>
+          <Text variant="heading">{t('monitoring.permissions.title')}</Text>
+          <Text>
+            {t('monitoring.permissions.usageAccess', {
+              state: permissionText(snapshot.permissions.usageAccess),
+            })}
+          </Text>
+          <Text>
+            {t('monitoring.permissions.notifications', {
+              state: permissionText(snapshot.permissions.notifications),
+            })}
+          </Text>
+          <Text>
+            {t('monitoring.permissions.overlay', {
+              state: permissionText(snapshot.permissions.overlay),
+            })}
+          </Text>
+          <Button
+            label={t('monitoring.permissions.openUsageAccess')}
+            variant="secondary"
+            onPress={() => void native.openUsageAccessSettings()}
+          />
+          <Button
+            label={t('monitoring.permissions.openNotifications')}
+            variant="secondary"
+            onPress={() => void native.openNotificationSettings()}
+          />
+          <Button
+            label={t('monitoring.permissions.openOverlay')}
+            variant="secondary"
+            onPress={() => void native.openOverlaySettings()}
+          />
+
+          <Text variant="heading">{t('monitoring.service.title')}</Text>
+          <Text>{t('monitoring.service.active', { value: yesNo(snapshot.service.active) })}</Text>
+          <Text>{t('monitoring.service.running', { value: yesNo(snapshot.service.running) })}</Text>
+          <Text>
+            {t('monitoring.service.checks', {
+              count: snapshot.service.checks,
+              time: timeText(snapshot.service.lastCheckAt),
+            })}
+          </Text>
+          <Text>
+            {t('monitoring.service.starts', {
+              count: snapshot.service.serviceStarts,
+              time: timeText(snapshot.service.serviceStartedAt),
+            })}
+          </Text>
+          <Text>
+            {t('monitoring.service.boot', {
+              time: timeText(snapshot.service.lastBootAt),
+              result: snapshot.service.lastBootResult
+                ? bootResultTexts[snapshot.service.lastBootResult]
+                : t('monitoring.never'),
+            })}
+          </Text>
+          {message ? <Text color="danger">{message}</Text> : null}
+          <Button label={t('monitoring.service.start')} onPress={() => void startService()} />
+          <Button
+            label={t('monitoring.service.stop')}
+            variant="secondary"
+            onPress={() => void stopService()}
+          />
+
+          <Text variant="heading">{t('monitoring.suggested.title')}</Text>
+          {suggested.map((id) => (
+            <Text key={id}>
+              {snapshot.targets.some((target) => target.id === id)
+                ? t('monitoring.suggested.installed', { name: labelOf(id) })
+                : t('monitoring.suggested.notInstalled', { name: id })}
+            </Text>
+          ))}
+
+          <Text variant="heading">{t('monitoring.usage.title')}</Text>
+          {snapshot.usage === null ? <Text>{t('monitoring.usage.denied')}</Text> : null}
+          {snapshot.usage !== null && usage.length === 0 ? (
+            <Text>{t('monitoring.usage.empty')}</Text>
+          ) : null}
+          {usage.map((entry) => (
+            <Text key={entry.targetId}>
+              {t('monitoring.usage.entry', {
+                name: labelOf(entry.targetId),
+                minutes: Math.round(entry.milliseconds / 60_000),
+              })}
+            </Text>
+          ))}
+
+          <Button
+            label={t('monitoring.refresh')}
+            variant="secondary"
+            onPress={() => void refresh()}
+          />
+        </>
+      ) : null}
+
+      <Button label={t('common:actions.back')} variant="text" onPress={() => router.back()} />
+    </Screen>
+  );
+}

@@ -25,5 +25,53 @@
     "result": "Última resposta: {{answer}}",
     "yes": "confirmou",
     "no": "cancelou"
+  },
+  "monitoring": {
+    "title": "Monitoramento (base)",
+    "description": "Tela só do ambiente de desenvolvimento, para conferir no aparelho a base nativa do monitoramento (passo 1 da Fase 4).",
+    "missing": "O módulo nativo não está neste build.",
+    "refresh": "Atualizar",
+    "yes": "sim",
+    "no": "não",
+    "never": "nunca",
+    "permissions": {
+      "title": "Permissões",
+      "usageAccess": "Acesso ao uso: {{state}}",
+      "notifications": "Notificações: {{state}}",
+      "overlay": "Aparecer sobre outros apps: {{state}}",
+      "granted": "permitido",
+      "denied": "negado",
+      "openUsageAccess": "Abrir acesso ao uso",
+      "openNotifications": "Abrir notificações",
+      "openOverlay": "Abrir sobreposição"
+    },
+    "service": {
+      "title": "Serviço",
+      "active": "Ligado: {{value}}",
+      "running": "Rodando neste processo: {{value}}",
+      "checks": "Verificações: {{count}} (última: {{time}})",
+      "starts": "Criações do serviço: {{count}} (última: {{time}})",
+      "boot": "Último boot ou atualização: {{time}} ({{result}})",
+      "start": "Ligar o serviço",
+      "stop": "Desligar o serviço",
+      "usageRequired": "Conceda o acesso ao uso antes de ligar o serviço.",
+      "bootResults": {
+        "started": "religado",
+        "inactive": "estava desligado",
+        "no_usage_access": "sem acesso ao uso",
+        "failed": "falhou"
+      }
+    },
+    "suggested": {
+      "title": "Apps sugeridos no aparelho",
+      "installed": "{{name}}: instalado",
+      "notInstalled": "{{name}}: não instalado"
+    },
+    "usage": {
+      "title": "Uso hoje (sem as telas iniciais)",
+      "entry": "{{name}}: {{minutes}} min",
+      "empty": "Nenhum uso registrado hoje.",
+      "denied": "Sem acesso ao uso."
+    }
   }
 }

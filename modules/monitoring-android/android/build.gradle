@@ -1,0 +1,23 @@
+// Módulo nativo de monitoramento do Quedo (spec 03, seção 5.1). Só Android;
+// o iOS terá o próprio módulo na Fase 10.
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'br.com.quedo.monitoring'
+version = '0.1.0'
+
+android {
+  namespace "br.com.quedo.monitoring"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+}
+
+dependencies {
+  // Só para os testes JUnit das partes puras (spec 03, seção 5.13). Não vai
+  // para o APK.
+  testImplementation 'junit:junit:4.13.2'
+}

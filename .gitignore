@@ -33,6 +33,10 @@ expo-env.d.ts
 /android/
 /ios/
 
+# saída do Gradle dos módulos nativos locais
+/modules/*/android/build/
+/modules/*/android/.gradle/
+
 # Native
 .kotlin/
 *.orig.*

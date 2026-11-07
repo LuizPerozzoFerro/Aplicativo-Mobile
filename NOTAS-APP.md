@@ -8,10 +8,11 @@ do protótipo continua em `prototype/NOTAS.md`.
 ## Onde paramos (07/11/2026)
 
 - **Fase 3 encerrada:** passos 1 a 7 integrados na `main` (PRs #12 a #20).
-- **Fase 4 (spec 03 v0.2):** documentos e decisões da leitura da spec no PR
-  #21 (branch `fase4/docs`). Seção "Fase 4 · Leitura da spec 03".
-- **Próximo:** passo 1 (base nativa) na branch `fase4/base-nativa`, depois do
-  merge do PR #21.
+- **Fase 4 (spec 03 v0.2):** documentos e decisões da leitura da spec
+  integrados (PR #21). Seção "Fase 4 · Leitura da spec 03".
+- **Passo 1 (base nativa)** pronto para revisão no PR da branch
+  `fase4/base-nativa`. Seção "Fase 4 · Passo 1". Próximo: passo 2
+  (configuração e eventos).
 
 ---
 
@@ -2118,6 +2119,175 @@ com dois ajustes, e as incorporou na **spec 03 v0.2** (no mesmo PR #21):
 **Próximo:** passo 1 (base nativa) na branch `fase4/base-nativa`, depois do
 merge do PR #21.
 
+## Fase 4 · Passo 1 · Base nativa (07/11/2026)
+
+Branch `fase4/base-nativa`. Escopo da spec 03 (seção 6, passo 1): módulo
+`modules/monitoring-android/` a partir do protótipo (sem VPN), serviço, receptor
+de boot, `fontScale` no `configChanges`, manifesto com a lista de permitidas e a
+investigação do AP4.
+
+### Documentação oficial conferida (07/11/2026)
+
+- **Tipos de serviço em primeiro plano** (developer.android.com, "Foreground
+  service types"): `specialUse` exige `FOREGROUND_SERVICE_SPECIAL_USE`, não tem
+  pré-requisito em tempo de execução nem limite de tempo, e pede a `<property>`
+  `PROPERTY_SPECIAL_USE_FGS_SUBTYPE`, lida na revisão do Play Console. Os tipos
+  proibidos de iniciar pelo `BOOT_COMPLETED` (apps para Android 15+) são
+  `dataSync`, `mediaPlayback`, `mediaProjection`, `phoneCall`, `camera` e
+  `microphone`: o `specialUse` não está na lista.
+- **Início em segundo plano** ("Restrictions on starting a foreground service
+  from the background"): `ACTION_BOOT_COMPLETED`, `ACTION_LOCKED_BOOT_COMPLETED`
+  e `ACTION_MY_PACKAGE_REPLACED` estão entre as exceções. Ter
+  `SYSTEM_ALERT_WINDOW` só vale como exceção no Android 15+ com uma sobreposição
+  visível naquele momento.
+- **Módulos locais do Expo** (docs.expo.dev, "Get started"): ficam em
+  `modules/` e o autolinking os encontra sozinho. Conferido com
+  `npx expo-modules-autolinking resolve --platform android`: aparece
+  `monitoring-android`, classe `br.com.quedo.monitoring.MonitoringModule`.
+- **`AppOpsManager`**: `unsafeCheckOpNoThrow` ficou obsoleto na API 36, que
+  voltou a recomendar `checkOpNoThrow`. O código escolhe por versão.
+
+### O que veio do protótipo e o que mudou
+
+| Protótipo (`lab-monitoring`) | App (`monitoring-android`) |
+|---|---|
+| `UsageReader.getUsageTodayFromEvents` e `currentForegroundPackage` | `UsageTimeline` (Kotlin puro, testado em JUnit) + `UsageReader` (só a conversa com o Android). Uma passada só devolve o total do dia e o app na tela |
+| Lia os eventos a partir da meia-noite | **Borda do dia explícita:** lê 24 h antes da meia-noite e corta cada intervalo em `[início do dia, agora]`. Um app aberto antes da meia-noite conta só a parte de hoje (o protótipo perdia esse uso) |
+| Tela inicial contada como app (I-8) | **Lançadores fora:** pacotes que respondem a `MAIN`/`HOME` com prioridade >= 0 (o `FallbackHome` das Configurações fica de fora; ver "No aparelho"), com o `<queries>` correspondente |
+| `startOfToday` com `Calendar` | `DayBoundary` com `java.time` (`atStartOfDay`), igual a `src/domain/day.ts`: dia de 23 e 25 horas e meia-noite inexistente (04/11/2018) testados em JUnit. Os vetores compartilhados com o Jest entram no passo 3 |
+| `UsageLimitService` com as regras do A2 a A5 | `MonitoringService` só com o laço de verificação (20 s, como no protótipo) e o **contador de verificações**. As regras entram no passo 3; o acúmulo incremental e o desconto do tempo diante da tela, nos passos 3 e 4 |
+| `LimitConfig` | `MonitoringState`: ligado ou não, criações do serviço, verificações, último boot e o resultado. Nada que identifique app ou compulsão |
+| `BootReceiver` com `EventLog` | Mesmo gatilho (`BOOT_COMPLETED` e `MY_PACKAGE_REPLACED`); só religa com o monitoramento ligado **e** o acesso ao uso concedido; grava o resultado no estado (os eventos com identificador vêm no passo 2) |
+| VPN, `BrowserSessionTracker`, `HIDE_OVERLAY_WINDOWS`, log de laboratório, iOS | Fora (D6 e spec 03, seção 5.1). O módulo declara só `android` no `expo-module.config.json` |
+| Textos fixos no Kotlin | Mínimo neutro em `res/values/strings.xml` (canal "Proteção", "Quedo", "Proteção ativa."). Os definitivos chegam pelo `configure` no passo 2 |
+
+O `getMonitoring()` **continua devolvendo o falso** neste passo: a troca pelo
+nativo muda o onboarding e o Início (permissões reais), que é o passo 7. Para
+conferir a base no aparelho, há uma tela só de desenvolvimento
+(`app/dev-monitoring.tsx`, Perfil → "Monitoramento (base)"), que vira parte das
+ferramentas de teste do passo 8.
+
+### Permissões declaradas pelo módulo
+
+`PACKAGE_USAGE_STATS`, `SYSTEM_ALERT_WINDOW`, `FOREGROUND_SERVICE`,
+`FOREGROUND_SERVICE_SPECIAL_USE`, `POST_NOTIFICATIONS` e
+`RECEIVE_BOOT_COMPLETED`, todas da lista da spec 03 (5.8). Nenhuma fora dela.
+
+### Lista de permitidas (`scripts/check-manifest.js`)
+
+- Permitidas: as oito da spec 03 (5.8) e a `<pacote>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`
+  do próprio pacote do manifesto.
+- Só no pacote `.dev`: `ACCESS_NETWORK_STATE`, `ACCESS_LOCAL_NETWORK` e
+  `CHANGE_WIFI_MULTICAST_STATE`.
+- Proibidas, somadas às anteriores: `QUERY_ALL_PACKAGES`, `SCHEDULE_EXACT_ALARM`,
+  `USE_EXACT_ALARM` e `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`.
+- A variante sai do atributo `package` do manifesto mesclado. Sem ele, vale a
+  lista estrita.
+- Mutação de controle: com a checagem da lista desligada, 5 dos 13 testes
+  falham.
+
+### `fontScale` e `density` no `configChanges`
+
+Config plugin `plugins/with-font-scale-config-changes.js` (testado em Jest).
+Depois do prebuild, o `AndroidManifest.xml` gerado traz
+`...|assetsPaths|fontScale|density`.
+
+### Testes JUnit
+
+- 15 testes JUnit (borda do dia, reconstrução do uso e lançadores).
+- `junit:junit:4.13.2` só como `testImplementation` do módulo: não vai para o
+  APK. É a biblioteca de testes padrão do Android.
+- Comando (depois do prebuild): `cd android && gradlew.bat :monitoring-android:testDebugUnitTest`.
+  Resultado em `modules/monitoring-android/android/build/test-results/`.
+- **Só localmente, por enquanto.** No CI, o módulo precisaria do projeto
+  `android/` gerado e do Gradle do Expo (prebuild + download do Android SDK).
+  A decisão sobre o CI fica para o passo 3, quando os vetores compartilhados
+  entram e o JUnit passa a ter mais peso (spec 03, seção 5.13).
+
+### AP4: resultado da investigação (spec 03, seção 5.12)
+
+- **Documentação oficial** (FAQ da verificação de desenvolvedor,
+  developer.android.com/developer-verification/guides/faq, lido em 07/11/2026):
+  "As a developer, you are free to install apps without verification with
+  ADB", e o período de espera do fluxo avançado "does not apply to ADB
+  installs". Ou seja, o desenho oficial é que a instalação pelo `adb` não
+  precise de registro, como diz o relatório (seção 9.5).
+- **Registrar `.dev` e `.preview` no Play Console não resolve nem é
+  necessário:** o registro serve à distribuição (lojas e instalação direta) e
+  exige provar a posse da chave de assinatura do pacote. Os builds de
+  desenvolvimento são assinados com a chave de depuração da máquina, e o
+  `.preview` nunca vai à loja. A FAQ não menciona nenhum registro para builds
+  de desenvolvimento.
+- **O que vimos em 07/11 é outra coisa:** a recusa veio do Play Protect
+  (`Finsky`, `VerifyApps`), que não recebeu a resposta do serviço de
+  verificação em 5 s e recusou por padrão (`Verification task timed out`). A
+  regra oficial não muda isso; é uma falha de tempo da consulta, intermitente.
+- **Conclusão:** não há ação no Play Console. Seguimos tentando de novo quando
+  acontecer (AP4). Desligar "Verificar apps via USB" nas opções do
+  desenvolvedor provavelmente evitaria a consulta, mas é configuração de
+  segurança do aparelho e decisão do responsável; não recomendo sem
+  necessidade, porque a falha é rara.
+- A DV2 continua aberta só como registro: o relatório está certo quanto à
+  regra; vale acrescentar a ele a nota da recusa por tempo esgotado.
+- No build de hoje (13:52), a instalação pelo `adb` passou na primeira.
+
+### No aparelho (S22)
+
+- `installDebug` instalou às 13:52 (`dumpsys package`: as cinco permissões
+  novas declaradas; `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE` e
+  `RECEIVE_BOOT_COMPLETED` concedidas na instalação, como é normal para
+  permissões comuns).
+- `npm run check:manifest`: os três manifestos mesclados do build de
+  desenvolvimento passam (pacote `br.com.quedo.app.dev`).
+- Tela "Monitoramento (base)": o módulo nativo responde; permissões lidas do
+  sistema (as três negadas neste momento); `MY_PACKAGE_REPLACED` recebido às
+  13:52:46, com o monitoramento desligado ("estava desligado").
+- **Pacotes da Fase 3 confirmados no S22** (spec 03, 5.1): Instagram
+  (`com.instagram.android`), TikTok (`com.zhiliaoapp.musically`), YouTube,
+  Kwai (`com.kwai.video`), X e Reddit, todos instalados e achados pela
+  consulta MAIN/LAUNCHER. O segundo pacote do TikTok
+  (`com.ss.android.ugc.trill`, outra região da loja) não está instalado, como
+  esperado.
+- **Permissões e serviço (responsável, 14:11):** acesso ao uso e notificações
+  concedidos pela tela; "Ligar o serviço" às 14:11:48. O `logcat` registrou
+  `Background started FGS: Allowed ... uidState: TOP` (iniciado com o app na
+  tela). `dumpsys activity services`: `isForeground=true`,
+  `types=0x40000000` (`specialUse`), notificação no canal `monitoring`. 6
+  verificações até 14:13:28, no ritmo de 20 s.
+- **Lançadores (achado novo):** no S22, a intenção HOME devolve o One UI Home
+  (prioridade 0) **e** `com.android.settings/.FallbackHome` (prioridade
+  -1000), a tela de reserva do boot. A primeira versão descontava as duas, e
+  o app de Configurações sumia do uso. Corrigido com `Launchers.select`
+  (só prioridade >= 0), com teste JUnit. Depois da correção: "Config.: 2 min"
+  na lista, One UI Home fora.
+- **Morte do processo (I-31):** `run-as br.com.quedo.app.dev kill -9` às
+  14:15:06 com o serviço ligado. O sistema recriou o processo e o serviço em
+  ~6 s (pid novo, `restartCount=1`, de novo em primeiro plano). O estado em
+  disco continuou: `serviceStarts` 1 → 2, verificações seguindo de 11 para 15
+  em ~80 s.
+- **Atualização do app com o monitoramento ligado:** a reinstalação das
+  14:18:24 disparou o `MY_PACKAGE_REPLACED`, e o receptor religou o serviço
+  sozinho (`lastBootResult = started`, `serviceStarts` 3, em primeiro plano).
+- **M16, mudança de fonte com o app aberto:** a fonte foi de 1.15 para 2.0 às
+  14:12:31 e voltou às 14:12:46. A janela da `MainActivity` é a mesma antes e
+  depois (`Window{91d9c9f ...}` às 14:11:19, 14:12:35 e 14:12:44), no mesmo
+  processo, e o Metro não registrou nenhum aviso do React Navigation: a
+  Activity **não foi recriada**.
+- **M16, confirmação do responsável:** o texto do app acompanhou o novo
+  tamanho na hora. Com a Activity mantida (acima), o M16 está atendido.
+- **M14, reinício do S22 (responsável, 07/11):** com o serviço ligado.
+  `/proc/uptime` dá o boot por volta de 14:26:25; `boot_progress_enable_screen`
+  às 14:27:29. O receptor recebeu o `BOOT_COMPLETED` e religou o serviço às
+  14:28:59 (`Background started FGS: Allowed ... uidState: RCVR`), ~2,5 min
+  depois de ligar, a mesma janela cega do A9. Estado em disco preservado
+  (`active`, `serviceStarts` 4, verificações seguindo de 45),
+  `lastBootResult = started`, serviço em primeiro plano. Os agendamentos do
+  M14 entram no passo 5.
+
+- **JUnit:** 15 testes (3 da borda do dia, 10 da reconstrução do uso, 2 dos
+  lançadores), todos passando. Mutação de controle: sem o corte da
+  meia-noite, 2 falham.
+
 ## Problemas
 
 ### AP1 · Build Android falha no C++ do `react-native-worklets` (caminho longo)
@@ -2229,6 +2399,32 @@ do responsável.
 **Atenção:** o próprio app (`npm run android:install`, que também instala pelo
 `adb`) pode cair na mesma verificação. Se um build terminar com esse erro, ver
 o `logcat` antes de investigar o build.
+
+**De novo em 07/11, às 14:18 a 14:20:** três recusas seguidas do
+`dev.mobile.maestro` (ids 203 a 205), todas com `Verification task timed out`.
+O `logcat` detalha a regra: `Dialog suppressed: true. Reason: installer is in
+background and was not recently interacted with. installer: com.android.shell`
+→ `VERIFICATION_REJECT`. A instalação do próprio app pelo Gradle, às 14:18:24,
+passou. Para ler a tela sem o Maestro, `adb shell uiautomator dump` (já vem no
+Android) e `adb shell input tap` resolvem.
+
+### AP5 · Metro para de responder depois de um build do Gradle (07/11/2026)
+
+**Sintoma:** depois do `gradlew installDebug`, o Metro (iniciado antes do
+build) continua com a porta 8081 aberta, mas não responde: `curl
+localhost:8081/status` estoura o tempo, e o app abre com a tela vazia. Aconteceu
+duas vezes no mesmo dia, as duas logo depois de um build.
+
+**Hipótese (não confirmada):** o vigia de arquivos do Metro olha o projeto
+inteiro, e o Gradle escreve milhares de arquivos em `android/` e em
+`modules/monitoring-android/android/build/`. Não mudei a configuração do Metro:
+se continuar, testar um `blockList` para essas pastas.
+
+**Solução usada:** parar o Metro inteiro (o processo dono da porta 8081, como
+em "Cuidado: encerrar o Metro inteiro"), subir de novo, refazer o `adb
+reverse` e abrir o app pelo link do dev client. Na dúvida, subir o Metro só
+depois do build.
+
 
 ## Decisões do responsável (01/11/2026)
 
