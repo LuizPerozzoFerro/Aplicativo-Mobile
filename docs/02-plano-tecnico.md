@@ -1,7 +1,7 @@
 # 02 — Plano Técnico e Plano de Ação
 
-> **Status:** rascunho v0.6 · **Última atualização:** 02/11/2026
-> **Documentos base:** `01-visao-e-escopo-mvp.md` (v0.7) · `relatorios/01-viabilidade-monitoramento.md` (v0.4, Fase 1 no Android)
+> **Status:** rascunho v0.7 · **Última atualização:** 07/11/2026
+> **Documentos base:** `01-visao-e-escopo-mvp.md` (v0.8) · `relatorios/01-viabilidade-monitoramento.md` (v0.4, Fase 1 no Android)
 > **Decisão D6 (25/10/2026):** a primeira versão publicada sai **sem a VPN local**. Tudo o que depende dela neste documento vale para uma versão posterior.
 > Este documento define **como** o app será construído e **em que ordem**. Itens marcados como *proposta* ou *a decidir* ainda podem mudar. As decisões sobre o Android já se apoiam no protótipo; as do iOS continuam hipóteses até a fase iOS.
 
@@ -275,18 +275,21 @@ Itens:
 Também saiu da Fase 2: o manifesto de produção declara só `INTERNET`, `SYSTEM_ALERT_WINDOW` (usada na Fase 4) e `VIBRATE`; a permissão de origem da instalação (`BIND_GET_INSTALL_REFERRER_SERVICE`), trazida pelo `expo-application`, foi bloqueada e entrou na lista de proibidas do `check-manifest`.
 
 ### Fase 3 — Onboarding e núcleo
-**Spec:** `docs/specs/spec-02-onboarding-e-nucleo.md`.
-- [ ] Onboarding completo (compulsões, configuração, gatilhos, motivação, permissões com divulgação destacada, resumo)
-- [ ] Modelo genérico de compulsão com pornografia e vídeos curtos
-- [ ] Streak por mecânica, check-in e registro de recaída
-- [ ] Tela Início com cards por compulsão
-- [ ] Perfil: editar compulsões, gatilhos e motivação; apagar dados
+**Spec:** `docs/specs/spec-02-onboarding-e-nucleo.md`. **Concluída em 07/11/2026** (PRs #11 a #20; critérios de aceite e roteiro R1 a R13 com evidência em `NOTAS-APP.md`).
+- [x] Onboarding completo (compulsões, configuração, gatilhos, motivação, permissões com divulgação destacada, resumo), com progresso salvo
+- [x] Modelo genérico de compulsão com pornografia e vídeos curtos
+- [x] Streak com a mesma base nas duas mecânicas, check-in, registro de recaída e "Desfazer" que restaura a resposta anterior
+- [x] Tela Início com cards por compulsão e tela de permissões fora do onboarding
+- [x] Perfil: editar compulsões, apps, limite, check-in, gatilhos e motivação; permissões; apagar dados
+- [x] Banco com 4 migrações (001 a 004) e teste de preservação das tabelas filhas
+- [x] Quatro fluxos Maestro no S22
 
-**Critério de saída:** usuário configura o app e acompanha streaks com check-in manual.
+**Critério de saída:** usuário configura o app e acompanha streaks com check-in manual. **Cumprido.**
 
 Pendências herdadas da Fase 2 (detalhes em `NOTAS-APP.md`): salvar etapa e respostas do onboarding; esconder o "Voltar" da primeira tela; teclado na `Screen`; "Apagar meus dados" zerar o onboarding; validar o papel do app ao gravá-lo.
 
 ### Fase 4 — Monitoramento, alertas e emergência
+**Spec:** `docs/specs/spec-03-monitoramento-alertas-emergencia.md`.
 - [ ] Módulo nativo Android definitivo (a partir do protótipo) atrás da interface comum, com as correções da seção 4.1
 - [ ] Alertas em dois níveis, tela de interrupção com quatro botões, pausa de 5 min, reprovação do dia e janelas de gatilho
 - [ ] Notificação de recomeço no dia seguinte à quebra de streak
@@ -296,6 +299,8 @@ Pendências herdadas da Fase 2 (detalhes em `NOTAS-APP.md`): salvar etapa e resp
 - [ ] Vigilância de permissões, tela de estado do monitoramento e modo degradado
 
 **Critério de saída:** fluxo proativo completo funcionando no S22, inclusive após reinício, e manifesto sem as permissões proibidas da seção 3.4.
+
+Pendências herdadas da Fase 3 (detalhes em `NOTAS-APP.md`): voltar preditivo ligado na tela de interrupção; borda do dia igual no Kotlin e no Hermes; regras de limite (somado nos vídeos curtos, uma por app de risco); app nas duas listas; incluir `fontScale` e `density` no `configChanges` da Activity (ela é recriada quando a fonte muda); instalações pelo `adb` recusadas pela verificação de desenvolvedor do Android (AP4).
 
 ### Fase 5 — Progresso, estatísticas e conteúdo remoto
 - [ ] Supabase com esquema de conteúdo e cache offline
@@ -326,6 +331,7 @@ Pendências herdadas da Fase 2 (detalhes em `NOTAS-APP.md`): salvar etapa e resp
 - [ ] Revisar os rascunhos de `docs/rascunhos/` (política de privacidade, segurança de dados, justificativas) com o nome Quedo e a pessoa física
 - [ ] Decidir sobre criptografar o banco (SQLCipher) ou manter a proteção do Android
 - [ ] Tela "Sobre": mostrar a linha "Ambiente" só em desenvolvimento e prévia
+- [ ] Avaliar um modo discreto: o usuário dá outro nome ao card "Conteúdo adulto" no Início
 
 **Critério de saída:** conteúdo final carregado e materiais da loja prontos.
 
@@ -446,3 +452,4 @@ Complementam os riscos R1–R12 do doc 01.
 | 0.4 | 01/11/2026 | Conta Google Play verificada; package name `br.com.quedo.app` (dev: `.dev`); conta Apple adiada para perto da Fase 10; recrutamento de testadores movido para a Fase 8; modelo de dados com `AppMonitorado`, `NotificacaoEnviada`, compulsão pausada e idade confirmada; Fase 2 aponta para a spec 01 |
 | 0.5 | 01/11/2026 | Decisão D6: build único sem VPN, flag `domainMonitoring` e verificação de permissões proibidas no manifesto (seção 3.4); VPN movida para a evolução pós-lançamento; I-25 no Nubank; segurança de dados com coleta (RevenueCat e Sentry); Sentry antes da Fase 8; Drizzle recomendado; emulador liberado; relatório v0.4 e rascunhos de loja referenciados |
 | 0.6 | 02/11/2026 | Fase 2 concluída: stack em uso (Expo SDK 58, RN 0.88.1, Drizzle 0.45, expo-symbols, Maestro 2.12, CI); manifesto de produção enxuto e permissão de origem da instalação bloqueada; pendências herdadas para as Fases 3 e 7 |
+| 0.7 | 07/11/2026 | Fase 3 concluída (PRs #11 a #20); pendências herdadas para a Fase 4 (fontScale na Activity, AP4 da verificação de desenvolvedor, voltar preditivo, borda do dia, regras de limite) |

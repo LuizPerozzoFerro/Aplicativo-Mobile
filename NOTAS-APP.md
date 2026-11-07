@@ -7,11 +7,11 @@ do protótipo continua em `prototype/NOTAS.md`.
 
 ## Onde paramos (07/11/2026)
 
-- **Fase 3 pronta para revisão:** passos 1 a 6 integrados na `main` (PRs #12 a #19) e o
-  passo 7 (fluxos Maestro e roteiro R1 a R13) no PR da branch
-  `fase3/maestro`. Critérios de aceite no fim da seção do passo 7.
-- **Próximo:** revisão da Fase 3 no chat de planejamento; depois, a Fase 4
-  (monitoramento, spec a definir).
+- **Fase 3 encerrada:** passos 1 a 7 integrados na `main` (PRs #12 a #20).
+- **Fase 4 (spec 03 v0.2):** documentos e decisões da leitura da spec no PR
+  #21 (branch `fase4/docs`). Seção "Fase 4 · Leitura da spec 03".
+- **Próximo:** passo 1 (base nativa) na branch `fase4/base-nativa`, depois do
+  merge do PR #21.
 
 ---
 
@@ -39,6 +39,16 @@ do protótipo continua em `prototype/NOTAS.md`.
   variante de VPN, só a flag `features.domainMonitoring` (sempre `false`) e a
   verificação do manifesto contra `BIND_VPN_SERVICE`,
   `FOREGROUND_SERVICE_SYSTEM_EXEMPTED` e `HIDE_OVERLAY_WINDOWS` (spec 4.3).
+
+### DV2 · Relatório 9.5 diz que a instalação por `adb` não é afetada (07/11/2026)
+
+- O relatório v0.4 (seção 9.5), sobre a verificação de desenvolvedor do
+  Android: "Instalação por adb não é afetada".
+- No S22, em 07/11/2026, três instalações seguidas pelo `adb` foram recusadas
+  pela verificação (`INSTALL_FAILED_VERIFICATION_FAILURE`, `[ADV]` no
+  `logcat`): ver AP4.
+- **Status:** aberta. A spec 03 (5.12) pede investigar o AP4 nesta fase; o
+  resultado vai ao chat de planejamento para corrigir o relatório.
 
 ## Passo 1 · Preparação (01/11/2026)
 
@@ -2079,6 +2089,34 @@ coberto pelos fluxos Maestro, que rodam no mesmo aparelho.
 próximas fases, além dos já registrados na Fase 2: o AP4 (verificação de
 desenvolvedor nas instalações pelo `adb`) e a recriação da Activity quando a
 fonte muda (acima).
+
+## Fase 4 · Leitura da spec 03 (07/11/2026)
+
+Spec: `docs/specs/spec-03-monitoramento-alertas-emergencia.md`. Documentos de
+partida (PR #21): spec 03 v0.1, doc 01 v0.8 e doc 02 v0.7. Lidos também o
+relatório de viabilidade (seções 6.2, 7 e 9.6) e o `prototype/NOTAS.md` (sem
+os achados da VPN, A6 a A8, fora do escopo pela D6).
+
+Doze pontos levantados na leitura da v0.1. O responsável aceitou as propostas,
+com dois ajustes, e as incorporou na **spec 03 v0.2** (no mesmo PR #21):
+
+| # | Ponto | Decisão | Onde na spec |
+|---|---|---|---|
+| 1 | Notificação de recomeço | Dia seguinte à quebra: às 9h se o celular estiver em uso; bloqueado, no primeiro desbloqueio depois das 9h. Sem a permissão de uso (nenhum serviço rodando para perceber o desbloqueio), sai às 9h. **Ajuste do responsável:** recaída registrada hoje para ontem **não gera** recomeço (o usuário acabou de ver a mensagem de apoio). Quebra nas duas compulsões no mesmo dia: uma só. "Desfazer" a quebra cancela o recomeço agendado | 5.4, Recomeço |
+| 2 | Pausa de 5 min do "Continuar" | Vale para a **compulsão inteira**, em todos os apps de risco dela, como as contagens | 5.2 |
+| 3 | App nas duas listas | A tela é da compulsão que **atingiu primeiro o seu limite naquele dia**. Quando ela para de interromper (dia reprovado, alertas ou telas encerrados), a outra passa a valer naquele app, se as regras dela pedirem tela | 5.2 |
+| 4 | Tela própria (Activity) como reserva | A sobreposição e a Activity dependem da mesma permissão; sem ela, só a notificação. Com a sobreposição escondida por outro app (I-25), tentar a Activity **uma vez** antes do recuo progressivo | 5.3 |
+| 5 | Preventivas: casos-limite | Mais de 4 faixas no dia: as 4 primeiras em ordem de horário. Faixas cobrindo o dia todo: nenhuma preventiva | 5.4 |
+| 6 | M16, mudar a fonte com o app aberto | Além de não recriar a tela, o texto precisa acompanhar o novo tamanho. A medir no passo 1; se o React Native não aplicar na hora, voltar com as opções | 7, M16 |
+| 7 | Lista de permissões permitidas | Entra a permissão própria do app `<pacote>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` (vem do AndroidX). As três do dev client (`ACCESS_NETWORK_STATE`, `ACCESS_LOCAL_NETWORK`, `CHANGE_WIFI_MULTICAST_STATE`) só na variante de desenvolvimento; prévia e produção pela lista estrita | 5.8 |
+| 8 | Agendamento sem alarme exato | **Ajuste do responsável:** `AlarmManager` em modo inexato que dispara também em economia profunda (`setAndAllowWhileIdle`), **sem WorkManager**. Tolerância de 15 min; em economia profunda o atraso pode ser maior, e isso é aceito | 5.4 |
+| 9 | AP4 e o relatório 9.5 | O relatório diz que a instalação por `adb` não é afetada, mas o S22 recusou instalações em 07/11 (AP4). Investigar pela documentação oficial e trazer os passos; registrar pacotes no Play Console é ação do responsável. Divergência em DV2 | 5.12 |
+| 10 | Chamada recebida com a tela de interrupção aberta | A tela nunca cobre uma chamada: sai e volta depois, se ainda fizer sentido. Sem permissão nova (o estado da chamada vem do `AudioManager`). Novo item **M20** no roteiro | 5.3; 7, M20 |
+| 11 | Kwai | Confirmar no S22 os pacotes dos apps instalados; se algum não estiver (ex.: Kwai), registrar quais foram confirmados | 5.1 |
+| 12 | Doc 01 v0.8 citava o doc 02 como v0.6 | Corrigido pelo responsável no próprio doc 01 v0.8 (agora cita a v0.7) | — |
+
+**Próximo:** passo 1 (base nativa) na branch `fase4/base-nativa`, depois do
+merge do PR #21.
 
 ## Problemas
 

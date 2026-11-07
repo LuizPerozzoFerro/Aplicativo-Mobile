@@ -1,8 +1,8 @@
 # 01 — Visão do Produto e Escopo do MVP
 
-> **Status:** revisado v0.7 · **Última atualização:** 02/11/2026
+> **Status:** revisado v0.8 · **Última atualização:** 07/11/2026
 > **Nome do app:** **Quedo** (decidido em 01/11/2026, ver seção 7.4 e o documento de decisão do nome no Project)
-> **Documentos relacionados:** `02-plano-tecnico.md` (v0.6) · `relatorios/01-viabilidade-monitoramento.md` (v0.4, resultado da Fase 1 no Android)
+> **Documentos relacionados:** `02-plano-tecnico.md` (v0.7) · `relatorios/01-viabilidade-monitoramento.md` (v0.4, resultado da Fase 1 no Android)
 > Este documento descreve **o que** o app faz e **por quê**. Decisões de arquitetura, stack e padrões de código ficam em documentos técnicos próprios e no `CLAUDE.md`.
 
 ---
@@ -173,11 +173,14 @@ A barra inferior é **igual para todos os usuários**, independentemente de quan
   - duas respostas de um toque: **"Sem recaída"** e **"Tive uma recaída"**;
   - **um dia sem resposta não quebra a streak**: o check-in serve para registrar recaídas, e a streak só zera quando o usuário informa uma;
   - o card da tela Início oferece o check-in do dia e, a qualquer momento, "Registrar recaída" (hoje ou ontem);
-  - a partir da Fase 4 do plano técnico, o check-in também chega por notificação, com as duas respostas como ações.
+  - a partir da Fase 4 do plano técnico, o check-in também chega por notificação, com as duas respostas como ações (decisão de 07/11/2026):
+    - **uma notificação por dia**, no horário escolhido, só se o check-in do dia ainda não foi respondido;
+    - ela fica na barra até ser respondida ou até a meia-noite, **sem lembrete repetido**;
+    - conta dentro do limite de notificações proativas (6.6).
 - Sem permissão de monitoramento, a streak depende apenas do check-in.
 - Em pornografia, tocar em "continuar mesmo assim" num alerta **não é recaída automática**: é registrado como sinal, e o app faz um check-in gentil posteriormente para o usuário confirmar.
 - Recaída zera a streak atual, mas mantém histórico, marcos e vídeos já desbloqueados.
-- **Notificação de recomeço:** no começo do dia seguinte a uma quebra de streak, o app envia uma notificação especial de motivação, com texto neutro, apenas quando havia streak a perder. O agendamento precisa sobreviver ao reinício do aparelho.
+- **Notificação de recomeço:** no dia seguinte a uma quebra de streak, o app envia uma notificação especial de motivação, com texto neutro, apenas quando havia streak a perder (streak de 1 dia ou mais antes da quebra). **Horário (decisão de 07/11/2026): às 9h, ou no primeiro desbloqueio depois das 9h**, uma vez só. O agendamento precisa sobreviver ao reinício do aparelho.
 - O tempo diante da tela de interrupção **não conta** como uso do app monitorado, e o dia tem borda explícita (meia-noite no fuso do aparelho).
 
 ### 6.3 Calendário de benefícios (aba Progresso)
@@ -226,7 +229,8 @@ Requisitos da tela:
 - Só "Continuar mesmo assim" pausa. A pausa dura **5 minutos**; ao fim, se o usuário ainda estiver no app monitorado, a interrupção volta.
 - Acima do limite e fora da pausa, **cada reabertura** do app monitorado gera nova interrupção.
 - **Toda tela de interrupção exibida conta** para o total do dia. Abrir a Emergência não conta.
-- **Contagens por compulsão:** interrupções e "Continuar mesmo assim" são contados separadamente para cada compulsão, somando todos os apps dela (ex.: Instagram e TikTok juntos em vídeos curtos). Um app monitorado por duas compulsões gera uma única tela; em qual compulsão ela é contada fica para a spec de monitoramento.
+- **Contagens por compulsão:** interrupções e "Continuar mesmo assim" são contados separadamente para cada compulsão, somando todos os apps dela (ex.: Instagram e TikTok juntos em vídeos curtos).
+- **App nas duas listas (decisão de 07/11/2026):** um app monitorado por duas compulsões (ex.: X em vídeos curtos e nos apps de risco) gera **uma única tela de interrupção**, contada na compulsão que disparou primeiro, com os botões e as regras dela. A outra compulsão não gera tela própria enquanto aquela estiver ativa no mesmo app.
 
 #### 6.5.4 Reprovação do dia (moderação)
 - Só reprovam o dia, zerando a streak:
@@ -259,10 +263,10 @@ Regras:
 > ⚠️ **Plataformas:** as regras acima foram validadas no Android (Fase 1). No iOS, a viabilidade de cada uma ainda não foi testada (riscos R1, R2 e R4). Ver seção 10.
 
 ### 6.6 Notificações por gatilho
-- Com base nos horários e dias declarados, o app envia notificações preventivas (ex.: gatilho "depois do trabalho" → notificação às 17h).
-- Estados emocionais declarados personalizam o texto.
+- Com base nos horários e dias declarados, o app envia notificações preventivas. **Regra (decisão de 07/11/2026):** uma notificação **no início de cada faixa de horário marcada**, com as faixas vizinhas e sobrepostas unidas (20h–22h e 22h–24h geram uma só, às 20h), **só nos dias marcados** ou em todos os dias, se nenhum dia foi marcado.
+- Estados emocionais declarados e a motivação personalizam o texto, sempre neutro na tela de bloqueio.
 - Notificações agendadas funcionam mesmo sem permissão de monitoramento.
-- **Coordenação de notificações:** usuários com mais de uma compulsão não devem receber o dobro de alertas. **Limite diário global: 6 notificações proativas** (gatilho, check-in, recomeço e lembrete), somadas todas as compulsões, com agrupamento de mensagens. Ficam fora desse limite a notificação permanente do monitoramento e os alertas de monitoramento (limite, app de risco, domínio), que respondem ao uso real e têm controle próprio de frequência (pausa e encerramento do dia).
+- **Coordenação de notificações:** usuários com mais de uma compulsão não devem receber o dobro de alertas. **Limite diário global: 6 notificações proativas** (gatilho, check-in, recomeço e lembrete), somadas todas as compulsões, com agrupamento de mensagens. O check-in e o recomeço sempre têm vaga: as preventivas por gatilho ficam com no máximo 4 por dia. Ficam fora desse limite a notificação permanente do monitoramento e os alertas de monitoramento (limite, app de risco, domínio), que respondem ao uso real e têm controle próprio de frequência (pausa e encerramento do dia).
 - Notificações devem incluir ação rápida para o botão de emergência e, quando aplicável, para o check-in. No One UI essa ação exige expandir a notificação (ver limites de P3).
 
 ### 6.7 Botão de emergência
@@ -270,9 +274,11 @@ Disponível na tela Início, na tela de interrupção e nas notificações de ga
 
 Fluxo:
 1. Exibe imediatamente a motivação pessoal do usuário;
-2. Exercício de respiração guiado (~1 minuto);
-3. Cronômetro de espera de alguns minutos com sugestões rápidas (sair do ambiente, beber água, falar com alguém);
+2. Exercício de respiração guiado de **1 minuto**;
+3. Cronômetro de espera de **5 minutos** com sugestões rápidas (sair do ambiente, beber água, falar com alguém);
 4. Pergunta final: "A vontade passou?" → resposta positiva é registrada como vitória nas estatísticas.
+
+O usuário pode pular a respiração ou o cronômetro a qualquer momento e ir direto à pergunta final (decisão de 07/11/2026).
 
 ### 6.8 Estatísticas
 - Tempo de uso por dia e semana (vídeos curtos), no total e detalhado por app, **somente dos apps**: minutos no navegador não são exibidos;
@@ -447,6 +453,9 @@ Situação atualizada com o relatório de viabilidade (Fase 1, Android).
 - [x] Limite padrão de vídeos curtos: **60 minutos** (02/11/2026)
 - [x] Check-in da pornografia: **diário**, horário escolhido (padrão 21h), dia sem resposta não quebra a streak (02/11/2026)
 - [x] Onboarding: **progresso salvo**; menor de 18 anos bloqueado; faixas de horário de 2 horas e personalizadas (02/11/2026)
+- [x] App nas duas listas: uma tela só, contada na compulsão que disparou primeiro (07/11/2026)
+- [x] Notificações: check-in diário sem repetição; preventivas no início de cada faixa (no máximo 4 por dia); recomeço às 9h ou no primeiro desbloqueio depois (07/11/2026)
+- [x] Emergência: 1 min de respiração e 5 min de cronômetro, podendo pular (07/11/2026)
 - [x] VPN na primeira versão: **não** (D6, 25/10/2026, seção 3.2)
 
 **Ainda em aberto**
@@ -454,7 +463,6 @@ Situação atualizada com o relatório de viabilidade (Fase 1, Android).
 - [ ] Ícone e identidade visual
 - [ ] Marcos exatos e conteúdo de cada calendário (depende das fontes científicas)
 - [ ] Ferramenta de IA para produção dos vídeos
-- [ ] App monitorado por duas compulsões (ex.: X): em qual compulsão a interrupção é contada (fechar na spec de monitoramento)
 
 ---
 
@@ -488,3 +496,4 @@ Situação atualizada com o relatório de viabilidade (Fase 1, Android).
 | 0.5 | 01/11/2026 | Decisão D6 (25/10/2026): primeira versão publicada sem VPN (nova seção 3.2; itens dependentes da VPN marcados como versão posterior); I-25 medido no Nubank (R4 e R11); segurança de dados deixa de ser "sem coleta" por causa de RevenueCat e Sentry; referência ao relatório v0.4 |
 | 0.6 | 02/11/2026 | Limite da moderação somado entre os apps escolhidos, um por compulsão (6.5.4); card do Início e Estatísticas ajustados |
 | 0.7 | 02/11/2026 | Decisões para a Fase 3: check-in diário da pornografia (padrão 21h, dia sem resposta não quebra a streak); apps pré-marcados e limite padrão de 60 min; faixas de horário de 2 horas e personalizadas; lista de emoções; progresso do onboarding salvo; bloqueio de menores de 18 |
+| 0.8 | 07/11/2026 | Decisões para a Fase 4: app nas duas listas com uma tela só; notificação diária de check-in sem repetição; preventivas no início de cada faixa, só nos dias marcados, no máximo 4 por dia; recomeço às 9h ou no primeiro desbloqueio; emergência com 1 min de respiração e 5 min de cronômetro |
