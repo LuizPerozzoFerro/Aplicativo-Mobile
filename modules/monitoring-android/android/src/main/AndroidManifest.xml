@@ -1,0 +1,69 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:tools="http://schemas.android.com/tools">
+
+  <!--
+    Permissões do monitoramento (spec 03, seção 5.8). Qualquer outra quebra o
+    scripts/check-manifest.js.
+
+    PACKAGE_USAGE_STATS: acesso ao uso. É um "acesso especial", concedido só
+    pelo usuário nos Ajustes; o tools:ignore silencia o aviso do lint sobre
+    permissão protegida.
+  -->
+  <uses-permission
+    android:name="android.permission.PACKAGE_USAGE_STATS"
+    tools:ignore="ProtectedPermissions" />
+  <!-- Sobreposição da tela de interrupção (passo 4). Também concedida nos Ajustes. -->
+  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+  <!-- Religar o monitoramento depois de reiniciar o aparelho. -->
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+  <!--
+    Visibilidade de pacotes (Android 11+): só os apps com ícone na gaveta
+    (para o usuário escolher) e as telas iniciais (para descontá-las do uso,
+    I-8). Nunca QUERY_ALL_PACKAGES: o Google Play a proíbe quando uma consulta
+    direcionada resolve, que é o nosso caso.
+  -->
+  <queries>
+    <intent>
+      <action android:name="android.intent.action.MAIN" />
+      <category android:name="android.intent.category.LAUNCHER" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.MAIN" />
+      <category android:name="android.intent.category.HOME" />
+    </intent>
+  </queries>
+
+  <application>
+    <!--
+      Exportado porque quem envia BOOT_COMPLETED e MY_PACKAGE_REPLACED é o
+      sistema. Os dois são broadcasts protegidos: outro app não consegue
+      enviá-los.
+    -->
+    <receiver
+      android:name=".BootReceiver"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+      </intent-filter>
+    </receiver>
+
+    <!--
+      specialUse: o texto da property é lido por um revisor do Google Play, por
+      isso em inglês (rascunho em docs/rascunhos/play-console-justificativas.md,
+      seção 2).
+    -->
+    <service
+      android:name=".MonitoringService"
+      android:exported="false"
+      android:foregroundServiceType="specialUse">
+      <property
+        android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+        android:value="Monitors, on the device only, how long the user has used apps that the user personally chose, and shows a reminder when the daily limit the user set is reached. Runs continuously because usage can start at any time. No usage data leaves the device." />
+    </service>
+  </application>
+</manifest>

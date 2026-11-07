@@ -57,6 +57,7 @@ function AppNavigator() {
         <Stack.Screen name="permission-status" />
         <Stack.Screen name="edit" />
         <Stack.Screen name="dev-components" />
+        <Stack.Screen name="dev-monitoring" />
       </Stack.Protected>
     </Stack>
   );

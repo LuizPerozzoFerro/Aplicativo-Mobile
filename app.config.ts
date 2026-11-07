@@ -68,7 +68,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       bundleIdentifier: identifier,
       supportsTablet: false,
     },
-    plugins: ['expo-router', 'expo-system-ui', './plugins/with-local-cmake'],
+    plugins: [
+      'expo-router',
+      'expo-system-ui',
+      './plugins/with-local-cmake',
+      './plugins/with-font-scale-config-changes',
+    ],
     experiments: {
       typedRoutes: true,
     },

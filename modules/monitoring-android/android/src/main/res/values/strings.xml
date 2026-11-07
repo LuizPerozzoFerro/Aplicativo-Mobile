@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Mínimo neutro do nativo, para quando ainda não há configuração vinda do JS
+  (spec 03, seção 4.2). Os textos definitivos vêm do i18n. Prefixo quedo_ para
+  não colidir com recursos de outras bibliotecas.
+-->
+<resources>
+  <string name="quedo_monitoring_channel_name">Proteção</string>
+  <string name="quedo_monitoring_ongoing_title">Quedo</string>
+  <string name="quedo_monitoring_ongoing_text">Proteção ativa.</string>
+</resources>
