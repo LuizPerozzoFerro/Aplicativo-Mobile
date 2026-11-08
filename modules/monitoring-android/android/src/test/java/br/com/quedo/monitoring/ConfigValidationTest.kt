@@ -16,7 +16,11 @@ class ConfigValidationTest {
       "checkInMinutes": 1260,
       "preventive": { "weekdays": [0, 6], "startMinutes": [1200], "emotions": [] },
       "restartDayKeys": [],
-      "links": { "permissions": "quedo-dev://permission-status" },
+      "links": {
+        "permissions": "quedo-dev://permission-status",
+        "emergencyFromNotification": "quedo-dev://emergency?source=notification",
+        "emergencyFromInterruption": "quedo-dev://emergency?source=interruption"
+      },
       "motivation": "Dormir melhor",
       "texts": {
         "channels": { "tracking": "Acompanhamento", "alerts": "Avisos", "reminders": "Lembretes" },
@@ -86,6 +90,8 @@ class ConfigValidationTest {
       listOf("texts", "interruption", "continue"),
       listOf("restartDayKeys"),
       listOf("links", "permissions"),
+      listOf("links", "emergencyFromNotification"),
+      listOf("links", "emergencyFromInterruption"),
       listOf("texts", "notifications"),
       listOf("texts", "notifications", "checkIn"),
       listOf("texts", "notifications", "emergencyAction"),

@@ -124,13 +124,13 @@ object Notifier {
   }
 
   /**
-   * "Emergência" abre o app direto: uma ação de notificação não pode abrir
-   * tela a partir de um receptor (Android 12). A rota própria entra no passo 6.
+   * "Emergência" abre a rota direto: uma ação de notificação não pode abrir
+   * tela a partir de um receptor (Android 12).
    */
-  private fun Notification.Builder.withEmergency(context: Context, texts: JSONObject, requestCode: Int) = apply {
-    openApp(context, requestCode)?.let {
-      addAction(Notification.Action.Builder(null, texts.getString("emergencyAction"), it).build())
-    }
+  private fun Notification.Builder.withEmergency(context: Context, config: JSONObject, requestCode: Int) = apply {
+    val link = config.getJSONObject("links").getString("emergencyFromNotification")
+    val label = notifications(config).getString("emergencyAction")
+    addAction(Notification.Action.Builder(null, label, openLink(context, link, requestCode)).build())
   }
 
   private fun notifications(config: JSONObject) =
@@ -145,7 +145,7 @@ object Notifier {
       RISK_NOTIFICATION_BASE + target.hashCode().mod(RISK_NOTIFICATION_RANGE)
     }
     val builder = base(context, ALERTS_CHANNEL_ID, texts, copy.getString("title"), copy.getString("text"))
-      .withEmergency(context, texts, id)
+      .withEmergency(context, config, id)
     openApp(context)?.let { builder.setContentIntent(it) }
     manager(context).notify(id, builder.build())
   }
@@ -176,7 +176,7 @@ object Notifier {
   fun sendPreventive(context: Context, config: JSONObject, body: String, id: Int = PREVENTIVE_NOTIFICATION_ID) {
     val texts = notifications(config)
     val title = texts.getJSONObject("preventive").getString("title")
-    val builder = base(context, REMINDERS_CHANNEL_ID, texts, title, body).withEmergency(context, texts, id)
+    val builder = base(context, REMINDERS_CHANNEL_ID, texts, title, body).withEmergency(context, config, id)
     openApp(context)?.let { builder.setContentIntent(it) }
     manager(context).notify(id, builder.build())
   }

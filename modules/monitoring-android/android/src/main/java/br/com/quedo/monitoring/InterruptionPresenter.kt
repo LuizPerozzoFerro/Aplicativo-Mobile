@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
 import android.media.AudioManager
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
@@ -196,10 +197,13 @@ object InterruptionPresenter {
         )
       }
 
-      // A rota da emergência entra no passo 6; por enquanto, abre o app.
       "emergency" -> runCatching {
-        app.packageManager.getLaunchIntentForPackage(app.packageName)?.let {
-          app.startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        ConfigStore.get(app)?.getJSONObject("links")?.getString("emergencyFromInterruption")?.let {
+          app.startActivity(
+            Intent(Intent.ACTION_VIEW, Uri.parse(it))
+              .setPackage(app.packageName)
+              .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+          )
         }
       }
 

@@ -11,7 +11,11 @@ const CONFIG: MonitoringConfig = {
   checkInMinutes: null,
   checkInCompulsionId: null,
   restartDayKeys: [],
-  links: { permissions: 'quedo-dev://permission-status' },
+  links: {
+    permissions: 'quedo-dev://permission-status',
+    emergencyFromNotification: 'quedo-dev://emergency?source=notification',
+    emergencyFromInterruption: 'quedo-dev://emergency?source=interruption',
+  },
   preventive: { weekdays: [], startMinutes: [], emotions: [] },
   motivation: null,
   texts: {

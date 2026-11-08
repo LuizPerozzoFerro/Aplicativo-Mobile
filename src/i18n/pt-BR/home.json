@@ -1,4 +1,5 @@
 {
+  "emergency": "Emergência",
   "streak_zero": "0 dias",
   "streak_one": "{{count}} dia",
   "streak_other": "{{count}} dias",

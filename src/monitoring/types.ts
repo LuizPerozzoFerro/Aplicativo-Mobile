@@ -110,8 +110,12 @@ export type MonitoringConfig = {
   readonly checkInCompulsionId: number | null;
   /** Dias (AAAA-MM-DD) com notificação de recomeço pendente (src/domain/restart.ts). */
   readonly restartDayKeys: readonly string[];
-  /** Endereços do app que as notificações abrem. */
-  readonly links: { readonly permissions: string };
+  /** Endereços do app que as notificações e a tela de interrupção abrem. */
+  readonly links: {
+    readonly permissions: string;
+    readonly emergencyFromNotification: string;
+    readonly emergencyFromInterruption: string;
+  };
   readonly preventive: PreventiveConfig;
   /** Motivação do usuário, para a tela de interrupção e as notificações. */
   readonly motivation: string | null;
