@@ -24,6 +24,21 @@ jest.mock('@/monitoring', () => ({
   getMonitoring: () => mockMonitoring,
 }));
 
+// Conta quantas etapas estão segurando a tela acesa neste momento.
+let mockKeepAwakeHolders = 0;
+jest.mock('expo-keep-awake', () => {
+  const { useEffect } = jest.requireActual<typeof import('react')>('react');
+  return {
+    useKeepAwake: () =>
+      useEffect(() => {
+        mockKeepAwakeHolders += 1;
+        return () => {
+          mockKeepAwakeHolders -= 1;
+        };
+      }, []),
+  };
+});
+
 const APP_DIR = './app';
 const expectPath = (path: string) => waitFor(() => expect(screen).toHavePathname(path));
 const press = async (name: string | RegExp) =>
@@ -42,6 +57,7 @@ beforeEach(async () => {
   mockRepositories = createRepositories((await createTestDatabase()).db);
   mockMonitoring = new FakeMonitoringModule();
   onboardingStatus.setCompleted(true);
+  mockKeepAwakeHolders = 0;
 });
 afterEach(() => jest.restoreAllMocks());
 
@@ -202,6 +218,37 @@ describe('Origem e sessão única', () => {
 
     expect(await screen.findByText('Inspire')).toBeOnTheScreen();
     expect(sessions()).toEqual([expect.objectContaining({ source: 'home', outcome: null })]);
+  });
+});
+
+describe('Tela acesa', () => {
+  it('só durante a respiração e o cronômetro', async () => {
+    await open();
+    await screen.findByText('Este momento vai passar');
+    expect(mockKeepAwakeHolders).toBe(0);
+
+    await press('Começar a respiração');
+    await screen.findByText('Inspire');
+    expect(mockKeepAwakeHolders).toBe(1);
+
+    advanceClock(EMERGENCY_BREATHING_MS);
+    await screen.findByText('Agora, dê um tempo');
+    expect(mockKeepAwakeHolders).toBe(1);
+
+    advanceClock(EMERGENCY_WAIT_MS);
+    await screen.findByText('A vontade passou?');
+    expect(mockKeepAwakeHolders).toBe(0);
+  });
+
+  it('sair no meio solta a tela', async () => {
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+    await press('Emergência');
+    await press('Começar a respiração');
+    await screen.findByText('Inspire');
+    expect(mockKeepAwakeHolders).toBe(1);
+    await press('Sair');
+    await expectPath('/');
+    await waitFor(() => expect(mockKeepAwakeHolders).toBe(0));
   });
 });
 

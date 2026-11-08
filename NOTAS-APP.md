@@ -2802,13 +2802,17 @@ Branch `fase4/emergencia`. Spec 03, seção 5.5; doc 01, seção 6.7.
 - **Aberta a frio:** sem tela atrás, "Sair" e o Voltar levam ao Início, em vez de fechar
   o app.
 
-### Decisão pendente: manter a tela acesa
+### Revisão do responsável no PR #27 (08/11/2026)
 
-A respiração e o cronômetro duram 6 minutos, e o desligamento automático da tela pode
-apagá-la no meio. O `expo-keep-awake` resolveria e já vem como dependência do `expo`,
-mas usá-lo direto exige declará-lo no `package.json`, e biblioteca com código nativo
-pede confirmação (CLAUDE.md, 8.2). No development build a tela ficou acesa durante os
-testes, o que não vale como evidência para prévia e produção. Levado ao responsável.
+Aprovados: "Pular" na motivação leva à pergunta final; o fechamento com "Voltar ao
+início" fica. Dois ajustes, feitos no começo do passo 7:
+
+- **`expo-keep-awake` (aprovado, 58.0.3):** a respiração e o cronômetro duram 6 minutos,
+  e o desligamento automático da tela poderia apagá-la no meio. Biblioteca oficial do
+  Expo, que já vinha como dependência do `expo`; agora declarada no `package.json`.
+  Ativo só nessas duas etapas.
+- **Texto depois de "Ainda não":** acrescentada a frase sobre conversar com alguém de
+  confiança ou com um profissional.
 
 ### Testes
 

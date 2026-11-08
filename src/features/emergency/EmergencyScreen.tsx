@@ -1,3 +1,4 @@
+import { useKeepAwake } from 'expo-keep-awake';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +22,8 @@ import { useReduceMotion } from './useReduceMotion';
 const TICK_MS = 250;
 const CIRCLE_SIZE = 180;
 const CIRCLE_MIN_SCALE = 0.55;
+/** A saída da etapa não precisa avisar se o sistema já tiver soltado a tela. */
+const KEEP_AWAKE_OPTIONS = { suppressDeactivateWarnings: true };
 
 type Step = 'motivation' | 'breathing' | 'waiting' | 'question';
 type Answer = Extract<EmergencyOutcome, 'passed' | 'not_passed'>;
@@ -167,6 +170,7 @@ function BreathingCircle({ expanded, phaseKey }: { expanded: boolean; phaseKey: 
 
 function BreathingStep({ onDone, onSkip }: { onDone: () => void; onSkip: () => void }) {
   const { t } = useTranslation('emergency');
+  useKeepAwake(undefined, KEEP_AWAKE_OPTIONS);
   const elapsed = useElapsed();
   const phase = getBreathingPhase(elapsed);
   const finished = elapsed >= EMERGENCY_BREATHING_MS;
@@ -195,6 +199,7 @@ function BreathingStep({ onDone, onSkip }: { onDone: () => void; onSkip: () => v
 
 function WaitingStep({ onDone, onSkip }: { onDone: () => void; onSkip: () => void }) {
   const { t } = useTranslation('emergency');
+  useKeepAwake(undefined, KEEP_AWAKE_OPTIONS);
   const elapsed = useElapsed();
   const finished = elapsed >= EMERGENCY_WAIT_MS;
 
