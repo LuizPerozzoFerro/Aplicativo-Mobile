@@ -2,6 +2,7 @@ import { startOfDay, startOfNextDay, toDayKey } from './day';
 import {
   createMomentState,
   getCompulsionMoment,
+  momentExited,
   momentRespond,
   momentShown,
   momentTick,
@@ -40,6 +41,7 @@ type VectorStep = {
   };
   shown?: { t: number; day: string; compulsionId: number };
   respond?: { t: number; day: string; compulsionId: number; response: MomentResponse };
+  exited?: { t: number; day: string };
   expect?: MomentAction[];
   state?: Record<string, { interruptions: number; continues: number; stopped: boolean }>;
 };
@@ -88,6 +90,8 @@ function runScenario({ config: first, steps }: VectorScenario) {
       actions = result.actions;
     } else if (step.shown) {
       state = momentShown(state, step.shown.compulsionId, step.shown.day);
+    } else if (step.exited) {
+      state = momentExited(state, EPOCH + step.exited.t * SECOND, step.exited.day);
     } else if (step.respond) {
       const { t, day, compulsionId, response } = step.respond;
       const result = momentRespond(config, state, {

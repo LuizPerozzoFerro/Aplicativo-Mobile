@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tema claro da tela de interrupção. Iguais a src/ui/tokens/colors.ts (conferido em Jest). -->
+<resources>
+  <color name="quedo_interruption_background">#F5F7F8</color>
+  <color name="quedo_interruption_text">#13212A</color>
+  <color name="quedo_interruption_text_muted">#4B5B64</color>
+  <color name="quedo_interruption_primary">#2E5866</color>
+  <color name="quedo_interruption_on_primary">#FFFFFF</color>
+  <color name="quedo_interruption_outline">#6E808A</color>
+  <color name="quedo_interruption_danger">#A3322B</color>
+</resources>

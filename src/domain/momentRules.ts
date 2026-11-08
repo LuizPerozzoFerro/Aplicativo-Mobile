@@ -235,6 +235,11 @@ export function momentShown(
   });
 }
 
+/** A tela saiu sem resposta (chamada, usuário foi embora): só a carência. */
+export function momentExited(previous: MomentState, now: number, dayKey: string): MomentState {
+  return { ...forDay(previous, dayKey), lastExitAt: now };
+}
+
 /** O usuário respondeu na tela. */
 export function momentRespond(
   config: MomentConfig,

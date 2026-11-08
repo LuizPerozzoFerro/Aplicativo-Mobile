@@ -11,6 +11,17 @@ const STARTED = new Date('2026-11-01T13:00:00.000Z');
 const TEXTS: MonitoringTexts = {
   channels: { tracking: 'Acompanhamento', alerts: 'Avisos', reminders: 'Lembretes' },
   ongoing: { title: 'Quedo', text: 'Proteção ativa.' },
+  interruption: {
+    brand: 'a',
+    title: 'b',
+    phrases: ['c'],
+    motivationLabel: 'd',
+    emergency: 'e',
+    home: 'f',
+    continue: 'g',
+    ignoreToday: 'h',
+    endOfDayWarning: 'i',
+  },
 };
 
 let repositories: Repositories;

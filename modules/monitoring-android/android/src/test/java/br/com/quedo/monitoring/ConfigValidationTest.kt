@@ -18,7 +18,18 @@ class ConfigValidationTest {
       "motivation": "Dormir melhor",
       "texts": {
         "channels": { "tracking": "Acompanhamento", "alerts": "Avisos", "reminders": "Lembretes" },
-        "ongoing": { "title": "Quedo", "text": "Proteção ativa." }
+        "ongoing": { "title": "Quedo", "text": "Proteção ativa." },
+        "interruption": {
+          "brand": "Quedo",
+          "title": "Momento de pausa",
+          "phrases": ["Respire fundo."],
+          "motivationLabel": "Sua motivação",
+          "emergency": "Emergência",
+          "home": "Ir para a tela inicial",
+          "continue": "Continuar mesmo assim",
+          "ignoreToday": "Ignorar o limite por hoje",
+          "endOfDayWarning": "Encerra a meta de hoje."
+        }
       }
     }
   """.trimIndent()
@@ -58,6 +69,9 @@ class ConfigValidationTest {
       listOf("texts"),
       listOf("texts", "channels"),
       listOf("texts", "ongoing", "text"),
+      listOf("texts", "interruption"),
+      listOf("texts", "interruption", "phrases"),
+      listOf("texts", "interruption", "continue"),
     )) {
       assertNull(path.joinToString("."), ConfigValidation.parse(without(path)))
     }

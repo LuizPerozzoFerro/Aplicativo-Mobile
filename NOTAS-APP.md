@@ -2561,6 +2561,76 @@ limite começa a valer amanhã.".
 - **Mutação de controle:** ignorar o `limitToday` derruba testes no Jest e no
   JUnit.
 
+### Tela de interrupção
+
+Documentação oficial conferida em 08/11/2026 (voltar preditivo, início de
+Activity em segundo plano, `AudioManager`).
+
+- **`InterruptionScreen`:** a tela, em código, usada pelas duas formas. Fundo
+  opaco, identidade "Quedo", frase de apoio (varia a cada tela do dia),
+  motivação, botões da spec 5.2, texto em sp, rolagem para a fonte no máximo e
+  leitor de tela começando no título. Cores em `res/values` e `values-night`,
+  iguais aos tokens (um teste Jest confere).
+- **`InterruptionPresenter`:** mostra, confere e tira.
+  - **Só conta se apareceu (I-28):** o `interruption_shown` sai depois de conferir
+    foco da janela e visibilidade, ou seja, não no pedido.
+  - **20 s sem aparecer:** descarta.
+  - **`InterruptionAttempts`** (Kotlin puro, JUnit): sobreposição escondida →
+    tela própria uma vez → recuo de 1, 2, 5 e 15 min. Zera quando aparece ou
+    quando o usuário sai dos apps monitorados.
+- **Chamada:** com a sobreposição aberta, o modo do `AudioManager` é conferido a
+  cada segundo (sem permissão). Em chamada, a tela sai sem resposta e nenhuma nova
+  é pedida. Volta na verificação seguinte depois da chamada, se ainda fizer sentido.
+- **Usuário saiu do app com a tela aberta** (gesto de início): sai sem resposta.
+  **Com a tela do aparelho apagada, ela fica**, para não contar outra tela ao
+  desbloquear.
+- **Voltar:** a raiz da sobreposição consome a tecla e registra um
+  `OnBackInvokedCallback`; a tela própria liga `enableOnBackInvokedCallback` só
+  para si (o app segue com o voltar preditivo desligado, decisão de 02/11).
+- **Uso:** o tempo com a tela na frente não conta (`suspend`/`resume`). Se o
+  processo morrer com a tela aberta, o serviço volta a contar ao nascer.
+- **Sem `FLAG_KEEP_SCREEN_ON`** (o protótipo tinha): a tela não deve impedir o
+  aparelho de apagar.
+- **Emergência:** por enquanto só abre o app e grava `emergency_requested`; a rota
+  é do passo 6.
+- **Sem a permissão de sobreposição:** não há tela (a notificação é do passo 5).
+- **Regras:** nova função `exited` (tela saiu sem resposta: só a carência), com
+  vetor nas duas versões.
+- **Versão da configuração:** continua 1. Só precisa mudar depois da primeira
+  publicação, porque antes não há aparelho com configuração antiga. (Correção do
+  que está no passo 2.)
+
+### Justificativa do `specialUse` (pedido do responsável)
+
+Atualizada no manifesto e em `docs/rascunhos/play-console-justificativas.md`
+(seções 2 e 3): menciona a tela de pausa e os apps marcados como de risco.
+
+### Textos novos (`src/i18n/pt-BR/monitoring.json`)
+
+Listados no PR para revisão.
+
+### Testes
+
+- Jest: 608. JUnit: 46 (`InterruptionAttempts`, novos vetores).
+- Mutação de controle: sem a tentativa da tela própria, 3 testes JUnit falham.
+
+### No aparelho (S22, 08/11, com o limite de teste de 1 minuto)
+
+- Sobreposição sobre o YouTube, com `interruption_shown` só depois de conferida.
+- Voltar (`KEYCODE_BACK`) não fecha, na sobreposição e na tela própria.
+- "Ir para a tela inicial" leva ao lançador; reabrir o app gera nova tela, com
+  outra frase.
+- "Emergência" abre o app e não pausa.
+- Com a tela aberta, o uso quase não anda: 0,6 s em 25 s.
+- Importação: as telas e as respostas chegam a `interruption_events`.
+- **Reserva (I-25), com o `labtarget` do protótipo** (`setHideOverlayWindows`),
+  incluído só para o teste no banco de desenvolvimento e removido depois:
+  sobreposição escondida às 14:12, descartada em 20 s **sem contar**; na
+  verificação seguinte, tela própria, que contou, mostrou "Ignorar" (3ª tela) e,
+  com "Continuar", devolveu ao app e iniciou a pausa, sem nova tela em 38 s.
+- **AP3 de novo** no `adb`, com o `assembleDebug` seguido de `adb install -r`:
+  mesmo procedimento.
+
 ## Problemas
 
 ### AP1 · Build Android falha no C++ do `react-native-worklets` (caminho longo)

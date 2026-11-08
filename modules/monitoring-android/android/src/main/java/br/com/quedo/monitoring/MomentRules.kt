@@ -224,6 +224,12 @@ object MomentRules {
     state.moment(compulsionId).interruptions += 1
   }
 
+  /** A tela saiu sem resposta (chamada, usuário foi embora): só a carência. */
+  fun exited(state: State, now: Long, dayKey: String) {
+    state.enterDay(dayKey)
+    state.lastExitAt = now
+  }
+
   /** O usuário respondeu na tela: `emergency`, `home`, `continue` ou `ignore_today`. */
   fun respond(
     config: Config,

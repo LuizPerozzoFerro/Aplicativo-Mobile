@@ -90,6 +90,7 @@ class MonitoringModule : Module() {
     AsyncFunction("reset") {
       MonitoringState.setActive(context, false)
       MonitoringService.stop(context)
+      InterruptionPresenter.close(context)
       ConfigStore.clear(context)
       EventStore.clear(context)
       MomentRunner.clear(context)

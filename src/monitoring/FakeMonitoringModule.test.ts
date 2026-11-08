@@ -145,6 +145,17 @@ describe('configuração e eventos (spec 03, 4.2 e 4.3)', () => {
     texts: {
       channels: { tracking: 'a', alerts: 'b', reminders: 'c' },
       ongoing: { title: 'd', text: 'e' },
+      interruption: {
+        brand: 'a',
+        title: 'b',
+        phrases: ['c'],
+        motivationLabel: 'd',
+        emergency: 'e',
+        home: 'f',
+        continue: 'g',
+        ignoreToday: 'h',
+        endOfDayWarning: 'i',
+      },
     },
   };
 

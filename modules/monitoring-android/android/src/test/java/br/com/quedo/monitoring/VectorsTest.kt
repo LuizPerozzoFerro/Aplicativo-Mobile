@@ -137,6 +137,11 @@ class VectorsTest {
             MomentRules.shown(state, shown.getInt("compulsionId"), shown.getString("day"))
           }
 
+          step.has("exited") -> {
+            val exited = step.getJSONObject("exited")
+            MomentRules.exited(state, epoch + exited.getLong("t") * 1000, exited.getString("day"))
+          }
+
           step.has("respond") -> {
             val respond = step.getJSONObject("respond")
             actions = MomentRules.respond(

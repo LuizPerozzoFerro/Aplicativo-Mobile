@@ -7,5 +7,21 @@
   "ongoing": {
     "title": "Quedo",
     "text": "Proteção ativa."
+  },
+  "interruption": {
+    "brand": "Quedo",
+    "title": "Momento de pausa",
+    "phrases": {
+      "breathe": "Respire fundo. Você escolhe o que vem agora.",
+      "choice": "Você decidiu cuidar do seu tempo. Este é um bom momento para lembrar disso.",
+      "pause": "Uma pausa curta agora pode mudar o resto do seu dia.",
+      "care": "Olhe por um instante para o que importa para você."
+    },
+    "motivationLabel": "Sua motivação",
+    "emergency": "Emergência",
+    "home": "Ir para a tela inicial",
+    "continue": "Continuar mesmo assim",
+    "ignoreToday": "Ignorar o limite por hoje",
+    "endOfDayWarning": "Se continuar agora, a meta de hoje será encerrada."
   }
 }

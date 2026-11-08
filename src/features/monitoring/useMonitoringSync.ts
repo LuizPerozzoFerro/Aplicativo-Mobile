@@ -48,6 +48,22 @@ export function useMonitoringSync(): void {
         reminders: t('channels.reminders'),
       },
       ongoing: { title: t('ongoing.title'), text: t('ongoing.text') },
+      interruption: {
+        brand: t('interruption.brand'),
+        title: t('interruption.title'),
+        phrases: [
+          t('interruption.phrases.breathe'),
+          t('interruption.phrases.choice'),
+          t('interruption.phrases.pause'),
+          t('interruption.phrases.care'),
+        ],
+        motivationLabel: t('interruption.motivationLabel'),
+        emergency: t('interruption.emergency'),
+        home: t('interruption.home'),
+        continue: t('interruption.continue'),
+        ignoreToday: t('interruption.ignoreToday'),
+        endOfDayWarning: t('interruption.endOfDayWarning'),
+      },
     };
   }, [t]);
 
