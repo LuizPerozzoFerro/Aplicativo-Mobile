@@ -142,7 +142,8 @@ Preencher e manter atualizado na Fase 2.
 | Instalação pelo `adb` recusada (`INSTALL_FAILED_VERIFICATION_FAILURE`) | `adb logcat -d`, filtrando `VerifyApps`; em geral, basta tentar de novo (`NOTAS-APP.md`, AP4) |
 | Verificar o manifesto (proibidas e lista de permitidas) | `npm run check:manifest` (depois de um build) |
 | Testes JUnit do módulo nativo | `cd android && gradlew.bat :monitoring-android:testDebugUnitTest` (depois do prebuild); resultado em `modules/monitoring-android/android/build/test-results/` |
-| Tela de conferência do monitoramento (só development) | Perfil → "Monitoramento (base)" |
+| Tela de conferência do monitoramento (só development) | Perfil → "Monitoramento (base)" (tem o limite de teste de 1 minuto) |
+| Estado das regras do dia no nativo | `adb shell run-as br.com.quedo.app.dev cat shared_prefs/quedo-monitoring-moment.xml` |
 | Fila de eventos e configuração do nativo | `adb shell run-as br.com.quedo.app.dev cat files/quedo-monitoring-events.jsonl` · `... cat shared_prefs/quedo-monitoring-config.xml` |
 
 ## 11. Ao final de cada fase

@@ -28,7 +28,7 @@
   },
   "monitoring": {
     "title": "Monitoramento (base)",
-    "description": "Tela só do ambiente de desenvolvimento, para conferir no aparelho a base nativa do monitoramento e a sincronização (passos 1 e 2 da Fase 4).",
+    "description": "Tela só do ambiente de desenvolvimento, para conferir no aparelho a base nativa do monitoramento, a sincronização e as regras (passos 1 a 3 da Fase 4).",
     "missing": "O módulo nativo não está neste build.",
     "refresh": "Atualizar",
     "yes": "sim",
@@ -79,6 +79,16 @@
       "noConfig": "O nativo ainda não recebeu configuração.",
       "pending": "Eventos aguardando importação: {{count}}",
       "now": "Sincronizar agora"
+    },
+    "moment": {
+      "title": "Regras de hoje",
+      "compulsion": "Compulsão {{id}}: {{interruptions}} tela(s), {{continues}} continuar, encerrada: {{stopped}}",
+      "foreground": "App na frente: {{name}}",
+      "none": "nenhum monitorado",
+      "lastShow": "Última tela pedida: {{name}}, {{time}}",
+      "noShow": "Nenhuma tela pedida hoje.",
+      "useTestLimit": "Usar limite de 1 minuto",
+      "useRealLimits": "Voltar aos limites reais"
     }
   }
 }

@@ -20,18 +20,19 @@ object UsageReader {
    * ainda na tela só aparece pelo seu RESUMED. A tela apagada fecha tudo,
    * então 24 horas cobrem qualquer sessão real (A4 do protótipo).
    */
-  private const val LOOKBACK_MS = 24 * 60 * 60_000L
+  const val LOOKBACK_MS = 24 * 60 * 60_000L
 
   fun readToday(context: Context, now: Long = System.currentTimeMillis()): UsageTimeline.Result {
-    val manager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
-      ?: return UsageTimeline.Result(emptyMap(), null)
     val dayStart = DayBoundary.startOfDay(now)
-    val events = readEvents(manager, dayStart - LOOKBACK_MS, now)
+    val events = readEvents(context, dayStart - LOOKBACK_MS, now)
     return UsageTimeline.compute(events, dayStart, now, launcherPackages(context))
   }
 
-  private fun readEvents(manager: UsageStatsManager, from: Long, to: Long): List<UsageTimeline.Event> {
+  /** Os eventos de uso entre `from` e `to`, em ordem cronológica. */
+  fun readEvents(context: Context, from: Long, to: Long): List<UsageTimeline.Event> {
     val result = ArrayList<UsageTimeline.Event>()
+    val manager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
+      ?: return result
     val events = manager.queryEvents(from, to) ?: return result
     val event = UsageEvents.Event()
     while (events.hasNextEvent()) {

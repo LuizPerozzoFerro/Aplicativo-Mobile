@@ -4,6 +4,7 @@ import '@/i18n';
 import DevMonitoringScreen from '../app/dev-monitoring';
 import type { Environment } from '@/config/variant';
 import type {
+  NativeMomentStatus,
   NativeServiceStatus,
   QuedoMonitoringNativeModule,
 } from '../modules/monitoring-android';
@@ -71,6 +72,10 @@ function fakeNative(usageAccess: boolean): jest.Mocked<QuedoMonitoringNativeModu
     getServiceStatus: jest.fn(() => service),
     configure: jest.fn(async (_json: string) => undefined),
     getConfig: jest.fn(() => config),
+    getMomentStatus: jest.fn(() => JSON.stringify(moment)),
+    setTestLimit: jest.fn((minutes: number | null) => {
+      moment = { ...moment, testLimitMinutes: minutes };
+    }),
     getPendingEvents: jest.fn(async () => '[]'),
     acknowledgeEvents: jest.fn(async (_ids: string[]) => undefined),
     reset: jest.fn(async () => undefined),
@@ -78,6 +83,15 @@ function fakeNative(usageAccess: boolean): jest.Mocked<QuedoMonitoringNativeModu
 }
 
 let config: string | null = null;
+
+const NO_MOMENT: NativeMomentStatus = {
+  rules: { dayKey: null, compulsions: {} },
+  usage: {},
+  foreground: null,
+  lastShow: null,
+  testLimitMinutes: null,
+};
+let moment = NO_MOMENT;
 
 const mockSync = jest.fn(async () => undefined);
 jest.mock('@/features/monitoring/useMonitoringSync', () => ({
@@ -94,6 +108,7 @@ afterEach(() => {
   mockVariant.environment = 'development';
   mockNative.current = null;
   config = null;
+  moment = NO_MOMENT;
   mockSync.mockClear();
 });
 
@@ -196,4 +211,40 @@ it('sem configuração, avisa; "Sincronizar agora" roda a sincronização do app
 
   await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Sincronizar agora' })));
   expect(mockSync).toHaveBeenCalledTimes(1);
+});
+
+it('mostra as regras de hoje e liga o limite de teste', async () => {
+  moment = {
+    rules: {
+      dayKey: '2026-11-08',
+      compulsions: { '3': { interruptions: 2, continues: 1, stopped: false } },
+    },
+    usage: { 'com.instagram.android': 3 * 60_000 },
+    foreground: 'com.instagram.android',
+    lastShow: {
+      at: new Date(2026, 10, 8, 9, 5, 7).getTime(),
+      compulsionId: 3,
+      target: 'com.instagram.android',
+    },
+    testLimitMinutes: null,
+  };
+  const native = fakeNative(true);
+  mockNative.current = native;
+  await renderScreen();
+
+  expect(
+    await screen.findByText('Compulsão 3: 2 tela(s), 1 continuar, encerrada: não'),
+  ).toBeOnTheScreen();
+  expect(screen.getByText('App na frente: Instagram')).toBeOnTheScreen();
+  expect(screen.getByText('Instagram: 3 min')).toBeOnTheScreen();
+  expect(screen.getByText('Última tela pedida: Instagram, 08/11 09:05:07')).toBeOnTheScreen();
+
+  await act(async () =>
+    fireEvent.press(screen.getByRole('button', { name: 'Usar limite de 1 minuto' })),
+  );
+  expect(native.setTestLimit).toHaveBeenCalledWith(1);
+  await act(async () =>
+    fireEvent.press(screen.getByRole('button', { name: 'Voltar aos limites reais' })),
+  );
+  expect(native.setTestLimit).toHaveBeenLastCalledWith(null);
 });

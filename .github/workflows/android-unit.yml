@@ -1,0 +1,50 @@
+# Testes JUnit do módulo nativo (spec 03, seção 5.13): rodam os mesmos vetores
+# do Jest contra o Kotlin. Gera o projeto android/ e compila só o módulo e as
+# dependências dele, sem o C++ nem o APK. Só quando algo que afeta o resultado
+# muda, porque leva bem mais que o CI principal.
+name: Android (JUnit)
+
+on:
+  push:
+    paths:
+      - 'modules/**'
+      - 'src/domain/vectors/**'
+      - '.github/workflows/android-unit.yml'
+  pull_request:
+    paths:
+      - 'modules/**'
+      - 'src/domain/vectors/**'
+      - '.github/workflows/android-unit.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-unit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  junit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - run: npm ci
+
+      - name: Gerar o projeto Android
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Testes JUnit
+        working-directory: android
+        run: ./gradlew :monitoring-android:testDebugUnitTest --console=plain --no-daemon

@@ -2,8 +2,6 @@ package br.com.quedo.monitoring
 
 import android.content.Context
 import java.io.File
-import java.time.Instant
-import java.time.ZoneId
 
 /**
  * O `EventLog` do app, no armazenamento privado (fora do backup, como o
@@ -23,8 +21,7 @@ object EventStore {
 
   fun append(context: Context, type: String, fields: Map<String, Any?> = emptyMap()): String {
     val now = System.currentTimeMillis()
-    val dayKey = Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).toLocalDate().toString()
-    return log(context).append(type, now, dayKey, fields)
+    return log(context).append(type, now, DayBoundary.dayKey(now), fields)
   }
 
   fun pendingJson(context: Context): String = log(context).pendingJson()

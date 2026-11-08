@@ -14,8 +14,7 @@ import android.os.IBinder
  * apps", e o `dataSync` tem teto de 6 horas por dia desde o Android 15 (A2 do
  * protótipo). A justificativa em inglês está no manifesto do módulo.
  *
- * Nesta etapa (passo 1) ele só existe, verifica e conta as verificações. As
- * regras do momento entram no passo 3.
+ * A cada verificação roda as regras do momento (`MomentRunner`, passo 3).
  *
  * O processo pode morrer a qualquer momento e o sistema recria o serviço
  * (`START_STICKY`, I-31): tudo o que importa vai para `MonitoringState`.
@@ -116,5 +115,6 @@ class MonitoringService : Service() {
 
   private fun checkOnce() {
     MonitoringState.recordCheck(this, System.currentTimeMillis())
+    MomentRunner.check(this)
   }
 }

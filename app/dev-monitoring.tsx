@@ -12,6 +12,7 @@ import {
   ERR_PERMISSION_REQUIRED,
   getQuedoMonitoring,
   type NativeBootResult,
+  type NativeMomentStatus,
   type NativePermissionState,
   type NativePermissionStatus,
   type NativeServiceStatus,
@@ -22,6 +23,7 @@ import {
 
 const REFRESH_MS = 5_000;
 const USAGE_ROWS = 8;
+const TEST_LIMIT_MINUTES = 1;
 
 type ConfigSummary = {
   readonly compulsions: number;
@@ -37,6 +39,7 @@ type Snapshot = {
   readonly usage: readonly NativeUsageEntry[] | null;
   /** O que o nativo guardou da configuração (passo 2), ou nulo se ainda não recebeu. */
   readonly config: ConfigSummary | null;
+  readonly moment: NativeMomentStatus;
 };
 
 function summarizeConfig(json: string | null): ConfigSummary | null {
@@ -76,6 +79,7 @@ async function readSnapshot(native: QuedoMonitoringNativeModule): Promise<Snapsh
     targets,
     usage,
     config: summarizeConfig(native.getConfig()),
+    moment: JSON.parse(native.getMomentStatus()) as NativeMomentStatus,
   };
 }
 
@@ -83,7 +87,7 @@ function hasCode(error: unknown, code: string): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === code;
 }
 
-// Ferramenta dos passos 1 e 2 da Fase 4, só em development: conferir no
+// Ferramenta dos passos 1 a 3 da Fase 4, só em development: conferir no
 // aparelho as permissões reais, o serviço em primeiro plano, o boot, a lista
 // de apps, o uso de hoje, a configuração guardada no nativo e os eventos
 // pendentes, antes de o módulo nativo substituir o falso (passo 7). Nas
@@ -155,6 +159,11 @@ export default function DevMonitoringScreen() {
   // A mesma rodada que o app faz ao abrir: importa os eventos e reenvia a configuração.
   const syncNow = async () => {
     await getAppMonitoringSync().sync();
+    await refresh();
+  };
+
+  const toggleTestLimit = async () => {
+    native?.setTestLimit(snapshot?.moment.testLimitMinutes ? null : TEST_LIMIT_MINUTES);
     await refresh();
   };
 
@@ -253,6 +262,53 @@ export default function DevMonitoringScreen() {
             label={t('monitoring.sync.now')}
             variant="secondary"
             onPress={() => void syncNow()}
+          />
+
+          <Text variant="heading">{t('monitoring.moment.title')}</Text>
+          {Object.entries(snapshot.moment.rules.compulsions).map(([id, moment]) => (
+            <Text key={id}>
+              {t('monitoring.moment.compulsion', {
+                id,
+                interruptions: moment.interruptions,
+                continues: moment.continues,
+                stopped: yesNo(moment.stopped),
+              })}
+            </Text>
+          ))}
+          <Text>
+            {t('monitoring.moment.foreground', {
+              name: snapshot.moment.foreground
+                ? labelOf(snapshot.moment.foreground)
+                : t('monitoring.moment.none'),
+            })}
+          </Text>
+          {Object.entries(snapshot.moment.usage)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, USAGE_ROWS)
+            .map(([target, milliseconds]) => (
+              <Text key={target}>
+                {t('monitoring.usage.entry', {
+                  name: labelOf(target),
+                  minutes: Math.round(milliseconds / 60_000),
+                })}
+              </Text>
+            ))}
+          <Text>
+            {snapshot.moment.lastShow
+              ? t('monitoring.moment.lastShow', {
+                  name: labelOf(snapshot.moment.lastShow.target),
+                  time: timeText(snapshot.moment.lastShow.at),
+                })
+              : t('monitoring.moment.noShow')}
+          </Text>
+          <Button
+            label={
+              snapshot.moment.testLimitMinutes
+                ? t('monitoring.moment.useRealLimits')
+                : t('monitoring.moment.useTestLimit')
+            }
+            variant="secondary"
+            onPress={() => void toggleTestLimit()}
           />
 
           <Text variant="heading">{t('monitoring.suggested.title')}</Text>

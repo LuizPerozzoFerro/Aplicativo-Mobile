@@ -14,6 +14,10 @@ import java.time.ZoneId
  * somar 24 horas para achar o dia seguinte.
  */
 object DayBoundary {
+  /** Chave AAAA-MM-DD do dia local, como `toDayKey` em `src/domain/day.ts`. */
+  fun dayKey(epochMs: Long, zone: ZoneId = ZoneId.systemDefault()): String =
+    Instant.ofEpochMilli(epochMs).atZone(zone).toLocalDate().toString()
+
   /** Primeiro instante (ms) do dia local que contém `epochMs`. */
   fun startOfDay(epochMs: Long, zone: ZoneId = ZoneId.systemDefault()): Long =
     Instant.ofEpochMilli(epochMs).atZone(zone).toLocalDate().atStartOfDay(zone)
