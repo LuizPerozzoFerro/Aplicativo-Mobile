@@ -2631,6 +2631,22 @@ Listados no PR para revisão.
 - **AP3 de novo** no `adb`, com o `assembleDebug` seguido de `adb install -r`:
   mesmo procedimento.
 
+### Testes do responsável no S22 (08/11)
+
+- Aprovados: aparência e textos da tela, gesto de voltar na sobreposição, tema
+  escuro e fonte no máximo (M18) e a mensagem "O novo limite começa a valer
+  amanhã.".
+- **M20 (chamada) não testado:** o S22 está sem chip. O código confere o modo do
+  `AudioManager`, mas isso **não foi visto funcionando**. Pendente para o roteiro
+  final (passo 8): uma ligação simulada no emulador (`adb emu gsm call`) cobre a
+  chamada telefônica; WhatsApp ou Teams, instalados no S22, cobrem a chamada
+  pela internet, cujo modo de áudio ao tocar ainda é uma incógnita.
+- **M17 (voltar preditivo) só parcialmente coberto:** o app inteiro está com
+  `enableOnBackInvokedCallback="false"` (`predictiveBackGestureEnabled: false`). O
+  gesto testado na sobreposição passou pelo caminho antigo. A tela própria liga o
+  voltar preditivo só para si, mas lá o teste foi com `KEYCODE_BACK` pelo `adb`,
+  não com o gesto.
+
 ## Problemas
 
 ### AP1 · Build Android falha no C++ do `react-native-worklets` (caminho longo)
