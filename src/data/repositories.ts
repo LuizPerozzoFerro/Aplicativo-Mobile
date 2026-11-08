@@ -12,6 +12,7 @@ import {
 import { isValidCheckInMinutes, type CheckInAnswer, type CheckInSource } from '@/domain/checkIn';
 import { applyDailyLimitChange } from '@/domain/dailyLimit';
 import { fromDayKey, toDayKey } from '@/domain/day';
+import type { EmergencyOutcome, EmergencySource } from '@/domain/monitoring';
 import { isValidDailyLimit, type OnboardingStep } from '@/domain/onboarding';
 import { isValidDaysAlreadyWithoutRelapse, type DayFailureReason } from '@/domain/streak';
 import { isValidTriggerValue } from '@/domain/triggers';
@@ -46,6 +47,7 @@ export type CheckIn = typeof checkIns.$inferSelect;
 export type Relapse = typeof relapses.$inferSelect;
 export type DayState = typeof dayStates.$inferSelect;
 export type InterruptionEvent = typeof interruptionEvents.$inferSelect;
+export type EmergencySession = typeof emergencySessions.$inferSelect;
 
 export type SettingsRepository = {
   /** Lê as configurações; cria a linha com os valores padrão na primeira vez. */
@@ -157,6 +159,19 @@ export type MonitoringEventRepository = {
   listInterruptions(compulsionId: number): InterruptionEvent[];
 };
 
+export type EmergencySessionRepository = {
+  /** Abre uma sessão. Uma que tenha ficado aberta antes é encerrada como abandonada. */
+  start(source: EmergencySource): EmergencySession;
+  /** Encerra a sessão, uma vez só: uma sessão já encerrada não muda. */
+  finish(id: number, outcome: EmergencyOutcome): void;
+  /**
+   * Encerra como abandonadas as que ficaram abertas (o processo morreu no meio
+   * do fluxo). Roda na abertura do app, quando nenhuma tela tem sessão em curso.
+   */
+  abandonOpen(): void;
+  list(): EmergencySession[];
+};
+
 export type Repositories = {
   settings: SettingsRepository;
   compulsions: CompulsionRepository;
@@ -167,6 +182,7 @@ export type Repositories = {
   relapses: RelapseRepository;
   dayStates: DayStateRepository;
   monitoringEvents: MonitoringEventRepository;
+  emergencySessions: EmergencySessionRepository;
   /** Apaga todos os dados do usuário; as configurações voltam ao padrão. */
   deleteAllData(): void;
 };
@@ -494,8 +510,8 @@ export function createRepositories(
         return;
       }
       // Sem tabela própria: ficam só como importados. A sessão de emergência é
-      // criada pela tela (passo 6); limites, notificações, permissões e o
-      // serviço servem à tela de estado e às ferramentas de teste.
+      // criada pela tela, com a origem vinda do endereço; limites, notificações,
+      // permissões e o serviço servem à tela de estado e às ferramentas de teste.
       case 'service_started':
       case 'limit_reached':
       case 'notification_sent':
@@ -503,6 +519,14 @@ export function createRepositories(
       case 'permission_lost':
         return;
     }
+  }
+
+  function abandonOpenEmergencySessions(executor: Executor) {
+    executor
+      .update(emergencySessions)
+      .set({ endedAt: now(), outcome: 'abandoned' })
+      .where(isNull(emergencySessions.endedAt))
+      .run();
   }
 
   function isImported(executor: Executor, eventId: string): boolean {
@@ -704,6 +728,25 @@ export function createRepositories(
           .where(eq(interruptionEvents.compulsionId, compulsionId))
           .orderBy(asc(interruptionEvents.shownAt))
           .all(),
+    },
+
+    emergencySessions: {
+      start: (source) =>
+        db.transaction((tx) => {
+          abandonOpenEmergencySessions(tx);
+          return required(
+            tx.insert(emergencySessions).values({ startedAt: now(), source }).returning().get(),
+            'a sessão de emergência',
+          );
+        }),
+      finish: (id, outcome) => {
+        db.update(emergencySessions)
+          .set({ endedAt: now(), outcome })
+          .where(and(eq(emergencySessions.id, id), isNull(emergencySessions.endedAt)))
+          .run();
+      },
+      abandonOpen: () => abandonOpenEmergencySessions(db),
+      list: () => db.select().from(emergencySessions).orderBy(asc(emergencySessions.id)).all(),
     },
 
     deleteAllData() {

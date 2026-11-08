@@ -59,7 +59,11 @@ const createSync = (target = fake) =>
     repositories: () => repositories,
     target: () => target,
     texts: () => TEXTS,
-    links: () => ({ permissions: 'quedo-dev://permission-status' }),
+    links: () => ({
+      permissions: 'quedo-dev://permission-status',
+      emergencyFromNotification: 'quedo-dev://emergency?source=notification',
+      emergencyFromInterruption: 'quedo-dev://emergency?source=interruption',
+    }),
     now: () => NOW,
     report,
   });

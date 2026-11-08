@@ -1,0 +1,36 @@
+{
+  "leave": "Sair",
+  "skip": "Pular",
+  "motivation": {
+    "title": "Este momento vai passar",
+    "label": "Sua motivação",
+    "fallback": "Você decidiu cuidar de si. Vamos atravessar este momento com calma.",
+    "start": "Começar a respiração"
+  },
+  "breathing": {
+    "title": "Respire devagar",
+    "inhale": "Inspire",
+    "exhale": "Solte o ar"
+  },
+  "waiting": {
+    "title": "Agora, dê um tempo",
+    "description": "A vontade costuma perder força quando você espera. Enquanto o tempo corre, tente uma destas:",
+    "suggestions": {
+      "leave": "Saia do lugar onde você está",
+      "water": "Beba um copo de água",
+      "talk": "Fale com alguém de confiança"
+    }
+  },
+  "question": {
+    "title": "A vontade passou?",
+    "yes": "Sim",
+    "no": "Ainda não"
+  },
+  "result": {
+    "passedTitle": "Muito bem",
+    "passedText": "Você atravessou esse momento, e isso conta.",
+    "notPassedTitle": "Tudo bem",
+    "notPassedText": "Algumas vontades demoram mais para passar. Você pode abrir a emergência de novo sempre que precisar.",
+    "finish": "Voltar ao início"
+  }
+}

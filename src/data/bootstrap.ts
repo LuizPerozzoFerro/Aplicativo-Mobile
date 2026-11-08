@@ -35,6 +35,8 @@ function openAppDatabase(): AppData {
 export async function initializeDatabase(): Promise<void> {
   const data = openAppDatabase();
   await runMigrations(data.db);
+  // Aqui nenhuma tela está aberta: sessão aberta é de um processo que morreu.
+  data.repositories.emergencySessions.abandonOpen();
   onboardingStatus.connect({
     load: () => data.repositories.settings.get().onboardingCompleted,
     save: (completed) => data.repositories.settings.setOnboardingCompleted(completed),

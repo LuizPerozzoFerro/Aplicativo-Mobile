@@ -53,7 +53,11 @@ beforeEach(async () => {
   repositories = createRepositories(db, () => NOW);
 });
 
-const LINKS = { permissions: 'quedo-dev://permission-status' };
+const LINKS = {
+  permissions: 'quedo-dev://permission-status',
+  emergencyFromNotification: 'quedo-dev://emergency?source=notification',
+  emergencyFromInterruption: 'quedo-dev://emergency?source=interruption',
+};
 const build = (now = NOW) => buildMonitoringConfig(repositories, TEXTS, now, LINKS);
 
 function addAdult() {

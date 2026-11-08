@@ -15,8 +15,14 @@ do protótipo continua em `prototype/NOTAS.md`.
 - **Passo 3 (regras do momento)** integrado (PR #24). Seção "Fase 4 · Passo 3".
 - **Passo 4 (tela de interrupção)** integrado (PR #25). M20 (chamada) pendente para o
   roteiro.
-- **Passo 5 (notificações)** pronto para revisão no PR da branch
-  `fase4/notificacoes`. Seção "Fase 4 · Passo 5". Próximo: passo 6 (emergência).
+- **Passo 5 (notificações)** integrado (PR #26). Seção "Fase 4 · Passo 5".
+- **Passo 6 (emergência)** pronto para revisão no PR da branch `fase4/emergencia`. Seção
+  "Fase 4 · Passo 6". Próximo: passo 7 (permissões reais e vigilância).
+- **Pendências para o roteiro do passo 8 (não esquecer):** M20 chamada recebida (S22 sem
+  chip e WhatsApp desconectado: usar o emulador e/ou o Teams), M14 agendamentos depois do
+  reinício, M10 "Tive uma recaída" pela notificação, M12 tela bloqueada vista a olho,
+  remoção do check-in à meia-noite, recomeço esperando o desbloqueio, atraso em economia
+  profunda, e M4/M5 ("Continuar" três vezes e "Ignorar o limite por hoje") no aparelho.
 
 ---
 
@@ -2746,6 +2752,102 @@ M14 (agendamentos depois de reiniciar), M10 ("Tive uma recaída" pela notificaç
 M12 (tela bloqueada vista a olho), remoção à meia-noite, recomeço esperando o
 desbloqueio e o atraso real em economia profunda. Ficam para o roteiro do passo 8.
 Para o M20, o WhatsApp aparece desconectado no S22: sobram o Teams e o emulador.
+
+### Revisão do responsável no PR #26 (08/11/2026)
+
+Aprovados: os dois alarmes (`setAndAllowWhileIdle` e `setWindow` de 10 min, só o
+primeiro a disparar envia), os vetores do agendamento só no JUnit e todos os textos
+listados no PR.
+
+---
+
+## Fase 4 · Passo 6 · Emergência (08/11/2026)
+
+Branch `fase4/emergencia`. Spec 03, seção 5.5; doc 01, seção 6.7.
+
+### Como ficou
+
+- **Rota `/emergency`** (`app/emergency.tsx`, `src/features/emergency/`), aberta pelo
+  botão no Início, pela tela de interrupção e pela ação "Emergência" das notificações.
+  A origem vem no endereço (`?source=`) e só valores conhecidos passam
+  (`parseEmergencySource`); o resto conta como Início.
+- **Etapas:** motivação, 1 min de respiração, 5 min de cronômetro com as três sugestões
+  do doc 01 e "A vontade passou?". Sem biblioteca nova: a animação usa o `Animated` do
+  React Native, e com "remover animações" o círculo fica parado e só o texto muda.
+- **Tempo pelo relógio** (`src/domain/emergency.ts`), não por contagem de tiques: com o
+  app em segundo plano ou a tela apagada o JS para, e o tempo continua certo na volta.
+- **Links na configuração:** `emergencyFromNotification` e `emergencyFromInterruption`,
+  montados pelo JS; o nativo só os abre. A validação em Kotlin exige os dois.
+- **Tela única** (`dangerouslySingular`): pedir a emergência com ela já aberta volta ao
+  fluxo em curso, sem abrir outra sessão.
+
+### Sessões (`emergency_sessions`)
+
+- Abre ao entrar na tela. "Sim" grava `passed`; "Ainda não", `not_passed`.
+- "Sair" e o Voltar do Android gravam `abandoned`.
+- **Ir para outro app não abandona:** uma das sugestões é falar com alguém.
+- Processo morto no meio: a sessão fica aberta e vira `abandoned` na próxima abertura do
+  app (`abandonOpen`, em `initializeDatabase`), quando nenhuma tela tem sessão em curso.
+- O evento nativo `emergency_requested` só existe a partir da tela de interrupção. Pela
+  notificação, o `PendingIntent` abre o app direto (Android 12), sem passar por código
+  nosso; a origem fica na sessão, então nada se perde.
+
+### Interpretações da spec (a confirmar na revisão)
+
+- **"Pular" em todas as etapas:** o doc 01 diz que pular leva direto à pergunta final,
+  então vale também na motivação. A própria pergunta é o destino e não tem "Pular"; lá
+  só há "Sair", que registra abandono.
+- **Fechamento depois da resposta:** a spec para na pergunta. Acrescentei uma frase curta
+  e "Voltar ao início", para a resposta não terminar em uma tela sem saída.
+- **Aberta a frio:** sem tela atrás, "Sair" e o Voltar levam ao Início, em vez de fechar
+  o app.
+
+### Decisão pendente: manter a tela acesa
+
+A respiração e o cronômetro duram 6 minutos, e o desligamento automático da tela pode
+apagá-la no meio. O `expo-keep-awake` resolveria e já vem como dependência do `expo`,
+mas usá-lo direto exige declará-lo no `package.json`, e biblioteca com código nativo
+pede confirmação (CLAUDE.md, 8.2). No development build a tela ficou acesa durante os
+testes, o que não vale como evidência para prévia e produção. Levado ao responsável.
+
+### Testes
+
+- Jest: 669. JUnit: 50. `check:manifest` sem alteração.
+- Mutações de controle, cada uma derruba testes: `finish` sobrescrevendo sessão
+  encerrada; `start` sem encerrar a aberta; abertura sem abandonar órfãs; sair sem
+  registrar abandono; resposta sem gravar; "Pular" para a etapa errada; ignorar "remover
+  animações"; sem tela única; origem sem validação; "Sair" e Voltar a frio sem ir ao
+  Início; durações erradas; Início sem o botão.
+
+### No aparelho (S22, 08/11)
+
+- Pelo Início: motivação, respiração alternando "Inspire" e "Solte o ar" com o círculo
+  animado (capturas), passagem automática ao cronômetro depois de 1 min, "Pular",
+  "Sim", fechamento e volta ao Início. Sessão `home` / `passed` no banco.
+- **Notificação real:** preventiva disparada pela ferramenta, ação "Emergência"
+  expandida na bandeja: abriu a rota, com sessão `notification`.
+- **Interrupção real:** limite de teste de 1 minuto, tela sobre o YouTube, "Emergência":
+  abriu a rota, com sessão `interruption`. Limites reais devolvidos pela ferramenta.
+- Link com o fluxo já aberto: continuou no fluxo, sem segunda sessão.
+- Voltar do Android e "Sair": `abandoned`.
+- Processo encerrado com a sessão aberta: `abandoned` na abertura seguinte.
+- **A frio pelo link:** o dev client mostra o próprio launcher e, ao escolher o servidor,
+  entrega o link pendente; a rota abriu, e o Voltar levou ao Início.
+- Ficaram 6 sessões de teste no banco do S22, gravadas pelo próprio app.
+
+### Ainda sem teste no aparelho (roteiro do passo 8)
+
+- **Remover animações** (M9): coberto no Jest; no aparelho depende de mudar um ajuste do
+  sistema.
+- **Fonte no máximo** (M18) na emergência. O tema escuro foi visto nas capturas.
+- **A frio em prévia ou produção:** no development build o launcher fica no meio.
+- "Ainda não" e "Pular" na motivação só foram exercitados no Jest.
+
+### Cuidado para o Maestro (passo 8)
+
+Durante a respiração o `uiautomator dump` falha com "could not get idle state", porque
+a tela nunca fica parada. No fluxo Maestro, usar "Pular" logo no início da etapa ou
+conferir se ele sofre do mesmo problema.
 
 ## Problemas
 

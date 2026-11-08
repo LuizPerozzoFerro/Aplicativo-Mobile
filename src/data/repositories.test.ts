@@ -496,6 +496,61 @@ describe('estado do dia (moderação)', () => {
   });
 });
 
+describe('sessões de emergência', () => {
+  const later = new Date(NOW.getTime() + 60_000);
+
+  it('abre sem resultado, com a origem e o horário', () => {
+    const session = repositories.emergencySessions.start('notification');
+    expect(session).toMatchObject({
+      startedAt: NOW,
+      endedAt: null,
+      source: 'notification',
+      outcome: null,
+    });
+  });
+
+  it('encerra com o resultado e o horário', () => {
+    const { id } = repositories.emergencySessions.start('home');
+    clock = later;
+    repositories.emergencySessions.finish(id, 'passed');
+    expect(repositories.emergencySessions.list()).toEqual([
+      expect.objectContaining({ id, endedAt: later, outcome: 'passed' }),
+    ]);
+  });
+
+  it('uma sessão encerrada não muda de resultado', () => {
+    const { id } = repositories.emergencySessions.start('home');
+    repositories.emergencySessions.finish(id, 'passed');
+    clock = later;
+    repositories.emergencySessions.finish(id, 'abandoned');
+    expect(repositories.emergencySessions.list()).toEqual([
+      expect.objectContaining({ endedAt: NOW, outcome: 'passed' }),
+    ]);
+  });
+
+  it('abrir outra encerra como abandonada a que ficou aberta', () => {
+    const first = repositories.emergencySessions.start('home');
+    clock = later;
+    const second = repositories.emergencySessions.start('interruption');
+    expect(repositories.emergencySessions.list()).toEqual([
+      expect.objectContaining({ id: first.id, endedAt: later, outcome: 'abandoned' }),
+      expect.objectContaining({ id: second.id, endedAt: null, outcome: null }),
+    ]);
+  });
+
+  it('abandonOpen só mexe nas que ficaram abertas', () => {
+    const finished = repositories.emergencySessions.start('home');
+    repositories.emergencySessions.finish(finished.id, 'not_passed');
+    const open = repositories.emergencySessions.start('home');
+    clock = later;
+    repositories.emergencySessions.abandonOpen();
+    expect(repositories.emergencySessions.list()).toEqual([
+      expect.objectContaining({ id: finished.id, endedAt: NOW, outcome: 'not_passed' }),
+      expect.objectContaining({ id: open.id, endedAt: later, outcome: 'abandoned' }),
+    ]);
+  });
+});
+
 describe('deleteAllData', () => {
   it('apaga tudo, inclusive as tabelas da Fase 3, e as configurações voltam ao padrão', () => {
     const videos = repositories.compulsions.add({ type: 'short_videos', startedAt: NOW });

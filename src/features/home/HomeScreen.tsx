@@ -5,7 +5,7 @@ import { AppState } from 'react-native';
 
 import { getRepositories } from '@/data/bootstrap';
 import { startOfNextDay } from '@/domain/day';
-import { EmptyState, Screen, Text } from '@/ui';
+import { Button, EmptyState, Screen, Text } from '@/ui';
 
 import { AbstinenceCard } from './AbstinenceCard';
 import { loadHomeCards } from './homeCards';
@@ -44,7 +44,11 @@ export function HomeScreen() {
   return (
     <Screen edges={['top']}>
       <Text variant="title">{t('tabs:home')}</Text>
-      {/* O botão de emergência (Fase 4) entra aqui, acima dos cards, sempre visível. */}
+      <Button
+        testID="home-emergency"
+        label={t('emergency')}
+        onPress={() => router.push({ pathname: '/emergency', params: { source: 'home' } })}
+      />
       {snapshot.cards.length === 0 ? (
         <EmptyState
           testID="home-empty"

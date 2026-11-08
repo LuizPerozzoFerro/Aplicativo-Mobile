@@ -27,7 +27,15 @@ export function getAppMonitoringSync(): MonitoringSync {
       if (!currentTexts) throw new Error('Textos do monitoramento ainda não carregados');
       return currentTexts;
     },
-    links: () => ({ permissions: Linking.createURL('/permission-status') }),
+    links: () => ({
+      permissions: Linking.createURL('/permission-status'),
+      emergencyFromNotification: Linking.createURL('/emergency', {
+        queryParams: { source: 'notification' },
+      }),
+      emergencyFromInterruption: Linking.createURL('/emergency', {
+        queryParams: { source: 'interruption' },
+      }),
+    }),
   });
   return shared;
 }

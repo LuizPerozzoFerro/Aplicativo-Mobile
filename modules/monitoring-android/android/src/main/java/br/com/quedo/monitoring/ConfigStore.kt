@@ -43,6 +43,7 @@ object ConfigStore {
 /** Conferência mínima do formato, sem nada do Android além do org.json (testada em JUnit). */
 object ConfigValidation {
   private val REQUIRED_ARRAYS = listOf("compulsions", "moderationRules", "riskAppRules")
+  private val REQUIRED_LINKS = listOf("permissions", "emergencyFromNotification", "emergencyFromInterruption")
   private val REQUIRED_TEXTS = mapOf(
     "channels" to listOf("tracking", "alerts", "reminders"),
     "ongoing" to listOf("title", "text"),
@@ -75,7 +76,8 @@ object ConfigValidation {
     val phrases = texts.getJSONObject("interruption").optJSONArray("phrases")
     if (phrases == null || phrases.length() == 0) return null
     if (config.optJSONArray("restartDayKeys") == null) return null
-    if (config.optJSONObject("links")?.optString("permissions").isNullOrBlank()) return null
+    val links = config.optJSONObject("links") ?: return null
+    if (REQUIRED_LINKS.any { links.optString(it).isBlank() }) return null
     val notifications = texts.optJSONObject("notifications") ?: return null
     val required = listOf("public", "limit", "riskApp", "restart", "protectionPaused", "checkIn", "preventive")
     if (required.any { notifications.optJSONObject(it) == null }) return null

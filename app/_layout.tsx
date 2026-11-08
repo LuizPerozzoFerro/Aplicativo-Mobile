@@ -58,6 +58,8 @@ function AppNavigator() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="about" />
         <Stack.Screen name="permission-status" />
+        {/* Uma só: pedir a emergência com ela já aberta volta para o fluxo em curso. */}
+        <Stack.Screen name="emergency" dangerouslySingular={() => 'emergency'} />
         <Stack.Screen name="edit" />
         <Stack.Screen name="dev-components" />
         <Stack.Screen name="dev-monitoring" />

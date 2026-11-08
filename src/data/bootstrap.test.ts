@@ -68,11 +68,26 @@ describe('useDatabase', () => {
     expect(() => getRepositories()).toThrow();
   });
 
+  it('sessão de emergência que ficou aberta (processo morto) vira abandonada ao abrir', async () => {
+    mockRunMigrations.mockImplementation(async (db) => {
+      await runMigrations(db, loadMigrationBundle() as never);
+      mockTestDatabase.raw.run(
+        "INSERT INTO emergency_sessions (started_at, source) VALUES (0, 'home')",
+      );
+    });
+    const result = await renderDatabaseState();
+    await waitFor(() => expect(result.current).toEqual({ status: 'ready' }));
+    expect(getRepositories().emergencySessions.list()).toEqual([
+      expect.objectContaining({ outcome: 'abandoned', endedAt: expect.any(Date) }),
+    ]);
+  });
+
   // Por último: depois dele os repositórios ficam abertos neste arquivo.
   it('com tudo certo, fica pronto e liga a flag e a etapa do onboarding ao banco', async () => {
     const result = await renderDatabaseState();
     await waitFor(() => expect(result.current).toEqual({ status: 'ready' }));
 
+    expect(getRepositories().emergencySessions.list()).toEqual([]);
     onboardingStatus.setCompleted(true);
     expect(getRepositories().settings.get().onboardingCompleted).toBe(true);
     onboardingProgress.setStep('triggers');

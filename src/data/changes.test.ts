@@ -31,6 +31,9 @@ const WRITES = [
   'relapses.undo',
   'dayStates.markFailed',
   'monitoringEvents.importEvents',
+  'emergencySessions.start',
+  'emergencySessions.finish',
+  'emergencySessions.abandonOpen',
   'deleteAllData',
 ];
 

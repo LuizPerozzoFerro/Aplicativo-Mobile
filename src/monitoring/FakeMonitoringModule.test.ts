@@ -142,7 +142,11 @@ describe('configuração e eventos (spec 03, 4.2 e 4.3)', () => {
     checkInMinutes: null,
     checkInCompulsionId: null,
     restartDayKeys: [],
-    links: { permissions: 'quedo-dev://permission-status' },
+    links: {
+      permissions: 'quedo-dev://permission-status',
+      emergencyFromNotification: 'quedo-dev://emergency?source=notification',
+      emergencyFromInterruption: 'quedo-dev://emergency?source=interruption',
+    },
     preventive: { weekdays: [], startMinutes: [], emotions: [] },
     motivation: null,
     texts: {
