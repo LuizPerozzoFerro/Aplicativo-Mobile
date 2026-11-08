@@ -24,6 +24,7 @@ export type NativeServiceStatus = {
   readonly running: boolean;
   readonly serviceStarts: number;
   readonly serviceStartedAt: number | null;
+  readonly startRequestedAt: number | null;
   readonly checks: number;
   readonly lastCheckAt: number | null;
   readonly lastBootAt: number | null;
@@ -80,6 +81,8 @@ export type QuedoMonitoringNativeModule = {
   startMonitoring(): Promise<void>;
   stopMonitoring(): Promise<void>;
   getServiceStatus(): NativeServiceStatus;
+  /** Confere permissões e serviço agora (vigilância, I-30). */
+  checkProtection(): Promise<void>;
   /** Configuração em JSON (`MonitoringConfig`). Falha com ERR_INVALID_CONFIG se o nativo recusar. */
   configure(json: string): Promise<void>;
   /** Configuração guardada, em JSON, ou nulo. Para a tela de desenvolvimento. */

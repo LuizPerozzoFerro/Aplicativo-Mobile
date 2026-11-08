@@ -66,24 +66,16 @@ export type MonitoringTarget = {
   readonly label: string | null;
 };
 
-/**
- * Regra de limite diário: ao somar `dailyLimitMinutes` de uso nos alvos, no dia
- * local (src/domain/day.ts), o módulo alerta. Uma regra por app ou uma para
- * vários apps juntos: quem monta as regras decide.
- */
-export type UsageRule = {
-  /** Identificador da regra, para os eventos dizerem qual foi atingida. */
-  readonly id: string;
-  readonly targetIds: readonly TargetId[];
-  readonly dailyLimitMinutes: number;
-  /** Se, além da notificação, mostra a tela de interrupção. */
-  readonly interruption: boolean;
+/** Estado do serviço de monitoramento (spec 03, 5.7). Instantes em ms desde a época Unix. */
+export type MonitoringServiceStatus = {
+  /** Se o monitoramento deve estar ligado. */
+  readonly active: boolean;
+  /** Se o serviço está de fato rodando. */
+  readonly running: boolean;
+  /** Último pedido para ligar, para não acusar parada enquanto ele sobe. */
+  readonly startRequestedAt: number | null;
+  readonly lastCheckAt: number | null;
 };
-
-export type UsageLimitConfig = { readonly rules: readonly UsageRule[] };
-
-export type UsageLimitStatus =
-  { readonly active: false } | { readonly active: true; readonly rules: readonly UsageRule[] };
 
 export type UsageEntry = {
   readonly targetId: TargetId;
@@ -301,10 +293,18 @@ export interface MonitoringModule {
    */
   pickTargets(): Promise<MonitoringTarget[] | null | Unsupported>;
 
-  /** Liga (ou reconfigura) o limite de uso. Substitui as regras anteriores. */
-  startUsageLimit(config: UsageLimitConfig): Promise<void>;
-  stopUsageLimit(): Promise<void>;
-  getUsageLimitStatus(): Promise<UsageLimitStatus>;
+  /**
+   * Liga o monitoramento, com as regras da última `configure`. Só com o app na
+   * tela, que é quando o Android deixa. Sem o acesso ao uso, `permission_required`.
+   */
+  startMonitoring(): Promise<void>;
+  stopMonitoring(): Promise<void>;
+  getServiceStatus(): Promise<MonitoringServiceStatus>;
+  /**
+   * Confere agora permissões e serviço (vigilância, I-30): grava
+   * `permission_lost` e avisa o usuário. O serviço faz o mesmo sozinho.
+   */
+  checkProtection(): Promise<void>;
 
   /** Uso de hoje por alvo. iOS: UNSUPPORTED (só por extensão de relatório). */
   getUsageToday(): Promise<UsageEntry[] | Unsupported>;

@@ -10,6 +10,7 @@ import { Button, EmptyState, Screen, Text } from '@/ui';
 import { AbstinenceCard } from './AbstinenceCard';
 import { loadHomeCards } from './homeCards';
 import { ModerationCard } from './ModerationCard';
+import { ProtectionNotice } from './ProtectionNotice';
 
 function load() {
   const now = new Date();
@@ -49,6 +50,7 @@ export function HomeScreen() {
         label={t('emergency')}
         onPress={() => router.push({ pathname: '/emergency', params: { source: 'home' } })}
       />
+      <ProtectionNotice />
       {snapshot.cards.length === 0 ? (
         <EmptyState
           testID="home-empty"

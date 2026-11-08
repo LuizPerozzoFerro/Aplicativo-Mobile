@@ -68,6 +68,8 @@ class MonitoringModule : Module() {
       MonitoringState.snapshot(context) + mapOf("pendingEvents" to EventStore.count(context))
     }
 
+    AsyncFunction("checkProtection") { ProtectionWatch.run(context) }
+
     // Configuração e eventos (spec 03, 4.2 e 4.3).
 
     AsyncFunction("configure") { json: String ->
@@ -100,6 +102,7 @@ class MonitoringModule : Module() {
       EventStore.clear(context)
       MomentRunner.clear(context)
       NotificationCenter.clear(context)
+      ProtectionWatch.clear(context)
       MonitoringState.clear(context)
       Notifier.cancelAll(context)
     }

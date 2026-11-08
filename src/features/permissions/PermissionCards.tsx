@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
+import { AppState, View } from 'react-native';
 
 import {
   getMonitoring,
@@ -23,8 +23,8 @@ export type PermissionCardsProps = {
  * Para cada permissão, o que é, para que serve e o que o Quedo não faz, antes
  * do pedido (divulgação destacada; doc 01, seção 4.3). Usado na etapa 6 do
  * onboarding e na tela de permissões fora dele (atalho do Início e, no passo
- * 6, do Perfil). Nesta fase os pedidos vão ao FakeMonitoringModule, que guarda
- * o estado só na memória.
+ * 6, do Perfil). Acesso ao uso e sobreposição são concedidos nos Ajustes, fora
+ * do app: o estado é lido de novo na volta.
  */
 export function PermissionCards({ deniedText }: PermissionCardsProps) {
   const { t } = useTranslation('onboarding');
@@ -35,11 +35,17 @@ export function PermissionCards({ deniedText }: PermissionCardsProps) {
 
   useEffect(() => {
     let active = true;
-    void getMonitoring()
-      .getPermissionStatus()
-      .then((current) => active && setStatus(current));
+    const read = () =>
+      void getMonitoring()
+        .getPermissionStatus()
+        .then((current) => active && setStatus(current));
+    read();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') read();
+    });
     return () => {
       active = false;
+      subscription.remove();
     };
   }, []);
 

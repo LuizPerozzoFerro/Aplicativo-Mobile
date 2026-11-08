@@ -41,6 +41,7 @@ class MonitoringService : Service() {
 
     /** Pelo app (com uma tela visível) ou pelo boot, que o Android também permite. */
     fun start(context: Context, origin: Origin) {
+      MonitoringState.recordStartRequested(context, System.currentTimeMillis())
       context.startForegroundService(
         Intent(context, MonitoringService::class.java).putExtra(EXTRA_ORIGIN, origin.value)
       )
@@ -118,6 +119,13 @@ class MonitoringService : Service() {
 
   private fun checkOnce() {
     MonitoringState.recordCheck(this, System.currentTimeMillis())
+    ProtectionWatch.run(this)
+    // Sem o acesso ao uso não há o que medir, e a notificação de "Proteção
+    // ativa" estaria errada. Continua "ligado": o app religa ao ganhar a permissão.
+    if (!Permissions.hasUsageAccess(this)) {
+      stopSelf()
+      return
+    }
     MomentRunner.check(this)
     NotificationCenter.onServiceCheck(this)
   }

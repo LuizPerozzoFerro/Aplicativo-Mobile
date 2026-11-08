@@ -54,8 +54,9 @@ beforeEach(async () => {
   report = jest.fn();
 });
 
-const createSync = (target = fake) =>
+const createSync = (target = fake, isForeground = () => true) =>
   createMonitoringSync({
+    isForeground,
     repositories: () => repositories,
     target: () => target,
     texts: () => TEXTS,
@@ -102,6 +103,13 @@ it('apaga do nativo também os eventos malformados e avisa só a contagem', asyn
     getPendingEvents: jest.fn(async () => ({ events: [], invalidIds: ['x', 'y'] })),
     acknowledgeEvents: jest.fn(async () => undefined),
     configure: jest.fn(async () => undefined),
+    getServiceStatus: jest.fn(async () => ({
+      active: false,
+      running: false,
+      startRequestedAt: null,
+      lastCheckAt: null,
+    })),
+    checkProtection: jest.fn(async () => undefined),
     reset: jest.fn(async () => undefined),
   };
   await createSync(target as unknown as FakeMonitoringModule).sync();
@@ -131,4 +139,98 @@ it('pedidos durante uma rodada viram uma rodada a mais, nunca duas ao mesmo temp
   await Promise.all([sync.sync(), sync.sync(), sync.sync()]);
   expect(maxInFlight).toBe(1);
   expect(configure).toHaveBeenCalledTimes(2);
+});
+
+describe('liga e desliga o serviço (spec 03, 5.7)', () => {
+  const granted = () =>
+    new FakeMonitoringModule({ now: () => NOW, permissions: { usageAccess: 'granted' } });
+
+  function addRule() {
+    const { id } = repositories.compulsions.add({
+      type: 'short_videos',
+      startedAt: NOW,
+      dailyLimitMinutes: 60,
+    });
+    repositories.monitoredApps.replaceForCompulsion(id, [
+      { packageName: 'com.instagram.android', role: 'short_video' },
+    ]);
+    return id;
+  }
+
+  it('liga com onboarding concluído, regra e permissão', async () => {
+    const target = granted();
+    addRule();
+    repositories.settings.setOnboardingCompleted(true);
+    await createSync(target).sync();
+    expect(await target.getServiceStatus()).toMatchObject({ active: true, running: true });
+  });
+
+  it('não liga antes de concluir o onboarding', async () => {
+    const target = granted();
+    addRule();
+    await createSync(target).sync();
+    expect((await target.getServiceStatus()).active).toBe(false);
+  });
+
+  it('não liga sem regra de uso', async () => {
+    const target = granted();
+    repositories.compulsions.add({ type: 'pornography', startedAt: NOW });
+    repositories.settings.setOnboardingCompleted(true);
+    await createSync(target).sync();
+    expect((await target.getServiceStatus()).active).toBe(false);
+  });
+
+  it('sem o acesso ao uso, não tenta ligar e não dá erro', async () => {
+    addRule();
+    repositories.settings.setOnboardingCompleted(true);
+    const start = jest.spyOn(fake, 'startMonitoring');
+    await createSync().sync();
+    expect(start).not.toHaveBeenCalled();
+    expect(report).not.toHaveBeenCalled();
+  });
+
+  it('com o app fora da tela, deixa para a próxima rodada', async () => {
+    const target = granted();
+    addRule();
+    repositories.settings.setOnboardingCompleted(true);
+    await createSync(target, () => false).sync();
+    expect((await target.getServiceStatus()).active).toBe(false);
+  });
+
+  it('já rodando, não pede de novo', async () => {
+    const target = granted();
+    addRule();
+    repositories.settings.setOnboardingCompleted(true);
+    await target.startMonitoring();
+    const start = jest.spyOn(target, 'startMonitoring');
+    await createSync(target).sync();
+    expect(start).not.toHaveBeenCalled();
+  });
+
+  it('serviço morto volta a ser ligado', async () => {
+    const target = granted();
+    addRule();
+    repositories.settings.setOnboardingCompleted(true);
+    await target.startMonitoring();
+    target.simulateServiceStopped();
+    await createSync(target).sync();
+    expect((await target.getServiceStatus()).running).toBe(true);
+  });
+
+  it('desliga quando nenhuma regra precisa dele', async () => {
+    const target = granted();
+    const id = addRule();
+    repositories.settings.setOnboardingCompleted(true);
+    const sync = createSync(target);
+    await sync.sync();
+    repositories.compulsions.remove(id);
+    await sync.sync();
+    expect((await target.getServiceStatus()).active).toBe(false);
+  });
+
+  it('confere a proteção a cada rodada', async () => {
+    const check = jest.spyOn(fake, 'checkProtection');
+    await createSync().sync();
+    expect(check).toHaveBeenCalledTimes(1);
+  });
 });

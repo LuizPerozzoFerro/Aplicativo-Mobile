@@ -16,8 +16,10 @@ do protótipo continua em `prototype/NOTAS.md`.
 - **Passo 4 (tela de interrupção)** integrado (PR #25). M20 (chamada) pendente para o
   roteiro.
 - **Passo 5 (notificações)** integrado (PR #26). Seção "Fase 4 · Passo 5".
-- **Passo 6 (emergência)** pronto para revisão no PR da branch `fase4/emergencia`. Seção
-  "Fase 4 · Passo 6". Próximo: passo 7 (permissões reais e vigilância).
+- **Passo 6 (emergência)** integrado (PR #27). Seção "Fase 4 · Passo 6".
+- **Passo 7 (permissões reais, vigilância e estado)** pronto para revisão no PR da branch
+  `fase4/permissoes`. Seção "Fase 4 · Passo 7". Próximo: passo 8 (ferramentas de teste,
+  Maestro e roteiro manual).
 - **Pendências para o roteiro do passo 8 (não esquecer):** M20 chamada recebida (S22 sem
   chip e WhatsApp desconectado: usar o emulador e/ou o Teams), M14 agendamentos depois do
   reinício, M10 "Tive uma recaída" pela notificação, M12 tela bloqueada vista a olho,
@@ -2852,6 +2854,79 @@ início" fica. Dois ajustes, feitos no começo do passo 7:
 Durante a respiração o `uiautomator dump` falha com "could not get idle state", porque
 a tela nunca fica parada. No fluxo Maestro, usar "Pular" logo no início da etapa ou
 conferir se ele sofre do mesmo problema.
+
+---
+
+## Fase 4 · Passo 7 · Permissões reais, vigilância e estado (08/11/2026)
+
+Branch `fase4/permissoes`. Spec 03, seção 5.7; doc 01, seções 6.9 e 6.10. O começo da
+branch traz os dois ajustes da revisão do PR #27.
+
+### Como ficou
+
+- **Um ponto só:** `getMonitoring()` agora é o nativo no Android
+  (`AndroidMonitoringModule`) e o falso no Jest e no iOS. Saiu o `getMonitoringSync`.
+- **Interface:** saíram `startUsageLimit`, `stopUsageLimit` e `getUsageLimitStatus`, sem
+  uso desde que as regras vão pela configuração. Entraram `startMonitoring`,
+  `stopMonitoring`, `getServiceStatus` e `checkProtection`.
+- **Notificações:** janela do sistema pelo `PermissionsAndroid` do React Native, sem
+  biblioteca nova. Se o usuário recusou de vez, ou desligou nos Ajustes, abre os Ajustes.
+- **Liga e desliga:** a cada rodada da sincronização. Liga com onboarding concluído,
+  regra de uso e acesso ao uso, e só com o app na tela (exigência do Android para serviço
+  em primeiro plano). Desliga quando nenhuma regra precisa dele.
+- **Regras puras:** `src/domain/protection.ts` (o que faz falta e a situação do serviço)
+  e `ProtectionRules` em Kotlin (o que a vigilância faz), com JUnit.
+- **Início:** minutos reais, e aviso "Proteção pausada" dizendo o que parou.
+- **`/permission-status`:** serviço ativo, última verificação e o que fazer em cada caso,
+  com "Religar o acompanhamento".
+
+### Vigilância (`ProtectionWatch`)
+
+Roda a cada verificação do serviço (20 s), a cada sincronização do app, no boot e nos
+alarmes. Os alarmes são o que percebe o serviço parado quando o app está fechado.
+
+- **Perda** é passar de concedida a negada. A primeira conferência só aprende o estado.
+- Cada perda grava `permission_lost`.
+- **"Proteção pausada":** acesso ao uso perdido, sobreposição perdida (se alguma regra usa
+  a tela) e serviço parado. Notificações perdidas não têm como avisar por notificação:
+  ficam o evento e o aviso no Início.
+- **Serviço parado:** sem rodar, com o acesso ao uso dado, e 5 min sem verificação nem
+  pedido para ligar. O limite de uma por dia por motivo já estava em `NotificationCenter`.
+- **Sem o acesso ao uso, o serviço se encerra:** não há o que medir, e a notificação
+  "Proteção ativa" estaria errada. Continua marcado como ligado, e o app religa ao ganhar
+  a permissão.
+
+### Interpretação da spec (a confirmar na revisão)
+
+O aviso do Início aparece também para permissão que nunca foi concedida, não só para a
+perdida: o doc 01 (6.1) fala em "alguma permissão desligada". Quem disse "Agora não" no
+onboarding vê o aviso enquanto a permissão fizer falta. O que não faz falta não entra: sem
+regra de uso, o acesso ao uso não é cobrado; sem tela prevista, a sobreposição também não.
+
+### Testes
+
+- Jest: 722. JUnit: 63. `lint`, `typecheck`, `format:check` e `check:manifest` passando.
+- Mutações de controle: 19 no JS e 6 no Kotlin, todas derrubam testes.
+
+### No aparelho (S22, 08/11)
+
+- Depois de encerrar o app à força, ao abrir, a sincronização religou o serviço
+  (`dumpsys activity services`).
+- Início com os minutos reais ("12 min de 45 hoje") e sem o aviso, com tudo permitido.
+- `/permission-status`: "Ativo." e a última verificação.
+- A vigilância gravou o estado inicial, sem nenhum `permission_lost`.
+
+### Ainda sem teste no aparelho
+
+Dependem de mudar permissões nos Ajustes, que é ação do responsável: M15 (revogar o
+acesso ao uso), M1 (conceder pelo onboarding real) e a janela do sistema das
+notificações. Ficam para os testes do responsável ou para o roteiro do passo 8. O serviço
+parado com o app fechado e a tela acesa em prévia ou produção também ficam para o roteiro.
+
+### Para o passo 8
+
+Os fluxos Maestro agora rodam contra a lista real de apps do aparelho, e não foram
+executados neste passo porque apagam os dados do app de desenvolvimento.
 
 ## Problemas
 

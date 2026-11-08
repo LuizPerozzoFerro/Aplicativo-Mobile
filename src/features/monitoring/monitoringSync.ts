@@ -1,5 +1,6 @@
 import type { Repositories } from '@/data/repositories';
-import type { MonitoringConfig, MonitoringSyncTarget, MonitoringTexts } from '@/monitoring';
+import { getProtectionNeeds } from '@/domain/protection';
+import type { MonitoringConfig, MonitoringModule, MonitoringTexts } from '@/monitoring';
 
 import { buildMonitoringConfig } from './config';
 
@@ -10,10 +11,12 @@ import { buildMonitoringConfig } from './config';
 
 export type MonitoringSyncDeps = {
   repositories: () => Repositories;
-  target: () => MonitoringSyncTarget;
+  target: () => MonitoringModule;
   texts: () => MonitoringTexts;
   links: () => MonitoringConfig['links'];
   now?: () => Date;
+  /** O Android só deixa ligar o serviço com o app na tela. */
+  isForeground?: () => boolean;
   /** Só a contagem e um texto fixo: nada de dados do usuário (CLAUDE.md, seção 9). */
   report?: (message: string) => void;
 };
@@ -29,6 +32,7 @@ export function createMonitoringSync({
   texts,
   links,
   now = () => new Date(),
+  isForeground = () => true,
   report = (message) => console.error(message),
 }: MonitoringSyncDeps): MonitoringSync {
   let running: Promise<void> | null = null;
@@ -50,7 +54,26 @@ export function createMonitoringSync({
     // Só depois de gravar no banco o nativo pode apagar (spec 03, 4.3).
     const ids = [...handled.handledIds, ...invalidIds];
     if (ids.length > 0) await monitoring.acknowledgeEvents(ids);
-    await monitoring.configure(buildMonitoringConfig(repos, texts(), now(), links()));
+    const config = buildMonitoringConfig(repos, texts(), now(), links());
+    await monitoring.configure(config);
+    await applyServiceState(monitoring, config, repos.settings.get().onboardingCompleted);
+    await monitoring.checkProtection();
+  }
+
+  /** Liga ao concluir o onboarding ou ao ganhar a permissão; desliga sem regra (spec 03, 5.7). */
+  async function applyServiceState(
+    monitoring: MonitoringModule,
+    config: MonitoringConfig,
+    onboardingCompleted: boolean,
+  ): Promise<void> {
+    const service = await monitoring.getServiceStatus();
+    if (!onboardingCompleted || !getProtectionNeeds(config).usageAccess) {
+      if (service.active) await monitoring.stopMonitoring();
+      return;
+    }
+    if (service.active && service.running) return;
+    const { usageAccess } = await monitoring.getPermissionStatus();
+    if (usageAccess === 'granted' && isForeground()) await monitoring.startMonitoring();
   }
 
   async function loop(): Promise<void> {

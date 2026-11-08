@@ -5,7 +5,7 @@ import { AppState } from 'react-native';
 
 import { getRepositories } from '@/data/bootstrap';
 import { dataChanges } from '@/data/changes';
-import { getMonitoringSync, type MonitoringTexts } from '@/monitoring';
+import { getMonitoring, type MonitoringTexts } from '@/monitoring';
 
 import { createMonitoringSync, type MonitoringSync } from './monitoringSync';
 
@@ -22,11 +22,12 @@ let currentTexts: MonitoringTexts | null = null;
 export function getAppMonitoringSync(): MonitoringSync {
   shared ??= createMonitoringSync({
     repositories: getRepositories,
-    target: getMonitoringSync,
+    target: () => getMonitoring(),
     texts: () => {
       if (!currentTexts) throw new Error('Textos do monitoramento ainda não carregados');
       return currentTexts;
     },
+    isForeground: () => AppState.currentState === 'active',
     links: () => ({
       permissions: Linking.createURL('/permission-status'),
       emergencyFromNotification: Linking.createURL('/emergency', {

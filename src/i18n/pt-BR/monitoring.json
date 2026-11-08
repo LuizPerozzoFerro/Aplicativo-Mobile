@@ -4,6 +4,19 @@
     "alerts": "Avisos",
     "reminders": "Lembretes"
   },
+  "status": {
+    "title": "Acompanhamento",
+    "running": "Ativo.",
+    "lastCheck": "Última verificação: {{time}}.",
+    "noCheckYet": "Primeira verificação em instantes.",
+    "idle": "Nenhum app para acompanhar agora. Quando você escolher apps no Perfil, o acompanhamento liga sozinho.",
+    "needsUsageAccess": "Parado: falta permitir o acesso a dados de uso, logo abaixo.",
+    "stopped": "Parado: o Android encerrou o acompanhamento ou ele não conseguiu começar.",
+    "restart": "Religar o acompanhamento",
+    "restartFailed": "Não deu para religar agora. Tente de novo em instantes.",
+    "overlayMissing": "Sem a permissão de aparecer sobre outros apps, você recebe só as notificações, sem a tela de pausa.",
+    "notificationsMissing": "Sem as notificações, os lembretes e avisos não chegam."
+  },
   "ongoing": {
     "title": "Quedo",
     "text": "Proteção ativa."
