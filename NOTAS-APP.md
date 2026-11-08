@@ -13,8 +13,9 @@ do protótipo continua em `prototype/NOTAS.md`.
 - **Passo 1 (base nativa)** integrado (PR #22). Seção "Fase 4 · Passo 1".
 - **Passo 2 (configuração e eventos)** integrado (PR #23). Seção "Fase 4 · Passo 2".
 - **Passo 3 (regras do momento)** integrado (PR #24). Seção "Fase 4 · Passo 3".
-- **Passo 4 (tela de interrupção)** em andamento na branch
-  `fase4/tela-interrupcao`. Seção "Fase 4 · Passo 4".
+- **Passo 4 (tela de interrupção)** pronto para revisão no PR da branch
+  `fase4/tela-interrupcao`. Seção "Fase 4 · Passo 4". M20 (chamada) pendente
+  para o roteiro. Próximo: passo 5 (notificações).
 
 ---
 
@@ -2641,11 +2642,28 @@ Listados no PR para revisão.
   final (passo 8): uma ligação simulada no emulador (`adb emu gsm call`) cobre a
   chamada telefônica; WhatsApp ou Teams, instalados no S22, cobrem a chamada
   pela internet, cujo modo de áudio ao tocar ainda é uma incógnita.
-- **M17 (voltar preditivo) só parcialmente coberto:** o app inteiro está com
-  `enableOnBackInvokedCallback="false"` (`predictiveBackGestureEnabled: false`). O
-  gesto testado na sobreposição passou pelo caminho antigo. A tela própria liga o
-  voltar preditivo só para si, mas lá o teste foi com `KEYCODE_BACK` pelo `adb`,
-  não com o gesto.
+- **M17 (voltar preditivo) conferido num build temporário** (08/11): só o
+  `android:enableOnBackInvokedCallback` do `android/` gerado virou `true`, sem
+  mudar o `app.config.ts`, e voltou a `false` depois. Gesto real de borda
+  (`adb shell input swipe` a partir da borda, que o sistema trata como voltar):
+
+  | Tela | Voltar preditivo | Caminho no `logcat` | Resultado |
+  |---|---|---|---|
+  | Sobreposição | Ligado | `onBackInvoked, callback=InterruptionRootView` | Não fecha, nas duas bordas |
+  | Tela própria | Ligado | `onBackInvoked, callback=InterruptionRootView` | Não fecha, nas duas bordas |
+  | Sobreposição | Desligado (como o app sai) | `OnBackInvokedCallback is not enabled` e o callback de compatibilidade do `ViewRootImpl` | Não fecha |
+
+  O aviso da última linha confirma que a sobreposição, por não ser Activity, segue
+  o valor do app. O app continua com o voltar preditivo desligado (decisão de
+  02/11): ligar de vez é outra decisão, porque muda o voltar de todas as telas.
+
+### Cuidado: copiar o banco para o aparelho
+
+Com o `adb` travado (AP3), `adb exec-out ... cat app.db > app.db` grava um arquivo
+de **0 byte** sem dar erro. Em 08/11 um script meu seguiu adiante e mandou copiar
+esse arquivo de volta. O banco só escapou porque o `adb` também travou na cópia.
+Antes de escrever no aparelho: conferir o tamanho do arquivo lido, abrir o banco e
+guardar uma cópia.
 
 ## Problemas
 
