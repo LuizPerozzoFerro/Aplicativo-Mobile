@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { useDatabase } from '@/data/bootstrap';
+import { useMonitoringSync } from '@/features/monitoring/useMonitoringSync';
 import { useOnboardingCompleted } from '@/features/onboarding/onboardingStatus';
 import { EmptyState, Screen, useTheme } from '@/ui';
 
@@ -39,6 +40,8 @@ export default function RootLayout() {
 function AppNavigator() {
   const theme = useTheme();
   const onboardingCompleted = useOnboardingCompleted();
+  // Configuração e eventos do monitoramento (spec 03, 4.2 e 4.3).
+  useMonitoringSync();
 
   return (
     <Stack

@@ -1,0 +1,11 @@
+{
+  "channels": {
+    "tracking": "Acompanhamento",
+    "alerts": "Avisos",
+    "reminders": "Lembretes"
+  },
+  "ongoing": {
+    "title": "Quedo",
+    "text": "Proteção ativa."
+  }
+}

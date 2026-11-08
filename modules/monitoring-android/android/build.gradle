@@ -20,4 +20,7 @@ dependencies {
   // Só para os testes JUnit das partes puras (spec 03, seção 5.13). Não vai
   // para o APK.
   testImplementation 'junit:junit:4.13.2'
+  // O android.jar dos testes locais só tem esboços do org.json, que falham ao
+  // ser chamados. A biblioteca de referência tem a mesma API do Android.
+  testImplementation 'org.json:json:20240303'
 }

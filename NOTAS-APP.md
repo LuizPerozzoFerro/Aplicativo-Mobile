@@ -10,9 +10,10 @@ do protótipo continua em `prototype/NOTAS.md`.
 - **Fase 3 encerrada:** passos 1 a 7 integrados na `main` (PRs #12 a #20).
 - **Fase 4 (spec 03 v0.2):** documentos e decisões da leitura da spec
   integrados (PR #21). Seção "Fase 4 · Leitura da spec 03".
-- **Passo 1 (base nativa)** pronto para revisão no PR da branch
-  `fase4/base-nativa`. Seção "Fase 4 · Passo 1". Próximo: passo 2
-  (configuração e eventos).
+- **Passo 1 (base nativa)** integrado (PR #22). Seção "Fase 4 · Passo 1".
+- **Passo 2 (configuração e eventos)** pronto para revisão no PR da branch
+  `fase4/config-eventos`. Seção "Fase 4 · Passo 2". Próximo: passo 3 (regras
+  do momento).
 
 ---
 
@@ -2204,6 +2205,19 @@ Depois do prebuild, o `AndroidManifest.xml` gerado traz
   A decisão sobre o CI fica para o passo 3, quando os vetores compartilhados
   entram e o JUnit passa a ter mais peso (spec 03, seção 5.13).
 
+### Para o passo 4: justificativa do `specialUse` (pedido do responsável, 07/11/2026)
+
+Quando a tela de interrupção entrar (passo 4), atualizar a justificativa do
+`specialUse` em dois lugares:
+- a `<property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE">`
+  do `modules/monitoring-android/android/src/main/AndroidManifest.xml`;
+- `docs/rascunhos/play-console-justificativas.md` (seções 2 e 3).
+
+O texto atual fala só do limite diário e do lembrete. Precisa mencionar
+também **a tela de pausa** (a interrupção sobre o app) e **os apps que o
+usuário escolheu como de risco** (o limite de 10 minutos por app), porque o
+revisor do Google compara o que está declarado com o comportamento do app.
+
 ### AP4: resultado da investigação (spec 03, seção 5.12)
 
 - **Documentação oficial** (FAQ da verificação de desenvolvedor,
@@ -2287,6 +2301,131 @@ Depois do prebuild, o `AndroidManifest.xml` gerado traz
 - **JUnit:** 15 testes (3 da borda do dia, 10 da reconstrução do uso, 2 dos
   lançadores), todos passando. Mutação de controle: sem o corte da
   meia-noite, 2 falham.
+
+## Fase 4 · Passo 2 · Configuração e eventos (07/11/2026)
+
+Branch `fase4/config-eventos`. Escopo da spec 03 (seção 6, passo 2):
+`configure`, persistência em disco, eventos com identificador, importação
+idempotente no JS e migração 005.
+
+### Como ficou
+
+```
+banco (JS) ──buildMonitoringConfig──> configure(JSON) ──> ConfigStore (nativo, em disco)
+nativo ──EventStore (arquivo, 1 JSON por linha, id único)──> getPendingEvents
+JS: parseNativeEvents → importEvents (transação por evento) → acknowledgeEvents
+```
+
+- **Configuração** (`MonitoringConfig` em `src/monitoring/types.ts`, montada em
+  `src/features/monitoring/config.ts`): versão; por compulsão, o tipo, o
+  dia-base da streak e o último dia com check-in respondido; um limite somado
+  por compulsão de vídeos; um limite de 10 min por app de risco, com a tela só
+  onde o usuário declarou consumir; horário do check-in (só com abstinência
+  ativa); preventivas (dias, até 4 horários já unidos, emoções); motivação; e
+  os textos do nativo, do i18n (`src/i18n/pt-BR/monitoring.json`). Compulsão
+  pausada fica de fora. Cresce a cada passo, com a versão.
+- **Nativo:** `ConfigStore` guarda a última configuração válida
+  (`ConfigValidation` confere versão, listas e textos; uma inválida é recusada
+  com `ERR_INVALID_CONFIG` e a anterior fica). A notificação permanente e o
+  nome do canal já usam os textos dela, com o `strings.xml` como reserva.
+- **Eventos:** `EventLog` (Kotlin puro) grava um JSON por linha com `id`
+  (UUID), `at`, `dayKey` (borda do dia do nativo) e `type`. Escrita por arquivo
+  temporário e troca, para uma morte no meio não deixar o arquivo pela metade.
+  Teto de 2000 eventos (os mais antigos saem). Neste passo o nativo só grava
+  `service_started`, com a origem `app`, `boot`, `update` ou `restart` (sem
+  intent: o sistema recriou o serviço). Os outros tipos entram nos passos 3 a
+  7, e o JS já sabe importar todos.
+- **Importação** (`repositories.monitoringEvents.importEvents`), um evento por
+  transação, pulando os que já estão em `imported_events`:
+  - `check_in_answered` → check-in com `source = 'notification'` e, na
+    recaída, a recaída do dia, como pelo app (com o instante do evento);
+  - `day_failed` → `day_states.failed` com o motivo;
+  - `interruption_shown` → linha em `interruption_events` e
+    `day_states.interruptions + 1` (nas duas mecânicas: contagem por
+    compulsão, spec 03, 5.2);
+  - `interruption_response` → completa a mesma linha (só a primeira resposta
+    vale) e, no "Continuar", `continues + 1`;
+  - os outros (`service_started`, `limit_reached`, `notification_sent`,
+    `emergency_requested`, `permission_lost`) ficam só como importados;
+  - evento de compulsão apagada: confirmado sem efeito. Evento que falha (ex.:
+    reprovação na abstinência): confirmado sem efeito e contado, para não
+    travar a fila. O JS registra só as contagens, sem dados.
+- **Eventos malformados** (`parseNativeEvents`, campo a campo): não entram no
+  banco, mas são apagados do nativo também.
+- **Quando sincroniza** (`useMonitoringSync`, no layout raiz): ao abrir o app,
+  ao voltar do segundo plano e 300 ms depois de qualquer gravação no banco.
+  Uma rodada por vez. As gravações são percebidas por `observeRepositories`
+  (`src/data/changes.ts`): toda função de repositório que não começa com
+  `list`/`get` avisa depois de gravar. Um teste confere a lista de funções que
+  gravam, para uma nova não passar despercebida.
+- **"Apagar meus dados"** chama antes o `reset()` do nativo: para o serviço e
+  apaga configuração, estado e eventos pendentes (spec 03, 4.4).
+
+### Decisão: configuração e eventos já reais, permissões ainda falsas
+
+`getMonitoring()` continua devolvendo o falso (as permissões reais mudam o
+onboarding e o Início e são o passo 7). A sincronização usa
+`getMonitoringSync()`, que no Android já é o nativo (`AndroidMonitoringSync`) e
+nos testes e no iOS é o falso. Configuração e eventos não mudam nada que o
+usuário veja, então dá para conferi-los no aparelho desde já. No passo 7 os
+dois pontos viram um só.
+
+### Migração 005 (`drizzle/0004_fase4_monitoring.sql`)
+
+- Só `CREATE TABLE` (`interruption_events`, `emergency_sessions`,
+  `imported_events`), sem `__new_`. Renomeada como as anteriores.
+- CHECKs novos: resposta e origem e resultado dentro das listas, e resposta e
+  horário (`responded_at`, `ended_at`) sempre juntos.
+- `interruption_events` é filha de `user_compulsions`: entrou em
+  `FIXTURE_ROWS`. O teste das tabelas filhas acusou a falta antes disso, como
+  deve.
+- `emergency_sessions` só ganha repositório no passo 6.
+
+### Bibliotecas
+
+- `org.json:json:20240303` só como `testImplementation` do módulo: o
+  android.jar dos testes locais tem só esboços do `org.json`, que falham ao
+  ser chamados. Não vai para o APK.
+
+### Testes
+
+- Jest (550 no total, 41 suítes): domínio das preventivas; leitura dos eventos; falso;
+  adaptador nativo; montagem da configuração; sincronização (ordem,
+  confirmação só depois de gravar, rodada única); aviso de gravações;
+  importação; migração 005 (tabelas, restrições, cascata).
+- JUnit (26): `EventLog` (id único, confirmação, persistência, teto, linhas
+  ilegíveis) e `ConfigValidation`.
+- Mutações de controle: sem a checagem de "já importado", 2 testes da
+  importação falham; com o `acknowledge` sem apagar, 1 teste JUnit falha.
+
+### No aparelho (S22)
+
+- O Metro parado antes do build e subido depois (AP5): sem travar desta vez.
+- `installDebug` às 15:05. Com o monitoramento ligado, a atualização gravou
+  `service_started` com `origin: "update"` no arquivo de eventos.
+- Ao abrir o app: a fila esvaziou, o evento apareceu em `imported_events` e a
+  configuração chegou ao nativo (`quedo-monitoring-config.xml`) com os dados
+  do responsável (duas compulsões, um limite de vídeos de 45 min com 4 apps, X
+  e Reddit como risco com tela, check-in 21:30, preventivas e textos).
+- Banco: as 5 migrações aplicadas sobre o banco com dados; compulsões, apps,
+  gatilhos e motivação preservados.
+- Canal da notificação permanente renomeado para "Acompanhamento", vindo da
+  configuração.
+- Morte do processo (`kill -9`): serviço recriado em ~3 s, evento com
+  `origin: "restart"` pendente com o app fechado e importado ao abrir.
+- Gravação no banco reenvia a configuração: "Sem recaída" no Início levou o
+  `checkInAnsweredDayKey` a 2026-11-07; "Desfazer" o devolveu a nulo (estado
+  do responsável restaurado).
+- **Não testado no aparelho:** "Apagar meus dados" com o `reset()` do nativo
+  (apagaria os dados de teste do responsável). Fica para o roteiro, junto com
+  o fluxo (d) do Maestro.
+
+### Comandos úteis
+
+- Fila de eventos do nativo:
+  `adb shell run-as br.com.quedo.app.dev cat files/quedo-monitoring-events.jsonl`
+- Configuração guardada:
+  `adb shell run-as br.com.quedo.app.dev cat shared_prefs/quedo-monitoring-config.xml`
 
 ## Problemas
 

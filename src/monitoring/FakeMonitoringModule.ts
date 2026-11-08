@@ -1,10 +1,12 @@
-import { getDayBounds } from '@/domain/day';
+import { getDayBounds, toDayKey } from '@/domain/day';
 
 import {
+  MONITORING_CONFIG_VERSION,
   MonitoringError,
   PERMISSION_KINDS,
   UNSUPPORTED,
   asTargetId,
+  type MonitoringConfig,
   type MonitoringEvent,
   type MonitoringModule,
   type MonitoringPlatform,
@@ -59,6 +61,10 @@ export type FakeMonitoringOptions = {
 
 type UsageSample = { targetId: TargetId; milliseconds: number; at: number };
 
+/** Evento sem os campos que o nativo preenche (id, instante e dia). */
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+export type FakeEventInput = DistributiveOmit<MonitoringEvent, 'id' | 'at' | 'dayKey'>;
+
 const UNSUPPORTED_PERMISSIONS: { readonly [P in MonitoringPlatform]: readonly PermissionKind[] } = {
   android: [],
   ios: ['overlay'],
@@ -76,6 +82,8 @@ export class FakeMonitoringModule implements MonitoringModule {
   private rules: readonly UsageRule[] | null = null;
   private usage: UsageSample[] = [];
   private events: MonitoringEvent[] = [];
+  private config: MonitoringConfig | null = null;
+  private nextEventNumber = 1;
 
   constructor(options: FakeMonitoringOptions = {}) {
     this.platform = options.platform ?? 'android';
@@ -146,11 +154,24 @@ export class FakeMonitoringModule implements MonitoringModule {
     return UNSUPPORTED;
   }
 
-  async getEvents(): Promise<MonitoringEvent[]> {
-    return [...this.events];
+  async configure(config: MonitoringConfig): Promise<void> {
+    if (config.version !== MONITORING_CONFIG_VERSION) {
+      throw new MonitoringError('invalid_config', 'Versão da configuração desconhecida');
+    }
+    this.config = config;
   }
 
-  async clearEvents(): Promise<void> {
+  async getPendingEvents(): Promise<{ events: MonitoringEvent[]; invalidIds: string[] }> {
+    return { events: [...this.events], invalidIds: [] };
+  }
+
+  async acknowledgeEvents(ids: readonly string[]): Promise<void> {
+    this.events = this.events.filter((event) => !ids.includes(event.id));
+  }
+
+  async reset(): Promise<void> {
+    this.rules = null;
+    this.config = null;
     this.events = [];
   }
 
@@ -168,24 +189,31 @@ export class FakeMonitoringModule implements MonitoringModule {
     this.permissions[kind] = state;
   }
 
-  /**
-   * Soma uso a um app. Se isso fizer uma regra ativa passar do limite pela
-   * primeira vez no dia, grava `limit_reached`.
-   */
+  /** Soma uso a um app, para o `getUsageToday`. As regras do momento são do nativo (passo 3). */
   simulateUsage(targetId: TargetId, minutes: number): void {
-    const at = this.now().getTime();
-    const before = this.rules?.map((rule) => this.minutesToday(rule)) ?? [];
-    this.usage.push({ targetId, milliseconds: minutes * MS_PER_MINUTE, at });
-    this.rules?.forEach((rule, index) => {
-      const crossed =
-        (before[index] ?? 0) < rule.dailyLimitMinutes &&
-        this.minutesToday(rule) >= rule.dailyLimitMinutes;
-      if (crossed) this.record({ type: 'limit_reached', ruleId: rule.id, targetId });
-    });
+    this.usage.push({ targetId, milliseconds: minutes * MS_PER_MINUTE, at: this.now().getTime() });
   }
 
-  private record(event: Omit<MonitoringEvent, 'timestamp'>): void {
-    this.events.push({ timestamp: this.now().getTime(), ...event });
+  /** Grava um evento como o nativo gravaria, com id, instante e dia. Devolve o evento. */
+  simulateEvent(input: FakeEventInput): MonitoringEvent {
+    return this.record(input);
+  }
+
+  /** A última configuração recebida, ou nula. */
+  getLastConfig(): MonitoringConfig | null {
+    return this.config;
+  }
+
+  private record(input: FakeEventInput): MonitoringEvent {
+    const now = this.now();
+    const event = {
+      ...input,
+      id: `fake-${this.nextEventNumber++}`,
+      at: now.getTime(),
+      dayKey: toDayKey(now),
+    } as MonitoringEvent;
+    this.events.push(event);
+    return event;
   }
 
   private requirePermission(kind: PermissionKind): void {
@@ -197,13 +225,6 @@ export class FakeMonitoringModule implements MonitoringModule {
   private samplesToday(): UsageSample[] {
     const { start, end } = getDayBounds(this.now());
     return this.usage.filter((sample) => sample.at >= start.getTime() && sample.at < end.getTime());
-  }
-
-  private minutesToday(rule: UsageRule): number {
-    const milliseconds = this.samplesToday()
-      .filter((sample) => rule.targetIds.includes(sample.targetId))
-      .reduce((total, sample) => total + sample.milliseconds, 0);
-    return milliseconds / MS_PER_MINUTE;
   }
 }
 

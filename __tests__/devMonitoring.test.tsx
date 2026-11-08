@@ -30,6 +30,7 @@ const STOPPED: NativeServiceStatus = {
   lastCheckAt: null,
   lastBootAt: null,
   lastBootResult: null,
+  pendingEvents: 0,
 };
 
 function permissionRequired() {
@@ -68,8 +69,20 @@ function fakeNative(usageAccess: boolean): jest.Mocked<QuedoMonitoringNativeModu
       service = { ...service, active: false, running: false };
     }),
     getServiceStatus: jest.fn(() => service),
+    configure: jest.fn(async (_json: string) => undefined),
+    getConfig: jest.fn(() => config),
+    getPendingEvents: jest.fn(async () => '[]'),
+    acknowledgeEvents: jest.fn(async (_ids: string[]) => undefined),
+    reset: jest.fn(async () => undefined),
   };
 }
+
+let config: string | null = null;
+
+const mockSync = jest.fn(async () => undefined);
+jest.mock('@/features/monitoring/useMonitoringSync', () => ({
+  getAppMonitoringSync: () => ({ sync: mockSync }),
+}));
 
 const renderScreen = () =>
   renderRouter(
@@ -80,6 +93,8 @@ const renderScreen = () =>
 afterEach(() => {
   mockVariant.environment = 'development';
   mockNative.current = null;
+  config = null;
+  mockSync.mockClear();
 });
 
 it('sem o módulo nativo (fora do Android), avisa', async () => {
@@ -153,4 +168,32 @@ it.each(['preview', 'production'] as const)('em %s, volta ao início', async (en
   await renderScreen();
   expect(screen).toHavePathname('/');
   expect(mockNative.current.listTargets).not.toHaveBeenCalled();
+});
+
+it('mostra o que o nativo guardou da configuração e os eventos pendentes', async () => {
+  config = JSON.stringify({
+    compulsions: [{}, {}],
+    moderationRules: [{}],
+    riskAppRules: [{}, {}, {}],
+  });
+  const native = fakeNative(true);
+  native.getServiceStatus.mockReturnValue({ ...STOPPED, pendingEvents: 2 });
+  mockNative.current = native;
+  await renderScreen();
+
+  expect(
+    await screen.findByText(
+      'Configuração recebida: 2 compulsão(ões), 1 limite(s) de vídeos, 3 app(s) de risco',
+    ),
+  ).toBeOnTheScreen();
+  expect(screen.getByText('Eventos aguardando importação: 2')).toBeOnTheScreen();
+});
+
+it('sem configuração, avisa; "Sincronizar agora" roda a sincronização do app', async () => {
+  mockNative.current = fakeNative(true);
+  await renderScreen();
+  expect(await screen.findByText('O nativo ainda não recebeu configuração.')).toBeOnTheScreen();
+
+  await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Sincronizar agora' })));
+  expect(mockSync).toHaveBeenCalledTimes(1);
 });

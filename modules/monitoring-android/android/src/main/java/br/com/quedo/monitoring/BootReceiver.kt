@@ -28,7 +28,14 @@ class BootReceiver : BroadcastReceiver() {
       // Sem acesso ao uso o serviço não tem o que fazer. A vigilância das
       // permissões (passo 7) avisa o usuário.
       !Permissions.hasUsageAccess(context) -> MonitoringState.BootResult.NO_USAGE_ACCESS
-      runCatching { MonitoringService.start(context) }.isSuccess ->
+      runCatching {
+        val origin = if (action == Intent.ACTION_BOOT_COMPLETED) {
+          MonitoringService.Origin.BOOT
+        } else {
+          MonitoringService.Origin.UPDATE
+        }
+        MonitoringService.start(context, origin)
+      }.isSuccess ->
         MonitoringState.BootResult.STARTED
       else -> MonitoringState.BootResult.FAILED
     }

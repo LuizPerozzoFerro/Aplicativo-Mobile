@@ -17,6 +17,7 @@ import {
   TRIGGER_KINDS,
 } from '@/domain/compulsion';
 import { CHECK_IN_ANSWERS, CHECK_IN_SOURCES, DEFAULT_CHECK_IN_MINUTES } from '@/domain/checkIn';
+import { EMERGENCY_OUTCOMES, EMERGENCY_SOURCES, INTERRUPTION_RESPONSES } from '@/domain/monitoring';
 import { ONBOARDING_STEPS } from '@/domain/onboarding';
 import { DAY_FAILURE_REASONS } from '@/domain/streak';
 import { EMOTIONS, WEEKDAYS } from '@/domain/triggers';
@@ -250,3 +251,74 @@ export const dayStates = sqliteTable(
     ),
   ],
 );
+
+// Migração 005 (spec 03, seção 5.6): só tabelas novas, sem recriar tabela-pai.
+
+/**
+ * Telas de interrupção que de fato apareceram (I-28), importadas dos eventos
+ * do nativo. Base das estatísticas da Fase 5. O pacote do app fica só no
+ * aparelho (CLAUDE.md, seção 9).
+ */
+export const interruptionEvents = sqliteTable(
+  'interruption_events',
+  {
+    /** O identificador do evento nativo `interruption_shown`. */
+    id: text('id').primaryKey(),
+    compulsionId: integer('compulsion_id')
+      .notNull()
+      .references(() => userCompulsions.id, { onDelete: 'cascade' }),
+    dayKey: text('day_key').notNull(),
+    shownAt: integer('shown_at', { mode: 'timestamp_ms' }).notNull(),
+    /** Nulo se a tela foi fechada de outro jeito (ex.: chamada recebida). */
+    response: text('response', { enum: INTERRUPTION_RESPONSES }),
+    respondedAt: integer('responded_at', { mode: 'timestamp_ms' }),
+    appPackage: text('app_package').notNull(),
+  },
+  () => [
+    check('interruption_events_day_key_valid', isDayKey('day_key')),
+    check(
+      'interruption_events_response_valid',
+      sql`${column('response')} is null or ${column('response')} in ${textList(INTERRUPTION_RESPONSES)}`,
+    ),
+    check(
+      'interruption_events_responded_together',
+      sql`(${column('response')} is null) = (${column('responded_at')} is null)`,
+    ),
+  ],
+);
+
+/** Sessões do botão de emergência (spec 03, 5.5). Sem texto digitado. */
+export const emergencySessions = sqliteTable(
+  'emergency_sessions',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    startedAt: integer('started_at', { mode: 'timestamp_ms' }).notNull(),
+    /** Nulos enquanto a sessão está aberta. */
+    endedAt: integer('ended_at', { mode: 'timestamp_ms' }),
+    source: text('source', { enum: EMERGENCY_SOURCES }).notNull(),
+    outcome: text('outcome', { enum: EMERGENCY_OUTCOMES }),
+  },
+  () => [
+    check(
+      'emergency_sessions_source_valid',
+      sql`${column('source')} in ${textList(EMERGENCY_SOURCES)}`,
+    ),
+    check(
+      'emergency_sessions_outcome_valid',
+      sql`${column('outcome')} is null or ${column('outcome')} in ${textList(EMERGENCY_OUTCOMES)}`,
+    ),
+    check(
+      'emergency_sessions_ended_together',
+      sql`(${column('outcome')} is null) = (${column('ended_at')} is null)`,
+    ),
+  ],
+);
+
+/**
+ * Eventos do nativo já importados (spec 03, 4.3): importar duas vezes não
+ * duplica, mesmo que o nativo não chegue a apagá-los.
+ */
+export const importedEvents = sqliteTable('imported_events', {
+  eventId: text('event_id').primaryKey(),
+  importedAt: integer('imported_at', { mode: 'timestamp_ms' }).notNull(),
+});
