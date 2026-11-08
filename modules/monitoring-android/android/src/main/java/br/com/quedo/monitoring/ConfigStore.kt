@@ -74,6 +74,12 @@ object ConfigValidation {
     }
     val phrases = texts.getJSONObject("interruption").optJSONArray("phrases")
     if (phrases == null || phrases.length() == 0) return null
+    if (config.optJSONArray("restartDayKeys") == null) return null
+    if (config.optJSONObject("links")?.optString("permissions").isNullOrBlank()) return null
+    val notifications = texts.optJSONObject("notifications") ?: return null
+    val required = listOf("public", "limit", "riskApp", "restart", "protectionPaused", "checkIn", "preventive")
+    if (required.any { notifications.optJSONObject(it) == null }) return null
+    if (notifications.optString("emergencyAction").isBlank()) return null
     return config
   }
 }

@@ -8,6 +8,28 @@ const NOW = new Date('2026-11-07T13:00:00.000Z');
 const TEXTS: MonitoringTexts = {
   channels: { tracking: 'a', alerts: 'b', reminders: 'c' },
   ongoing: { title: 'd', text: 'e' },
+  notifications: {
+    public: { title: 'a', text: 'b' },
+    emergencyAction: 'c',
+    limit: { title: 'd', text: 'e' },
+    riskApp: { title: 'd', text: 'e' },
+    checkIn: { title: 'd', text: 'e', noRelapse: 'f', relapse: 'g' },
+    preventive: {
+      title: 'd',
+      generic: 'e',
+      withMotivation: 'f',
+      byEmotion: {
+        boredom: 'a',
+        loneliness: 'b',
+        stress: 'c',
+        anxiety: 'd',
+        tiredness: 'e',
+        sadness: 'f',
+      },
+    },
+    restart: { title: 'd', text: 'e' },
+    protectionPaused: { title: 'd', text: 'e' },
+  },
   interruption: {
     brand: 'a',
     title: 'b',
@@ -37,6 +59,7 @@ const createSync = (target = fake) =>
     repositories: () => repositories,
     target: () => target,
     texts: () => TEXTS,
+    links: () => ({ permissions: 'quedo-dev://permission-status' }),
     now: () => NOW,
     report,
   });

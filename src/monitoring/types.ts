@@ -106,6 +106,12 @@ export type MonitoringConfig = {
   readonly riskAppRules: readonly RiskAppRuleConfig[];
   /** Horário do check-in em minutos desde a meia-noite; nulo sem compulsão de abstinência ativa. */
   readonly checkInMinutes: number | null;
+  /** A compulsão do check-in (a de abstinência); nula sem abstinência ativa. */
+  readonly checkInCompulsionId: number | null;
+  /** Dias (AAAA-MM-DD) com notificação de recomeço pendente (src/domain/restart.ts). */
+  readonly restartDayKeys: readonly string[];
+  /** Endereços do app que as notificações abrem. */
+  readonly links: { readonly permissions: string };
   readonly preventive: PreventiveConfig;
   /** Motivação do usuário, para a tela de interrupção e as notificações. */
   readonly motivation: string | null;
@@ -160,6 +166,28 @@ export type MonitoringTexts = {
     readonly reminders: string;
   };
   readonly ongoing: { readonly title: string; readonly text: string };
+  readonly notifications: {
+    /** Versão neutra para a tela bloqueada. */
+    readonly public: { readonly title: string; readonly text: string };
+    readonly emergencyAction: string;
+    readonly limit: { readonly title: string; readonly text: string };
+    readonly riskApp: { readonly title: string; readonly text: string };
+    readonly checkIn: {
+      readonly title: string;
+      readonly text: string;
+      readonly noRelapse: string;
+      readonly relapse: string;
+    };
+    readonly preventive: {
+      readonly title: string;
+      readonly generic: string;
+      /** Com o marcador `{motivation}`, trocado pelo nativo. */
+      readonly withMotivation: string;
+      readonly byEmotion: { readonly [E in Emotion]: string };
+    };
+    readonly restart: { readonly title: string; readonly text: string };
+    readonly protectionPaused: { readonly title: string; readonly text: string };
+  };
   readonly interruption: {
     readonly brand: string;
     readonly title: string;

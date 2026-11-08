@@ -5,6 +5,7 @@ import DevMonitoringScreen from '../app/dev-monitoring';
 import type { Environment } from '@/config/variant';
 import type {
   NativeMomentStatus,
+  NativeNotificationStatus,
   NativeServiceStatus,
   QuedoMonitoringNativeModule,
 } from '../modules/monitoring-android';
@@ -73,6 +74,10 @@ function fakeNative(usageAccess: boolean): jest.Mocked<QuedoMonitoringNativeModu
     configure: jest.fn(async (_json: string) => undefined),
     getConfig: jest.fn(() => config),
     getMomentStatus: jest.fn(() => JSON.stringify(moment)),
+    getNotificationStatus: jest.fn(() => JSON.stringify(notifications)),
+    debugFireNotification: jest.fn(
+      (_kind: Parameters<QuedoMonitoringNativeModule['debugFireNotification']>[0]) => undefined,
+    ),
     setTestLimit: jest.fn((minutes: number | null) => {
       moment = { ...moment, testLimitMinutes: minutes };
     }),
@@ -92,6 +97,11 @@ const NO_MOMENT: NativeMomentStatus = {
   testLimitMinutes: null,
 };
 let moment = NO_MOMENT;
+
+const notifications: NativeNotificationStatus = {
+  nextWake: null,
+  state: { proactiveSent: 2, checkInSent: false, restartSent: false, restartWaiting: true },
+};
 
 const mockSync = jest.fn(async () => undefined);
 jest.mock('@/features/monitoring/useMonitoringSync', () => ({
@@ -247,4 +257,20 @@ it('mostra as regras de hoje e liga o limite de teste', async () => {
     fireEvent.press(screen.getByRole('button', { name: 'Voltar aos limites reais' })),
   );
   expect(native.setTestLimit).toHaveBeenLastCalledWith(null);
+});
+
+it('mostra o estado das notificações e dispara cada uma', async () => {
+  const native = fakeNative(true);
+  mockNative.current = native;
+  await renderScreen();
+
+  expect(
+    await screen.findByText('Lembretes enviados hoje: 2 · próximo alarme: nunca'),
+  ).toBeOnTheScreen();
+  expect(screen.getByText('Recomeço esperando o desbloqueio.')).toBeOnTheScreen();
+
+  fireEvent.press(screen.getByRole('button', { name: 'Disparar check-in' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Disparar proteção pausada' }));
+  expect(native.debugFireNotification).toHaveBeenCalledWith('check_in');
+  expect(native.debugFireNotification).toHaveBeenCalledWith('protection_paused');
 });

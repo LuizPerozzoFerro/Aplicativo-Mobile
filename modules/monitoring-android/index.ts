@@ -53,6 +53,17 @@ export type NativeMomentStatus = {
   readonly testLimitMinutes: number | null;
 };
 
+/** O que `getNotificationStatus` devolve em JSON. */
+export type NativeNotificationStatus = {
+  readonly nextWake: number | null;
+  readonly state: {
+    readonly proactiveSent: number;
+    readonly checkInSent: boolean;
+    readonly restartSent: boolean;
+    readonly restartWaiting: boolean;
+  };
+};
+
 /** Código do erro quando falta o acesso ao uso (`UsageAccessRequiredException`). */
 export const ERR_PERMISSION_REQUIRED = 'ERR_PERMISSION_REQUIRED';
 
@@ -77,6 +88,12 @@ export type QuedoMonitoringNativeModule = {
   getMomentStatus(): string;
   /** Todos os limites com este valor, ou os reais com nulo. Só tem efeito em build depurável. */
   setTestLimit(minutes: number | null): void;
+  /** Estado das notificações, em JSON (`NativeNotificationStatus`). Só para a tela de desenvolvimento. */
+  getNotificationStatus(): string;
+  /** Dispara agora, fora das regras. Só tem efeito em build depurável (spec 03, 5.10). */
+  debugFireNotification(
+    kind: 'limit' | 'risk_app' | 'check_in' | 'preventive' | 'restart' | 'protection_paused',
+  ): void;
   /** Eventos ainda não confirmados, em JSON (lista). */
   getPendingEvents(): Promise<string>;
   acknowledgeEvents(ids: string[]): Promise<void>;

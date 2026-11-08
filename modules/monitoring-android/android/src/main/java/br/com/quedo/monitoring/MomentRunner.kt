@@ -95,11 +95,14 @@ object MomentRunner {
       .putString(KEY_USAGE, usage.toJson().toString())
     for (action in actions) {
       when (action) {
-        is MomentRules.Action.LimitReached -> EventStore.append(
-          context,
-          "limit_reached",
-          mapOf("compulsionId" to action.compulsionId, "targetId" to action.target),
-        )
+        is MomentRules.Action.LimitReached -> {
+          EventStore.append(
+            context,
+            "limit_reached",
+            mapOf("compulsionId" to action.compulsionId, "targetId" to action.target),
+          )
+          NotificationCenter.notifyLimit(context, configJson, action.target)
+        }
 
         is MomentRules.Action.ShowInterruption -> {
           editor.putString(
@@ -192,6 +195,7 @@ object MomentRunner {
           "day_failed",
           mapOf("compulsionId" to action.compulsionId, "reason" to action.reason),
         )
+        NotificationCenter.onDayFailed(context, action.compulsionId)
       }
     }
   }

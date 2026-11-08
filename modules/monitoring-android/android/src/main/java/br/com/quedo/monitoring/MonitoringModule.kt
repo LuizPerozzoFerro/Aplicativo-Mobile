@@ -73,6 +73,7 @@ class MonitoringModule : Module() {
     AsyncFunction("configure") { json: String ->
       if (!ConfigStore.save(context, json)) throw InvalidConfigException()
       Notifier.refresh(context)
+      NotificationCenter.run(context)
     }
 
     Function("getConfig") { ConfigStore.json(context) }
@@ -81,6 +82,10 @@ class MonitoringModule : Module() {
     Function("getMomentStatus") { MomentRunner.statusJson(context) }
 
     Function("setTestLimit") { minutes: Int? -> MomentRunner.setTestLimit(context, minutes) }
+
+    Function("getNotificationStatus") { NotificationCenter.statusJson(context) }
+
+    Function("debugFireNotification") { kind: String -> NotificationCenter.debugFire(context, kind) }
 
     AsyncFunction("getPendingEvents") { EventStore.pendingJson(context) }
 
@@ -94,6 +99,7 @@ class MonitoringModule : Module() {
       ConfigStore.clear(context)
       EventStore.clear(context)
       MomentRunner.clear(context)
+      NotificationCenter.clear(context)
       MonitoringState.clear(context)
       Notifier.cancelAll(context)
     }
