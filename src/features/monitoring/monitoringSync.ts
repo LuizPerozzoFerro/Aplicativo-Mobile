@@ -1,5 +1,5 @@
 import type { Repositories } from '@/data/repositories';
-import type { MonitoringSyncTarget, MonitoringTexts } from '@/monitoring';
+import type { MonitoringConfig, MonitoringSyncTarget, MonitoringTexts } from '@/monitoring';
 
 import { buildMonitoringConfig } from './config';
 
@@ -12,6 +12,7 @@ export type MonitoringSyncDeps = {
   repositories: () => Repositories;
   target: () => MonitoringSyncTarget;
   texts: () => MonitoringTexts;
+  links: () => MonitoringConfig['links'];
   now?: () => Date;
   /** Só a contagem e um texto fixo: nada de dados do usuário (CLAUDE.md, seção 9). */
   report?: (message: string) => void;
@@ -26,6 +27,7 @@ export function createMonitoringSync({
   repositories,
   target,
   texts,
+  links,
   now = () => new Date(),
   report = (message) => console.error(message),
 }: MonitoringSyncDeps): MonitoringSync {
@@ -48,7 +50,7 @@ export function createMonitoringSync({
     // Só depois de gravar no banco o nativo pode apagar (spec 03, 4.3).
     const ids = [...handled.handledIds, ...invalidIds];
     if (ids.length > 0) await monitoring.acknowledgeEvents(ids);
-    await monitoring.configure(buildMonitoringConfig(repos, texts(), now()));
+    await monitoring.configure(buildMonitoringConfig(repos, texts(), now(), links()));
   }
 
   async function loop(): Promise<void> {

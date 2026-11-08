@@ -119,5 +119,6 @@ class MonitoringService : Service() {
   private fun checkOnce() {
     MonitoringState.recordCheck(this, System.currentTimeMillis())
     MomentRunner.check(this)
+    NotificationCenter.onServiceCheck(this)
   }
 }

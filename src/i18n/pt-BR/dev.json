@@ -89,6 +89,16 @@
       "noShow": "Nenhuma tela pedida hoje.",
       "useTestLimit": "Usar limite de 1 minuto",
       "useRealLimits": "Voltar aos limites reais"
+    },
+    "notifications": {
+      "title": "Notificações",
+      "status": "Lembretes enviados hoje: {{count}} · próximo alarme: {{time}}",
+      "restartWaiting": "Recomeço esperando o desbloqueio.",
+      "fireLimit": "Disparar aviso de limite",
+      "fireCheckIn": "Disparar check-in",
+      "firePreventive": "Disparar preventiva",
+      "fireRestart": "Disparar recomeço",
+      "fireProtection": "Disparar proteção pausada"
     }
   }
 }

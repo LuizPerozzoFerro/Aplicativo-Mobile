@@ -1,3 +1,4 @@
+import * as Linking from 'expo-linking';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppState } from 'react-native';
@@ -26,6 +27,7 @@ export function getAppMonitoringSync(): MonitoringSync {
       if (!currentTexts) throw new Error('Textos do monitoramento ainda não carregados');
       return currentTexts;
     },
+    links: () => ({ permissions: Linking.createURL('/permission-status') }),
   });
   return shared;
 }
@@ -48,6 +50,36 @@ export function useMonitoringSync(): void {
         reminders: t('channels.reminders'),
       },
       ongoing: { title: t('ongoing.title'), text: t('ongoing.text') },
+      notifications: {
+        public: { title: t('notifications.public.title'), text: t('notifications.public.text') },
+        emergencyAction: t('notifications.emergencyAction'),
+        limit: { title: t('notifications.limit.title'), text: t('notifications.limit.text') },
+        riskApp: { title: t('notifications.riskApp.title'), text: t('notifications.riskApp.text') },
+        checkIn: {
+          title: t('notifications.checkIn.title'),
+          text: t('notifications.checkIn.text'),
+          noRelapse: t('notifications.checkIn.noRelapse'),
+          relapse: t('notifications.checkIn.relapse'),
+        },
+        preventive: {
+          title: t('notifications.preventive.title'),
+          generic: t('notifications.preventive.generic'),
+          withMotivation: t('notifications.preventive.withMotivation'),
+          byEmotion: {
+            boredom: t('notifications.preventive.byEmotion.boredom'),
+            loneliness: t('notifications.preventive.byEmotion.loneliness'),
+            stress: t('notifications.preventive.byEmotion.stress'),
+            anxiety: t('notifications.preventive.byEmotion.anxiety'),
+            tiredness: t('notifications.preventive.byEmotion.tiredness'),
+            sadness: t('notifications.preventive.byEmotion.sadness'),
+          },
+        },
+        restart: { title: t('notifications.restart.title'), text: t('notifications.restart.text') },
+        protectionPaused: {
+          title: t('notifications.protectionPaused.title'),
+          text: t('notifications.protectionPaused.text'),
+        },
+      },
       interruption: {
         brand: t('interruption.brand'),
         title: t('interruption.title'),

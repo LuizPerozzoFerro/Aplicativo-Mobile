@@ -15,6 +15,8 @@ class ConfigValidationTest {
       "riskAppRules": [],
       "checkInMinutes": 1260,
       "preventive": { "weekdays": [0, 6], "startMinutes": [1200], "emotions": [] },
+      "restartDayKeys": [],
+      "links": { "permissions": "quedo-dev://permission-status" },
       "motivation": "Dormir melhor",
       "texts": {
         "channels": { "tracking": "Acompanhamento", "alerts": "Avisos", "reminders": "Lembretes" },
@@ -29,6 +31,16 @@ class ConfigValidationTest {
           "continue": "Continuar mesmo assim",
           "ignoreToday": "Ignorar o limite por hoje",
           "endOfDayWarning": "Encerra a meta de hoje."
+        },
+        "notifications": {
+          "public": { "title": "Quedo", "text": "Você tem um lembrete." },
+          "emergencyAction": "Emergência",
+          "limit": { "title": "a", "text": "b" },
+          "riskApp": { "title": "a", "text": "b" },
+          "checkIn": { "title": "a", "text": "b", "noRelapse": "c", "relapse": "d" },
+          "preventive": { "title": "a", "generic": "b", "withMotivation": "c", "byEmotion": {} },
+          "restart": { "title": "a", "text": "b" },
+          "protectionPaused": { "title": "a", "text": "b" }
         }
       }
     }
@@ -72,6 +84,11 @@ class ConfigValidationTest {
       listOf("texts", "interruption"),
       listOf("texts", "interruption", "phrases"),
       listOf("texts", "interruption", "continue"),
+      listOf("restartDayKeys"),
+      listOf("links", "permissions"),
+      listOf("texts", "notifications"),
+      listOf("texts", "notifications", "checkIn"),
+      listOf("texts", "notifications", "emergencyAction"),
     )) {
       assertNull(path.joinToString("."), ConfigValidation.parse(without(path)))
     }

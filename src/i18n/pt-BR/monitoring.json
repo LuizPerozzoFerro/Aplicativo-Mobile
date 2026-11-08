@@ -23,5 +23,47 @@
     "continue": "Continuar mesmo assim",
     "ignoreToday": "Ignorar o limite por hoje",
     "endOfDayWarning": "Se continuar agora, a meta de hoje será encerrada."
+  },
+  "notifications": {
+    "public": {
+      "title": "Quedo",
+      "text": "Você tem um lembrete."
+    },
+    "emergencyAction": "Emergência",
+    "limit": {
+      "title": "Momento de pausa",
+      "text": "Você chegou ao tempo que definiu para hoje."
+    },
+    "riskApp": {
+      "title": "Momento de pausa",
+      "text": "Você já passou um tempo aqui hoje. Que tal parar um pouco?"
+    },
+    "checkIn": {
+      "title": "Como foi hoje?",
+      "text": "Toque em uma opção para registrar o seu dia.",
+      "noRelapse": "Sem recaída",
+      "relapse": "Tive uma recaída"
+    },
+    "preventive": {
+      "title": "Um lembrete para agora",
+      "generic": "Este costuma ser um horário delicado. Você já sabe o que vai fazer?",
+      "withMotivation": "Lembre-se do motivo que você escolheu: {motivation}",
+      "byEmotion": {
+        "boredom": "Se o tédio aparecer, escolha uma coisa pequena para fazer agora.",
+        "loneliness": "Se bater a solidão, que tal falar com alguém de quem você gosta?",
+        "stress": "Se o estresse apertar, faça uma pausa de verdade.",
+        "anxiety": "Se a ansiedade vier, respire devagar por um minuto.",
+        "tiredness": "Se o cansaço pesar, descansar também é uma escolha.",
+        "sadness": "Se a tristeza chegar, seja gentil com você agora."
+      }
+    },
+    "restart": {
+      "title": "Um novo dia",
+      "text": "Ontem foi difícil. Hoje você recomeça, e isso já conta."
+    },
+    "protectionPaused": {
+      "title": "Quedo",
+      "text": "Sua proteção está pausada. Toque para ver o que fazer."
+    }
   }
 }

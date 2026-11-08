@@ -11,6 +11,28 @@ const STARTED = new Date('2026-11-01T13:00:00.000Z');
 const TEXTS: MonitoringTexts = {
   channels: { tracking: 'Acompanhamento', alerts: 'Avisos', reminders: 'Lembretes' },
   ongoing: { title: 'Quedo', text: 'Proteção ativa.' },
+  notifications: {
+    public: { title: 'a', text: 'b' },
+    emergencyAction: 'c',
+    limit: { title: 'd', text: 'e' },
+    riskApp: { title: 'd', text: 'e' },
+    checkIn: { title: 'd', text: 'e', noRelapse: 'f', relapse: 'g' },
+    preventive: {
+      title: 'd',
+      generic: 'e',
+      withMotivation: 'f',
+      byEmotion: {
+        boredom: 'a',
+        loneliness: 'b',
+        stress: 'c',
+        anxiety: 'd',
+        tiredness: 'e',
+        sadness: 'f',
+      },
+    },
+    restart: { title: 'd', text: 'e' },
+    protectionPaused: { title: 'd', text: 'e' },
+  },
   interruption: {
     brand: 'a',
     title: 'b',
@@ -31,7 +53,8 @@ beforeEach(async () => {
   repositories = createRepositories(db, () => NOW);
 });
 
-const build = () => buildMonitoringConfig(repositories, TEXTS, NOW);
+const LINKS = { permissions: 'quedo-dev://permission-status' };
+const build = (now = NOW) => buildMonitoringConfig(repositories, TEXTS, now, LINKS);
 
 function addAdult() {
   const { id } = repositories.compulsions.add({ type: 'pornography', startedAt: STARTED });
@@ -77,6 +100,9 @@ describe('buildMonitoringConfig', () => {
       moderationRules: [],
       riskAppRules: [],
       checkInMinutes: null,
+      checkInCompulsionId: null,
+      restartDayKeys: [],
+      links: LINKS,
       preventive: { weekdays: [0, 1, 2, 3, 4, 5, 6], startMinutes: [], emotions: [] },
       motivation: null,
       texts: TEXTS,
@@ -120,7 +146,7 @@ describe('buildMonitoringConfig', () => {
     });
     // No dia seguinte, só o novo.
     const tomorrow = new Date('2026-11-08T13:00:00.000Z');
-    expect(buildMonitoringConfig(repositories, TEXTS, tomorrow).moderationRules[0]).toMatchObject({
+    expect(build(tomorrow).moderationRules[0]).toMatchObject({
       dailyLimitMinutes: 90,
       limitToday: null,
     });
@@ -191,6 +217,29 @@ describe('buildMonitoringConfig', () => {
       startMinutes: [7 * 60, 20 * 60],
       emotions: ['stress'],
     });
+  });
+
+  it('check-in aponta a compulsão de abstinência', () => {
+    const adult = addAdult();
+    expect(build().checkInCompulsionId).toBe(adult);
+  });
+
+  it('recomeço: quebra de hoje com streak dá amanhã, e desfazer cancela', () => {
+    const adult = addAdult();
+    const day = { compulsionId: adult, dayKey: '2026-11-07' };
+    repositories.relapses.record(day);
+    expect(build().restartDayKeys).toEqual(['2026-11-08']);
+    repositories.relapses.undo(day);
+    expect(build().restartDayKeys).toEqual([]);
+  });
+
+  it('recomeço: dia reprovado também conta', () => {
+    const videos = addVideos();
+    repositories.dayStates.markFailed(
+      { compulsionId: videos, dayKey: '2026-11-07' },
+      'ignored_limit',
+    );
+    expect(build().restartDayKeys).toEqual(['2026-11-08']);
   });
 
   it('leva a motivação', () => {

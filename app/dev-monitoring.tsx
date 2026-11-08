@@ -13,6 +13,7 @@ import {
   getQuedoMonitoring,
   type NativeBootResult,
   type NativeMomentStatus,
+  type NativeNotificationStatus,
   type NativePermissionState,
   type NativePermissionStatus,
   type NativeServiceStatus,
@@ -40,6 +41,7 @@ type Snapshot = {
   /** O que o nativo guardou da configuração (passo 2), ou nulo se ainda não recebeu. */
   readonly config: ConfigSummary | null;
   readonly moment: NativeMomentStatus;
+  readonly notifications: NativeNotificationStatus;
 };
 
 function summarizeConfig(json: string | null): ConfigSummary | null {
@@ -80,6 +82,7 @@ async function readSnapshot(native: QuedoMonitoringNativeModule): Promise<Snapsh
     usage,
     config: summarizeConfig(native.getConfig()),
     moment: JSON.parse(native.getMomentStatus()) as NativeMomentStatus,
+    notifications: JSON.parse(native.getNotificationStatus()) as NativeNotificationStatus,
   };
 }
 
@@ -87,7 +90,7 @@ function hasCode(error: unknown, code: string): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === code;
 }
 
-// Ferramenta dos passos 1 a 3 da Fase 4, só em development: conferir no
+// Ferramenta dos passos 1 a 5 da Fase 4, só em development: conferir no
 // aparelho as permissões reais, o serviço em primeiro plano, o boot, a lista
 // de apps, o uso de hoje, a configuração guardada no nativo e os eventos
 // pendentes, antes de o módulo nativo substituir o falso (passo 7). Nas
@@ -309,6 +312,42 @@ export default function DevMonitoringScreen() {
             }
             variant="secondary"
             onPress={() => void toggleTestLimit()}
+          />
+
+          <Text variant="heading">{t('monitoring.notifications.title')}</Text>
+          <Text>
+            {t('monitoring.notifications.status', {
+              count: snapshot.notifications.state.proactiveSent,
+              time: timeText(snapshot.notifications.nextWake),
+            })}
+          </Text>
+          {snapshot.notifications.state.restartWaiting ? (
+            <Text>{t('monitoring.notifications.restartWaiting')}</Text>
+          ) : null}
+          <Button
+            label={t('monitoring.notifications.fireLimit')}
+            variant="secondary"
+            onPress={() => native.debugFireNotification('limit')}
+          />
+          <Button
+            label={t('monitoring.notifications.fireCheckIn')}
+            variant="secondary"
+            onPress={() => native.debugFireNotification('check_in')}
+          />
+          <Button
+            label={t('monitoring.notifications.firePreventive')}
+            variant="secondary"
+            onPress={() => native.debugFireNotification('preventive')}
+          />
+          <Button
+            label={t('monitoring.notifications.fireRestart')}
+            variant="secondary"
+            onPress={() => native.debugFireNotification('restart')}
+          />
+          <Button
+            label={t('monitoring.notifications.fireProtection')}
+            variant="secondary"
+            onPress={() => native.debugFireNotification('protection_paused')}
           />
 
           <Text variant="heading">{t('monitoring.suggested.title')}</Text>

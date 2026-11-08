@@ -3,6 +3,7 @@ import { getCompulsionDefinition } from '@/domain/compulsion';
 import { getDailyLimitToday } from '@/domain/dailyLimit';
 import { toDayKey } from '@/domain/day';
 import { getPreventiveStartMinutes, RISK_APP_DAILY_LIMIT_MINUTES } from '@/domain/monitoring';
+import { getRestartDayKeys, type RestartInput } from '@/domain/restart';
 import { getStreakBase } from '@/domain/streak';
 import { parseTimeRange, type TimeRange } from '@/domain/timeRange';
 import { WEEKDAYS, isEmotion, isWeekday, type Emotion, type Weekday } from '@/domain/triggers';
@@ -43,10 +44,26 @@ function compulsionConfig(
   };
 }
 
+/** Abstinência: recaídas, com o dia em que foram registradas. Moderação: dias reprovados. */
+function restartInput(repositories: Repositories, compulsion: UserCompulsion): RestartInput {
+  const breaks =
+    getCompulsionDefinition(compulsion.type).mechanic === 'abstinence'
+      ? repositories.relapses.listByCompulsion(compulsion.id).map((relapse) => ({
+          dayKey: relapse.dayKey,
+          recordedOnDayKey: toDayKey(relapse.recordedAt),
+        }))
+      : repositories.dayStates.listFailedDayKeys(compulsion.id).map((dayKey) => ({
+          dayKey,
+          recordedOnDayKey: dayKey,
+        }));
+  return { startedAt: compulsion.startedAt, breaks };
+}
+
 export function buildMonitoringConfig(
   repositories: Repositories,
   texts: MonitoringTexts,
   now: Date,
+  links: MonitoringConfig['links'],
 ): MonitoringConfig {
   // Compulsão pausada não tem regras nem notificações.
   const active = repositories.compulsions.list().filter((item) => item.status === 'active');
@@ -100,9 +117,10 @@ export function buildMonitoringConfig(
     .map((trigger) => trigger.value)
     .filter(isEmotion);
 
-  const hasAbstinence = active.some(
+  const abstinence = active.find(
     (compulsion) => getCompulsionDefinition(compulsion.type).mechanic === 'abstinence',
   );
+  const hasAbstinence = abstinence !== undefined;
 
   return {
     version: MONITORING_CONFIG_VERSION,
@@ -110,6 +128,12 @@ export function buildMonitoringConfig(
     moderationRules,
     riskAppRules,
     checkInMinutes: hasAbstinence ? repositories.settings.get().checkInMinutes : null,
+    checkInCompulsionId: abstinence?.id ?? null,
+    restartDayKeys: getRestartDayKeys(
+      active.map((item) => restartInput(repositories, item)),
+      now,
+    ),
+    links,
     preventive: {
       // Nenhum dia marcado vale como todos (spec 03, 5.4).
       weekdays: unique<Weekday>(markedWeekdays.length > 0 ? markedWeekdays : [...WEEKDAYS]).sort(

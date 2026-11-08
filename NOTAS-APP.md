@@ -13,9 +13,19 @@ do protótipo continua em `prototype/NOTAS.md`.
 - **Passo 1 (base nativa)** integrado (PR #22). Seção "Fase 4 · Passo 1".
 - **Passo 2 (configuração e eventos)** integrado (PR #23). Seção "Fase 4 · Passo 2".
 - **Passo 3 (regras do momento)** integrado (PR #24). Seção "Fase 4 · Passo 3".
-- **Passo 4 (tela de interrupção)** pronto para revisão no PR da branch
-  `fase4/tela-interrupcao`. Seção "Fase 4 · Passo 4". M20 (chamada) pendente
-  para o roteiro. Próximo: passo 5 (notificações).
+- **Passo 4 (tela de interrupção)** integrado (PR #25). M20 (chamada) pendente para o
+  roteiro.
+- **Passo 5 (notificações)** pronto para revisão no PR da branch
+  `fase4/notificacoes`. Seção "Fase 4 · Passo 5". Próximo: passo 6 (emergência).
+
+---
+
+## Regras do responsável para os testes no aparelho
+
+- **Não gravar arquivos no banco do aparelho pelo `adb` sem avisar antes (08/11/2026).**
+  Para preparar e limpar testes, preferir as ferramentas de teste do app (spec 03,
+  seção 5.10), que podem ser adiantadas se for preciso. Ler o banco pelo `adb`
+  continua permitido. Origem: "Cuidado: copiar o banco para o aparelho", no passo 4.
 
 ---
 
@@ -2664,6 +2674,78 @@ de **0 byte** sem dar erro. Em 08/11 um script meu seguiu adiante e mandou copia
 esse arquivo de volta. O banco só escapou porque o `adb` também travou na cópia.
 Antes de escrever no aparelho: conferir o tamanho do arquivo lido, abrir o banco e
 guardar uma cópia.
+
+## Fase 4 · Passo 5 · Notificações (08/11/2026)
+
+Branch `fase4/notificacoes`.
+
+### Como ficou
+
+- **`NotificationPlan`** (Kotlin puro, JUnit): o que sai agora e quando acordar,
+  com o estado em JSON. Um alarme só por vez, o do próximo lembrete ou, no máximo,
+  o da meia-noite.
+- **`NotificationCenter`:** envia, grava `notification_sent`, agenda. Roda no alarme,
+  ao receber configuração, no boot, ao atualizar o app e quando o relógio ou o fuso
+  mudam. Check-in, preventivas e recomeço **não dependem do serviço**.
+- **`Notifier`:** três canais (Acompanhamento, baixa; Avisos, alta; Lembretes,
+  padrão) e **versão pública neutra** em todas as notificações.
+- **Check-in:** "Sem recaída" e "Tive uma recaída" gravam `check_in_answered` sem
+  abrir o app. Removida à meia-noite se não respondida; sem repetição.
+- **Preventivas:** a frase alterna entre uma genérica, uma por emoção declarada e
+  uma com a motivação (o nativo troca o marcador `{motivation}`). Limite de 4, e 6
+  no total, com vaga garantida para check-in e recomeço.
+- **Recomeço:** `src/domain/restart.ts` calcula os dias pendentes a partir do banco,
+  então desfazer a quebra cancela. Quebras vistas pelo nativo antes da importação
+  (resposta na notificação, dia reprovado) ficam em `nativeRestartDays`, e o
+  dia-base da streak da configuração diz se havia streak a perder. Com o aparelho
+  bloqueado, espera o desbloqueio; a verificação do serviço (a cada 20 s) percebe.
+  Sem serviço, sai às 9h.
+- **Proteção pausada:** pronta, no máximo uma por dia por motivo, abrindo
+  `/permission-status`. Quem chama é a vigilância, no passo 7.
+- **"Emergência"** abre o app por `PendingIntent` direto (uma ação de notificação não
+  pode abrir tela a partir de um receptor, Android 12). A rota própria é do passo 6.
+
+### Alarmes: dois para o mesmo instante
+
+A decisão era `setAndAllowWhileIdle`. No S22, `dumpsys alarm` mostrou que ele recebe
+uma **janela proporcional à distância**: 1m52s para um horário a 3 min, e **1 hora**
+para um horário a 6 horas, acima da tolerância de 15 min da spec. Fora o
+`setAndAllowWhileIdle`, agendo também um `setWindow` de 10 min para o mesmo
+instante: o primeiro que disparar faz o trabalho e reagenda os dois. O `setWindow`
+cobre o uso normal e o `setAndAllowWhileIdle`, a economia profunda. Nenhum dos dois
+pede permissão e nenhum é alarme exato.
+
+### Vetores
+
+`src/domain/vectors/notification-schedule.json` (16 cenários) roda só no JUnit: o
+agendamento só existe no nativo, e não fiz uma versão em TypeScript. O cálculo que é
+do JS (faixas e dias de recomeço) tem testes próprios no Jest.
+
+### Testes
+
+- Jest: 620. JUnit: 50.
+- Mutações de controle, cada uma derruba testes: sem o máximo de preventivas; sem
+  descartar a preventiva atrasada; check-in ignorando a resposta no app; ignorando
+  os dias marcados; recomeço sem a regra de "registrada hoje para ontem".
+
+### No aparelho (S22, 08/11)
+
+- Pelas ferramentas de teste (`debugFireNotification`, adiantada do passo 8): limite,
+  check-in, preventiva, recomeço e proteção pausada, com título, texto, botões e
+  versão pública conferidos em `dumpsys notification`.
+- **Entrega real:** check-in marcado para 15:35 pelo Perfil, app em segundo plano:
+  saiu às 15:35:10.
+- **Resposta na notificação:** "Sem recaída" na bandeja gravou o evento sem abrir o
+  app e tirou a notificação. Ao abrir, entrou no banco com `source = notification`.
+  Desfeito e horário devolvido a 21:30 pelo próprio app.
+- Dois alarmes confirmados em `dumpsys alarm` (janelas de 1 h e de 10 min).
+
+### Ainda sem teste no aparelho
+
+M14 (agendamentos depois de reiniciar), M10 ("Tive uma recaída" pela notificação),
+M12 (tela bloqueada vista a olho), remoção à meia-noite, recomeço esperando o
+desbloqueio e o atraso real em economia profunda. Ficam para o roteiro do passo 8.
+Para o M20, o WhatsApp aparece desconectado no S22: sobram o Teams e o emulador.
 
 ## Problemas
 

@@ -19,6 +19,8 @@ import android.content.Intent
 class BootReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
     val action = intent.action
+    // Os alarmes somem ao reiniciar, e a hora certa muda com o relógio ou o fuso.
+    NotificationCenter.run(context)
     if (action != Intent.ACTION_BOOT_COMPLETED && action != Intent.ACTION_MY_PACKAGE_REPLACED) {
       return
     }
