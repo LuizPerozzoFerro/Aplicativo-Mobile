@@ -14,6 +14,12 @@ android {
     versionCode 1
     versionName "0.1.0"
   }
+  testOptions {
+    unitTests.all {
+      // Os vetores compartilhados com o Jest (spec 03, 4.1).
+      systemProperty 'quedo.vectors', file('../../../src/domain/vectors').absolutePath
+    }
+  }
 }
 
 dependencies {

@@ -32,6 +32,27 @@ export type NativeServiceStatus = {
   readonly pendingEvents: number;
 };
 
+/** O que `getMomentStatus` devolve em JSON (`MomentRunner.statusJson`). */
+export type NativeMomentStatus = {
+  readonly rules: {
+    readonly dayKey: string | null;
+    readonly compulsions: Readonly<
+      Record<
+        string,
+        { readonly interruptions: number; readonly continues: number; readonly stopped: boolean }
+      >
+    >;
+  };
+  readonly usage: Readonly<Record<string, number>>;
+  readonly foreground: string | null;
+  readonly lastShow: {
+    readonly at: number;
+    readonly compulsionId: number;
+    readonly target: string;
+  } | null;
+  readonly testLimitMinutes: number | null;
+};
+
 /** Código do erro quando falta o acesso ao uso (`UsageAccessRequiredException`). */
 export const ERR_PERMISSION_REQUIRED = 'ERR_PERMISSION_REQUIRED';
 
@@ -52,6 +73,10 @@ export type QuedoMonitoringNativeModule = {
   configure(json: string): Promise<void>;
   /** Configuração guardada, em JSON, ou nulo. Para a tela de desenvolvimento. */
   getConfig(): string | null;
+  /** Estado das regras de hoje, em JSON (`NativeMomentStatus`). Só para a tela de desenvolvimento. */
+  getMomentStatus(): string;
+  /** Todos os limites com este valor, ou os reais com nulo. Só tem efeito em build depurável. */
+  setTestLimit(minutes: number | null): void;
   /** Eventos ainda não confirmados, em JSON (lista). */
   getPendingEvents(): Promise<string>;
   acknowledgeEvents(ids: string[]): Promise<void>;

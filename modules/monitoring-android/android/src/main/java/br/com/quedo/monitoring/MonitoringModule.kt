@@ -77,6 +77,11 @@ class MonitoringModule : Module() {
 
     Function("getConfig") { ConfigStore.json(context) }
 
+    // Só para a tela de desenvolvimento e as ferramentas de teste (spec 03, 5.10).
+    Function("getMomentStatus") { MomentRunner.statusJson(context) }
+
+    Function("setTestLimit") { minutes: Int? -> MomentRunner.setTestLimit(context, minutes) }
+
     AsyncFunction("getPendingEvents") { EventStore.pendingJson(context) }
 
     AsyncFunction("acknowledgeEvents") { ids: List<String> -> EventStore.acknowledge(context, ids) }
@@ -87,6 +92,7 @@ class MonitoringModule : Module() {
       MonitoringService.stop(context)
       ConfigStore.clear(context)
       EventStore.clear(context)
+      MomentRunner.clear(context)
       MonitoringState.clear(context)
       Notifier.cancelAll(context)
     }

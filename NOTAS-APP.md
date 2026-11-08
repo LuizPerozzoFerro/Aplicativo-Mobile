@@ -5,15 +5,16 @@ do protótipo continua em `prototype/NOTAS.md`.
 
 ---
 
-## Onde paramos (07/11/2026)
+## Onde paramos (08/11/2026)
 
 - **Fase 3 encerrada:** passos 1 a 7 integrados na `main` (PRs #12 a #20).
 - **Fase 4 (spec 03 v0.2):** documentos e decisões da leitura da spec
   integrados (PR #21). Seção "Fase 4 · Leitura da spec 03".
 - **Passo 1 (base nativa)** integrado (PR #22). Seção "Fase 4 · Passo 1".
-- **Passo 2 (configuração e eventos)** pronto para revisão no PR da branch
-  `fase4/config-eventos`. Seção "Fase 4 · Passo 2". Próximo: passo 3 (regras
-  do momento).
+- **Passo 2 (configuração e eventos)** integrado (PR #23). Seção "Fase 4 · Passo 2".
+- **Passo 3 (regras do momento)** pronto para revisão no PR da branch
+  `fase4/regras`. Seção "Fase 4 · Passo 3". Próximo: passo 4 (tela de
+  interrupção), com a nova justificativa do `specialUse`.
 
 ---
 
@@ -2426,6 +2427,107 @@ dois pontos viram um só.
   `adb shell run-as br.com.quedo.app.dev cat files/quedo-monitoring-events.jsonl`
 - Configuração guardada:
   `adb shell run-as br.com.quedo.app.dev cat shared_prefs/quedo-monitoring-config.xml`
+
+## Fase 4 · Passo 3 · Regras do momento (08/11/2026)
+
+Branch `fase4/regras`. Escopo da spec 03 (seção 6, passo 3): máquina de estados
+da seção 5.2 no Kotlin, com vetores compartilhados e JUnit, e a borda do dia.
+Mais o ajuste pedido pelo responsável no `EventLog`.
+
+### Ajuste no `EventLog` (pedido do responsável, 08/11/2026)
+
+Os eventos que mudam a streak (`day_failed` e `check_in_answered`) nunca saem
+pelo teto de 2000. Acima do teto, saem os mais antigos dos demais. Só esses dois
+tipos podem fazer o arquivo passar do teto, e são no máximo alguns por dia.
+
+### Como ficou
+
+```
+verificação (20 s) → UsageAccumulator (só os eventos novos) → MomentRules.tick → ações
+tela apareceu → MomentRules.shown · resposta → MomentRules.respond (passo 4)
+```
+
+- **`MomentRules.kt`:** a tabela da 5.2, com o estado num JSON. As ações são
+  `limit_reached`, `show_interruption` (com `canIgnore` e `warnsEndOfDay`) e
+  `day_failed`.
+- **`UsageAccumulator.kt`:** o acúmulo incremental (correção do doc 02, 4.1).
+  Lê só os eventos novos, repetindo os últimos 10 s, com impressões digitais
+  para não contar duas vezes (sem isso, um PAUSED atrasado se perderia e o app
+  contaria como aberto até a tela apagar). Já desconta o tempo diante da tela de
+  interrupção (`suspend`/`resume`), que o passo 4 vai chamar. O `UsageTimeline`
+  passou a usar a mesma conta, para não haver duas versões da regra do STOPPED.
+- **`MomentRunner.kt`:** liga tudo ao serviço, com o estado em disco. Por
+  enquanto, `limit_reached` vira só evento (a notificação é do passo 5) e
+  `show_interruption` só fica registrado para a tela de desenvolvimento (a tela
+  é do passo 4).
+- **Vetores** em `src/domain/vectors/`: `moment-rules.json` (26 cenários) e
+  `day-boundary.json` (8 casos, com horário de verão). O JUnit os recebe pelo
+  `systemProperty` `quedo.vectors` do `build.gradle` e passa o estado por JSON a
+  cada passo, para provar que sobrevive à morte do processo.
+
+### Decisão: as regras também existem em TypeScript
+
+A spec pede vetores "passando em JUnit e Jest" (seção 8). Para o Jest ter o que
+rodar, `src/domain/momentRules.ts` repete as regras. **Não entra no bundle:
+nenhum código do app importa esse arquivo.** Os vetores são o que impede as duas
+versões de divergirem.
+
+### Interpretações da spec (a confirmar na revisão)
+
+| Caso | O que ficou | Por quê |
+|---|---|---|
+| App nas duas listas, a primeira compulsão em pausa | A outra não entra no lugar | A spec só libera a outra quando a primeira "para de interromper" (dia reprovado, alertas ou telas encerradas); pausa não é isso |
+| App nas duas listas, app de risco **não declarado** atingiu primeiro | A tela é da moderação | Quem nunca gera tela não "interrompe": senão, ninguém interromperia |
+| As duas atingem o limite na mesma verificação | Vale o menor id de compulsão | A spec não define; precisava ser determinístico nos dois lados |
+| Limite aumentado no meio do dia | Sem tela até passar do novo limite, e sem novo aviso quando passar | O aviso é "uma vez no dia" |
+| Abstinência, 3º "Continuar" | Encerra as telas, mas os avisos de 10 min de outros apps de risco seguem | A spec encerra só "a tela" |
+| Aviso de que o 3º "Continuar" encerra a meta | Só na moderação | Está só na tabela da moderação |
+
+### CI do JUnit (decisão pendente desde o passo 1)
+
+Novo workflow `android-unit.yml`: gera o `android/` e roda só
+`:monitoring-android:testDebugUnitTest`, sem compilar o C++ nem o APK. Só dispara
+quando mudam `modules/**` ou `src/domain/vectors/**`, porque leva bem mais que o
+CI principal.
+
+### Testes
+
+- Jest: 587 no total (37 novos: 26 cenários e 8 casos da borda do dia, nos vetores, mais a tela de desenvolvimento).
+- JUnit (42): vetores, `UsageAccumulator` (11), `EventLog` (8, com os 2 do teto).
+- **Mutações de controle**, cada uma derruba testes:
+  - Kotlin: tela de quem atingiu por último; sem pausa; tela na mesma verificação
+    do aviso; sem zerar no dia novo; acumulador sem crédito;
+  - `EventLog` sem a proteção da streak (2 falham);
+  - TypeScript: tela de quem atingiu por último (5 falham); sem pausa (4 falham);
+  - acumulador sem deduplicar: **a primeira versão do teste não pegava**, porque
+    repetia só o PAUSED. Reforçado para repetir o RESUMED também, dentro da
+    janela de 10 s.
+
+### No aparelho (S22, 08/11)
+
+- Com o limite de teste de 1 minuto, YouTube aberto às 12:25:12: `limit_reached`
+  às 12:26:28, e o pedido de tela às 12:26:48, na verificação seguinte (20 s).
+- `kill -9` com o limite já atingido: serviço de volta em ~4 s, estado lido do
+  disco (mesmo `reachedAt`), sem repetir o `limit_reached`, e o evento `restart`
+  gravado.
+- Atualização do app com o monitoramento ligado: `origin: "update"`.
+- Ao abrir o app: fila de eventos zerada. Limite de teste desligado no fim.
+- **Não dá para testar no aparelho ainda:** respostas da tela, pausa, reprovação
+  e app nas duas listas (precisam da tela do passo 4). Estão cobertos pelos
+  vetores nas duas linguagens.
+
+### Ferramenta de teste
+
+"Usar limite de 1 minuto" na tela de desenvolvimento (`setTestLimit`). O nativo
+ignora em build não depurável (`FLAG_DEBUGGABLE`). Adiantado do passo 8 porque,
+sem ele, conferir a regra exigiria 45 minutos de uso real.
+
+### Problemas
+
+- **AP3 de novo:** `installDebug` parado por mais de 10 min com o `adb` travado.
+  Resolvido pelo procedimento registrado (matar o `adb.exe`, `adb start-server`,
+  `adb install -r`).
+- O AP5 não voltou com o Metro parado antes do build.
 
 ## Problemas
 

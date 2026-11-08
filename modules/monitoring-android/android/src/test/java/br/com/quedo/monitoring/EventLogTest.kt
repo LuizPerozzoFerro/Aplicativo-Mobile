@@ -78,6 +78,38 @@ class EventLogTest {
     assertEquals(ids.takeLast(3), (0 until 3).map { kept.getJSONObject(it).getString("id") })
   }
 
+  private fun types(log: EventLog): List<String> {
+    val events = pending(log)
+    return (0 until events.length()).map { events.getJSONObject(it).getString("type") }
+  }
+
+  @Test
+  fun aboveTheCeilingStreakEventsStayAndTheOthersLeaveFirst() {
+    val log = EventLog(file, maxEvents = 3)
+    val day = "2026-11-07"
+    log.append("day_failed", 1L, day, mapOf("compulsionId" to 2, "reason" to "ignored_limit"))
+    log.append("service_started", 2L, day, mapOf("origin" to "app"))
+    log.append("check_in_answered", 3L, day, mapOf("compulsionId" to 1, "answer" to "relapse"))
+    log.append("notification_sent", 4L, day, mapOf("kind" to "limit"))
+    // O teto estourou: sai o mais antigo que não muda a streak.
+    assertEquals(
+      listOf("day_failed", "check_in_answered", "notification_sent"),
+      types(log),
+    )
+  }
+
+  @Test
+  fun streakEventsAreNeverDroppedEvenAboveTheCeiling() {
+    val log = EventLog(file, maxEvents = 2)
+    val day = "2026-11-07"
+    repeat(4) { log.append("day_failed", it.toLong(), day, mapOf("compulsionId" to 2, "reason" to "third_continue")) }
+    log.append("check_in_answered", 9L, day, mapOf("compulsionId" to 1, "answer" to "no_relapse"))
+    log.append("limit_reached", 10L, day, mapOf("compulsionId" to 2, "targetId" to null))
+
+    // O arquivo passa do teto, e o evento comum que acabou de chegar é o que sai.
+    assertEquals(List(4) { "day_failed" } + "check_in_answered", types(log))
+  }
+
   @Test
   fun unreadableLinesAreSkippedAndDroppedOnTheNextAcknowledge() {
     val log = EventLog(file)

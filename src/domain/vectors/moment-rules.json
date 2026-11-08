@@ -1,0 +1,2783 @@
+{
+  "description": "Regras do momento (spec 03, tabela da seção 5.2), lidas pelo Jest e pelo JUnit. t em segundos; usage em minutos de uso no dia. Passos: tick (uma verificação do serviço), shown (a tela de fato apareceu), respond (resposta na tela), config (nova configuração). expect: ações na ordem. state: contagens depois do passo.",
+  "scenarios": [
+    {
+      "name": "moderação: abaixo do limite, nada acontece",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.clips", "com.example.feed"],
+            "limitMinutes": 45
+          }
+        ],
+        "risk": []
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 20,
+              "com.example.feed": 24
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": []
+        }
+      ]
+    },
+    {
+      "name": "moderação: o limite é a soma dos apps; aviso uma vez e, na verificação seguinte, tela",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.clips", "com.example.feed"],
+            "limitMinutes": 45
+          }
+        ],
+        "risk": []
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 20,
+              "com.example.feed": 25
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 21,
+              "com.example.feed": 25
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "moderação: limite atingido com outro app na frente; a tela só vem ao abrir um app monitorado",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.clips", "com.example.feed"],
+            "limitMinutes": 45
+          }
+        ],
+        "risk": []
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": null,
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.notes",
+            "blocked": false
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 40,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": null,
+            "blocked": false
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 60,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.feed",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.feed",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "a tela só conta quando de fato apareceu",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.clips", "com.example.feed"],
+            "limitMinutes": 45
+          }
+        ],
+        "risk": []
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ],
+          "state": {
+            "3": {
+              "interruptions": 0,
+              "continues": 0,
+              "stopped": false
+            }
+          }
+        },
+        {
+          "tick": {
+            "t": 40,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ],
+          "state": {
+            "3": {
+              "interruptions": 0,
+              "continues": 0,
+              "stopped": false
+            }
+          }
+        },
+        {
+          "shown": {
+            "t": 41,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": [],
+          "state": {
+            "3": {
+              "interruptions": 1,
+              "continues": 0,
+              "stopped": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "com a tela já aberta ou em recuo, não pede outra",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.clips", "com.example.feed"],
+            "limitMinutes": 45
+          }
+        ],
+        "risk": []
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": true
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 40,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ir para a tela inicial: sem pausa, com carência curta; reabrir gera nova tela",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.clips", "com.example.feed"],
+            "limitMinutes": 45
+          }
+        ],
+        "risk": []
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 21,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 30,
+            "day": "2026-11-07",
+            "compulsionId": 3,
+            "response": "home"
+          },
+          "expect": [],
+          "state": {
+            "3": {
+              "interruptions": 1,
+              "continues": 0,
+              "stopped": false
+            }
+          }
+        },
+        {
+          "tick": {
+            "t": 32,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 33,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "emergência: não conta como resposta e não pausa",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.clips", "com.example.feed"],
+            "limitMinutes": 45
+          }
+        ],
+        "risk": []
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 21,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 30,
+            "day": "2026-11-07",
+            "compulsionId": 3,
+            "response": "emergency"
+          },
+          "expect": [],
+          "state": {
+            "3": {
+              "interruptions": 1,
+              "continues": 0,
+              "stopped": false
+            }
+          }
+        },
+        {
+          "tick": {
+            "t": 60,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "continuar: pausa de 5 minutos; ao fim dela, com o app aberto, nova tela",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.clips", "com.example.feed"],
+            "limitMinutes": 45
+          }
+        ],
+        "risk": []
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 21,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 40,
+            "day": "2026-11-07",
+            "compulsionId": 3,
+            "response": "continue"
+          },
+          "expect": [],
+          "state": {
+            "3": {
+              "interruptions": 1,
+              "continues": 1,
+              "stopped": false
+            }
+          }
+        },
+        {
+          "tick": {
+            "t": 60,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 339,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 340,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "a pausa vale para todos os apps da compulsão",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.clips", "com.example.feed"],
+            "limitMinutes": 45
+          }
+        ],
+        "risk": []
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 21,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 40,
+            "day": "2026-11-07",
+            "compulsionId": 3,
+            "response": "continue"
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 60,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.feed",
+            "blocked": false
+          },
+          "expect": []
+        }
+      ]
+    },
+    {
+      "name": "terceiro continuar: avisa antes, reprova o dia e encerra os alertas até a meia-noite",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.clips", "com.example.feed"],
+            "limitMinutes": 45
+          }
+        ],
+        "risk": []
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 1000,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 1001,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 1002,
+            "day": "2026-11-07",
+            "compulsionId": 3,
+            "response": "continue"
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 2000,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 2001,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 2002,
+            "day": "2026-11-07",
+            "compulsionId": 3,
+            "response": "continue"
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 3000,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": true,
+              "warnsEndOfDay": true
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 3001,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 3002,
+            "day": "2026-11-07",
+            "compulsionId": 3,
+            "response": "continue"
+          },
+          "expect": [
+            {
+              "type": "day_failed",
+              "compulsionId": 3,
+              "reason": "third_continue"
+            }
+          ],
+          "state": {
+            "3": {
+              "interruptions": 3,
+              "continues": 3,
+              "stopped": true
+            }
+          }
+        },
+        {
+          "tick": {
+            "t": 4000,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 9000,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.feed",
+            "blocked": false
+          },
+          "expect": []
+        }
+      ]
+    },
+    {
+      "name": "ignorar o limite só vale a partir da 3ª tela e reprova o dia",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.clips", "com.example.feed"],
+            "limitMinutes": 45
+          }
+        ],
+        "risk": []
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 21,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 22,
+            "day": "2026-11-07",
+            "compulsionId": 3,
+            "response": "ignore_today"
+          },
+          "expect": [],
+          "state": {
+            "3": {
+              "interruptions": 1,
+              "continues": 0,
+              "stopped": false
+            }
+          }
+        },
+        {
+          "tick": {
+            "t": 40,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 41,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 42,
+            "day": "2026-11-07",
+            "compulsionId": 3,
+            "response": "home"
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 60,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": true,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 61,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 62,
+            "day": "2026-11-07",
+            "compulsionId": 3,
+            "response": "ignore_today"
+          },
+          "expect": [
+            {
+              "type": "day_failed",
+              "compulsionId": 3,
+              "reason": "ignored_limit"
+            }
+          ],
+          "state": {
+            "3": {
+              "interruptions": 3,
+              "continues": 0,
+              "stopped": true
+            }
+          }
+        },
+        {
+          "tick": {
+            "t": 80,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": []
+        }
+      ]
+    },
+    {
+      "name": "conteúdo adulto: 10 minutos por app, sem somar os apps",
+      "config": {
+        "moderation": [],
+        "risk": [
+          {
+            "compulsionId": 2,
+            "target": "com.example.forum",
+            "limitMinutes": 10,
+            "interruption": true
+          },
+          {
+            "compulsionId": 2,
+            "target": "com.example.board",
+            "limitMinutes": 10,
+            "interruption": true
+          }
+        ]
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 9,
+              "com.example.board": 9
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 10,
+              "com.example.board": 9
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 2,
+              "target": "com.example.forum"
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 40,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 10,
+              "com.example.board": 9
+            },
+            "foreground": "com.example.board",
+            "blocked": false
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 60,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 10,
+              "com.example.board": 10
+            },
+            "foreground": "com.example.board",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 2,
+              "target": "com.example.board"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "app de risco declarado: tela sem \"ignorar\" e sem aviso de fim de meta",
+      "config": {
+        "moderation": [],
+        "risk": [
+          {
+            "compulsionId": 2,
+            "target": "com.example.forum",
+            "limitMinutes": 10,
+            "interruption": true
+          }
+        ]
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 10
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 2,
+              "target": "com.example.forum"
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 11
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 2,
+              "target": "com.example.forum",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 21,
+            "day": "2026-11-07",
+            "compulsionId": 2
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 22,
+            "day": "2026-11-07",
+            "compulsionId": 2,
+            "response": "home"
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 40,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 11
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 2,
+              "target": "com.example.forum",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 41,
+            "day": "2026-11-07",
+            "compulsionId": 2
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 42,
+            "day": "2026-11-07",
+            "compulsionId": 2,
+            "response": "home"
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 60,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 11
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 2,
+              "target": "com.example.forum",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 61,
+            "day": "2026-11-07",
+            "compulsionId": 2
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 62,
+            "day": "2026-11-07",
+            "compulsionId": 2,
+            "response": "ignore_today"
+          },
+          "expect": [],
+          "state": {
+            "2": {
+              "interruptions": 3,
+              "continues": 0,
+              "stopped": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "app de risco não declarado: só o aviso, nunca tela",
+      "config": {
+        "moderation": [],
+        "risk": [
+          {
+            "compulsionId": 2,
+            "target": "com.example.forum",
+            "limitMinutes": 10,
+            "interruption": false
+          }
+        ]
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 10
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 2,
+              "target": "com.example.forum"
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 11
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 40,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 12
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": []
+        }
+      ]
+    },
+    {
+      "name": "conteúdo adulto: a pausa vale para todos os apps de risco",
+      "config": {
+        "moderation": [],
+        "risk": [
+          {
+            "compulsionId": 2,
+            "target": "com.example.forum",
+            "limitMinutes": 10,
+            "interruption": true
+          },
+          {
+            "compulsionId": 2,
+            "target": "com.example.board",
+            "limitMinutes": 10,
+            "interruption": true
+          }
+        ]
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 10,
+              "com.example.board": 10
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 2,
+              "target": "com.example.forum"
+            },
+            {
+              "type": "limit_reached",
+              "compulsionId": 2,
+              "target": "com.example.board"
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 11,
+              "com.example.board": 10
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 2,
+              "target": "com.example.forum",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 21,
+            "day": "2026-11-07",
+            "compulsionId": 2
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 22,
+            "day": "2026-11-07",
+            "compulsionId": 2,
+            "response": "continue"
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 40,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 11,
+              "com.example.board": 10
+            },
+            "foreground": "com.example.board",
+            "blocked": false
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 322,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 11,
+              "com.example.board": 11
+            },
+            "foreground": "com.example.board",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 2,
+              "target": "com.example.board",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "conteúdo adulto: o 3º continuar encerra as telas, sem reprovar; os avisos de outros apps seguem",
+      "config": {
+        "moderation": [],
+        "risk": [
+          {
+            "compulsionId": 2,
+            "target": "com.example.forum",
+            "limitMinutes": 10,
+            "interruption": true
+          },
+          {
+            "compulsionId": 2,
+            "target": "com.example.board",
+            "limitMinutes": 10,
+            "interruption": true
+          }
+        ]
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 10
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 2,
+              "target": "com.example.forum"
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 1000,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 11
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 2,
+              "target": "com.example.forum",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 1001,
+            "day": "2026-11-07",
+            "compulsionId": 2
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 1002,
+            "day": "2026-11-07",
+            "compulsionId": 2,
+            "response": "continue"
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 2000,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 11
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 2,
+              "target": "com.example.forum",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 2001,
+            "day": "2026-11-07",
+            "compulsionId": 2
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 2002,
+            "day": "2026-11-07",
+            "compulsionId": 2,
+            "response": "continue"
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 3000,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 11
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 2,
+              "target": "com.example.forum",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 3001,
+            "day": "2026-11-07",
+            "compulsionId": 2
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 3002,
+            "day": "2026-11-07",
+            "compulsionId": 2,
+            "response": "continue"
+          },
+          "expect": [],
+          "state": {
+            "2": {
+              "interruptions": 3,
+              "continues": 3,
+              "stopped": true
+            }
+          }
+        },
+        {
+          "tick": {
+            "t": 4000,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 12
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 4020,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 12,
+              "com.example.board": 10
+            },
+            "foreground": "com.example.board",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 2,
+              "target": "com.example.board"
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 4040,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 12,
+              "com.example.board": 11
+            },
+            "foreground": "com.example.board",
+            "blocked": false
+          },
+          "expect": []
+        }
+      ]
+    },
+    {
+      "name": "app nas duas listas: limites atingidos na mesma verificação, vale o menor id de compulsão",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.forum"],
+            "limitMinutes": 45
+          }
+        ],
+        "risk": [
+          {
+            "compulsionId": 2,
+            "target": "com.example.forum",
+            "limitMinutes": 10,
+            "interruption": true
+          }
+        ]
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 45
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            },
+            {
+              "type": "limit_reached",
+              "compulsionId": 2,
+              "target": "com.example.forum"
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 46
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 2,
+              "target": "com.example.forum",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "app nas duas listas: quem atingiu antes fica com a tela, com os botões dela",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.forum"],
+            "limitMinutes": 30
+          }
+        ],
+        "risk": [
+          {
+            "compulsionId": 2,
+            "target": "com.example.forum",
+            "limitMinutes": 10,
+            "interruption": true
+          }
+        ]
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 10
+            },
+            "foreground": "com.example.notes",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 2,
+              "target": "com.example.forum"
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 30
+            },
+            "foreground": "com.example.notes",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 40,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 31
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 2,
+              "target": "com.example.forum",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 41,
+            "day": "2026-11-07",
+            "compulsionId": 2
+          },
+          "expect": [],
+          "state": {
+            "2": {
+              "interruptions": 1,
+              "continues": 0,
+              "stopped": false
+            },
+            "3": {
+              "interruptions": 0,
+              "continues": 0,
+              "stopped": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "app nas duas listas: a moderação atingiu antes",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.forum"],
+            "limitMinutes": 5
+          }
+        ],
+        "risk": [
+          {
+            "compulsionId": 2,
+            "target": "com.example.forum",
+            "limitMinutes": 10,
+            "interruption": true
+          }
+        ]
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 5
+            },
+            "foreground": "com.example.notes",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 10
+            },
+            "foreground": "com.example.notes",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 2,
+              "target": "com.example.forum"
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 40,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 11
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.forum",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "app nas duas listas: durante a pausa da primeira, a outra não entra no lugar",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.forum"],
+            "limitMinutes": 5
+          }
+        ],
+        "risk": [
+          {
+            "compulsionId": 2,
+            "target": "com.example.forum",
+            "limitMinutes": 10,
+            "interruption": true
+          }
+        ]
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 5
+            },
+            "foreground": "com.example.notes",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 10
+            },
+            "foreground": "com.example.notes",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 2,
+              "target": "com.example.forum"
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 40,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 11
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.forum",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 41,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 42,
+            "day": "2026-11-07",
+            "compulsionId": 3,
+            "response": "continue"
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 60,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 11
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": []
+        }
+      ]
+    },
+    {
+      "name": "app nas duas listas: quando a primeira para de interromper, a outra passa a valer",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.forum"],
+            "limitMinutes": 5
+          }
+        ],
+        "risk": [
+          {
+            "compulsionId": 2,
+            "target": "com.example.forum",
+            "limitMinutes": 10,
+            "interruption": true
+          }
+        ]
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 5
+            },
+            "foreground": "com.example.notes",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 10
+            },
+            "foreground": "com.example.notes",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 2,
+              "target": "com.example.forum"
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 1000,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 11
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.forum",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 1001,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 1002,
+            "day": "2026-11-07",
+            "compulsionId": 3,
+            "response": "continue"
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 2000,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 11
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.forum",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 2001,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 2002,
+            "day": "2026-11-07",
+            "compulsionId": 3,
+            "response": "continue"
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 3000,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 11
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.forum",
+              "canIgnore": true,
+              "warnsEndOfDay": true
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 3001,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 3002,
+            "day": "2026-11-07",
+            "compulsionId": 3,
+            "response": "continue"
+          },
+          "expect": [
+            {
+              "type": "day_failed",
+              "compulsionId": 3,
+              "reason": "third_continue"
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 3010,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 11
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 2,
+              "target": "com.example.forum",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "app nas duas listas: app de risco não declarado não tira a tela da moderação",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.forum"],
+            "limitMinutes": 30
+          }
+        ],
+        "risk": [
+          {
+            "compulsionId": 2,
+            "target": "com.example.forum",
+            "limitMinutes": 10,
+            "interruption": false
+          }
+        ]
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 10
+            },
+            "foreground": "com.example.notes",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 2,
+              "target": "com.example.forum"
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 30
+            },
+            "foreground": "com.example.notes",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 40,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.forum": 31
+            },
+            "foreground": "com.example.forum",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.forum",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "borda do dia: contagens, pausa, avisos e reprovação zeram; a tela só volta acima do limite",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.clips", "com.example.feed"],
+            "limitMinutes": 45
+          }
+        ],
+        "risk": [
+          {
+            "compulsionId": 2,
+            "target": "com.example.forum",
+            "limitMinutes": 10,
+            "interruption": true
+          }
+        ]
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46,
+              "com.example.forum": 10
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            },
+            {
+              "type": "limit_reached",
+              "compulsionId": 2,
+              "target": "com.example.forum"
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46,
+              "com.example.forum": 10
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 21,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 22,
+            "day": "2026-11-07",
+            "compulsionId": 3,
+            "response": "continue"
+          },
+          "expect": [],
+          "state": {
+            "3": {
+              "interruptions": 1,
+              "continues": 1,
+              "stopped": false
+            }
+          }
+        },
+        {
+          "tick": {
+            "t": 60,
+            "day": "2026-11-08",
+            "usage": {},
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [],
+          "state": {
+            "3": {
+              "interruptions": 0,
+              "continues": 0,
+              "stopped": false
+            }
+          }
+        },
+        {
+          "tick": {
+            "t": 80,
+            "day": "2026-11-08",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 100,
+            "day": "2026-11-08",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dia reprovado: no dia seguinte, tudo volta",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.clips", "com.example.feed"],
+            "limitMinutes": 45
+          }
+        ],
+        "risk": []
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 21,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 22,
+            "day": "2026-11-07",
+            "compulsionId": 3,
+            "response": "home"
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 40,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 41,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 42,
+            "day": "2026-11-07",
+            "compulsionId": 3,
+            "response": "home"
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 60,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": true,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 61,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 62,
+            "day": "2026-11-07",
+            "compulsionId": 3,
+            "response": "ignore_today"
+          },
+          "expect": [
+            {
+              "type": "day_failed",
+              "compulsionId": 3,
+              "reason": "ignored_limit"
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 100,
+            "day": "2026-11-08",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ],
+          "state": {
+            "3": {
+              "interruptions": 0,
+              "continues": 0,
+              "stopped": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "limite aumentado no meio do dia: sem nova tela nem novo aviso até passar do novo limite",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.clips", "com.example.feed"],
+            "limitMinutes": 45
+          }
+        ],
+        "risk": []
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "config": {
+            "moderation": [
+              {
+                "compulsionId": 3,
+                "targets": ["com.example.clips", "com.example.feed"],
+                "limitMinutes": 60
+              }
+            ],
+            "risk": []
+          }
+        },
+        {
+          "tick": {
+            "t": 40,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 60,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 60
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "compulsão fora da configuração não gera nada, e uma resposta a ela é ignorada",
+      "config": {
+        "moderation": [],
+        "risk": []
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": []
+        },
+        {
+          "respond": {
+            "t": 1,
+            "day": "2026-11-07",
+            "compulsionId": 3,
+            "response": "continue"
+          },
+          "expect": []
+        }
+      ]
+    }
+  ]
+}
