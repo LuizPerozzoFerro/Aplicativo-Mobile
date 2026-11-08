@@ -56,15 +56,18 @@ aprovação do resto. Essa decisão é sua e fica fora do Claude Code.
 
 ## 2. Texto para o manifesto: a `<property>` do `specialUse`
 
-O valor atual está **em português** em
-`prototype/modules/lab-monitoring/android/src/main/AndroidManifest.xml:122`. Quem
-lê é um revisor do Google. Para o app publicado, trocar por:
+Quem lê é um revisor do Google, que compara o que está declarado com o
+comportamento do app. Texto em uso em
+`modules/monitoring-android/android/src/main/AndroidManifest.xml` (atualizado no
+passo 4 da Fase 4, com a tela de pausa e os apps de risco):
 
 ```
 Monitors, on the device only, how long the user has used apps that the user
-personally chose, and shows a reminder when the daily limit the user set is
-reached. Runs continuously because usage can start at any time. No usage data
-leaves the device.
+personally chose, including apps the user marked as risky. When the limit the
+user set is reached, it shows a reminder and, if the user keeps using that app,
+a full-screen pause screen identified as this app, where the user chooses to go
+to the home screen, open a support flow or continue. Runs continuously because
+usage can start at any time. No usage data leaves the device.
 ```
 
 Observação: o tempo de uso só é útil se o serviço estiver vivo no momento em que o
@@ -81,11 +84,13 @@ Campos pedidos pelo Console, um por tipo de serviço:
 
 ```
 The app helps users limit time spent in specific apps that they select
-themselves. A foreground service checks the on-device usage statistics at short
-intervals and, when the daily limit that the user configured is reached,
-shows a notification and an optional interruption screen. The service shows a
-persistent notification while it runs. No usage data is transmitted off the
-device.
+themselves, including apps the user marks as risky for them. A foreground
+service checks the on-device usage statistics at short intervals. When the limit
+the user configured is reached, it shows a notification and, if the user keeps
+using that app, a full-screen pause screen drawn over it. The screen identifies
+itself as this app and lets the user go to the home screen, open a support flow
+or continue. The service shows a persistent notification while it runs. No usage
+data is transmitted off the device.
 ```
 
 **Impact if the task is deferred or interrupted by the system**

@@ -1,5 +1,7 @@
 import type { Repositories, UserCompulsion } from '@/data/repositories';
 import { getCompulsionDefinition } from '@/domain/compulsion';
+import { getDailyLimitToday } from '@/domain/dailyLimit';
+import { toDayKey } from '@/domain/day';
 import {
   getAbstinenceOverview,
   getModerationOverview,
@@ -49,7 +51,8 @@ export function loadHomeCards(repositories: Repositories, now: Date): HomeCard[]
         packageNames: repositories.monitoredApps
           .listByCompulsion(compulsion.id)
           .map((app) => app.packageName),
-        dailyLimitMinutes: compulsion.dailyLimitMinutes ?? 0,
+        // O limite em vigor: no dia de um aumento, ainda o antigo.
+        dailyLimitMinutes: getDailyLimitToday(compulsion, toDayKey(now)) ?? 0,
       };
     });
 }

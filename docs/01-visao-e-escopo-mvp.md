@@ -1,6 +1,6 @@
 # 01 — Visão do Produto e Escopo do MVP
 
-> **Status:** revisado v0.8 · **Última atualização:** 07/11/2026
+> **Status:** revisado v0.9 · **Última atualização:** 08/11/2026
 > **Nome do app:** **Quedo** (decidido em 01/11/2026, ver seção 7.4 e o documento de decisão do nome no Project)
 > **Documentos relacionados:** `02-plano-tecnico.md` (v0.7) · `relatorios/01-viabilidade-monitoramento.md` (v0.4, resultado da Fase 1 no Android)
 > Este documento descreve **o que** o app faz e **por quê**. Decisões de arquitetura, stack e padrões de código ficam em documentos técnicos próprios e no `CLAUDE.md`.
@@ -240,6 +240,7 @@ Requisitos da tela:
 - Ultrapassar o limite, por si só, não reprova o dia: dispara as interrupções.
 - **Limite somado (decisão de 02/11/2026):** a moderação tem **um único limite diário por compulsão**, que vale para a **soma** do tempo em todos os apps escolhidos. Estourado o limite, a interrupção vale em qualquer um desses apps. Motivo: com limite por app, o usuário trocaria de um app para outro sem nunca ser interrompido. O detalhamento por app aparece nas Estatísticas.
 - Os apps de risco da pornografia seguem com **10 minutos por app** (6.5.6).
+- **Mudança do limite no Perfil (decisão de 08/11/2026):** **aumentar** o limite só vale **a partir do dia seguinte**; **diminuir** vale na hora. Assim, aumentar o limite depois de estourá-lo não serve para escapar das interrupções e da reprovação do dia. A tela de edição avisa: "O novo limite começa a valer amanhã."
 
 #### 6.5.5 Regras gerais
 - Uso dentro de uma **janela de gatilho declarada** justifica um alerta mais enfático.
@@ -456,6 +457,7 @@ Situação atualizada com o relatório de viabilidade (Fase 1, Android).
 - [x] App nas duas listas: uma tela só, contada na compulsão que disparou primeiro (07/11/2026)
 - [x] Notificações: check-in diário sem repetição; preventivas no início de cada faixa (no máximo 4 por dia); recomeço às 9h ou no primeiro desbloqueio depois (07/11/2026)
 - [x] Emergência: 1 min de respiração e 5 min de cronômetro, podendo pular (07/11/2026)
+- [x] Aumento do limite de vídeos curtos vale a partir do dia seguinte; redução vale na hora (08/11/2026)
 - [x] VPN na primeira versão: **não** (D6, 25/10/2026, seção 3.2)
 
 **Ainda em aberto**
@@ -497,3 +499,4 @@ Situação atualizada com o relatório de viabilidade (Fase 1, Android).
 | 0.6 | 02/11/2026 | Limite da moderação somado entre os apps escolhidos, um por compulsão (6.5.4); card do Início e Estatísticas ajustados |
 | 0.7 | 02/11/2026 | Decisões para a Fase 3: check-in diário da pornografia (padrão 21h, dia sem resposta não quebra a streak); apps pré-marcados e limite padrão de 60 min; faixas de horário de 2 horas e personalizadas; lista de emoções; progresso do onboarding salvo; bloqueio de menores de 18 |
 | 0.8 | 07/11/2026 | Decisões para a Fase 4: app nas duas listas com uma tela só; notificação diária de check-in sem repetição; preventivas no início de cada faixa, só nos dias marcados, no máximo 4 por dia; recomeço às 9h ou no primeiro desbloqueio; emergência com 1 min de respiração e 5 min de cronômetro |
+| 0.9 | 08/11/2026 | Aumento do limite de vídeos curtos só vale a partir do dia seguinte; redução vale na hora (6.5.4) |

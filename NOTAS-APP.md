@@ -12,9 +12,10 @@ do protótipo continua em `prototype/NOTAS.md`.
   integrados (PR #21). Seção "Fase 4 · Leitura da spec 03".
 - **Passo 1 (base nativa)** integrado (PR #22). Seção "Fase 4 · Passo 1".
 - **Passo 2 (configuração e eventos)** integrado (PR #23). Seção "Fase 4 · Passo 2".
-- **Passo 3 (regras do momento)** pronto para revisão no PR da branch
-  `fase4/regras`. Seção "Fase 4 · Passo 3". Próximo: passo 4 (tela de
-  interrupção), com a nova justificativa do `specialUse`.
+- **Passo 3 (regras do momento)** integrado (PR #24). Seção "Fase 4 · Passo 3".
+- **Passo 4 (tela de interrupção)** pronto para revisão no PR da branch
+  `fase4/tela-interrupcao`. Seção "Fase 4 · Passo 4". M20 (chamada) pendente
+  para o roteiro. Próximo: passo 5 (notificações).
 
 ---
 
@@ -2472,14 +2473,16 @@ rodar, `src/domain/momentRules.ts` repete as regras. **Não entra no bundle:
 nenhum código do app importa esse arquivo.** Os vetores são o que impede as duas
 versões de divergirem.
 
-### Interpretações da spec (a confirmar na revisão)
+### Interpretações da spec
+
+Casos 1, 2, 3, 5 e 6 aprovados pelo responsável na revisão do PR #24 (08/11/2026); o 4 mudou.
 
 | Caso | O que ficou | Por quê |
 |---|---|---|
 | App nas duas listas, a primeira compulsão em pausa | A outra não entra no lugar | A spec só libera a outra quando a primeira "para de interromper" (dia reprovado, alertas ou telas encerradas); pausa não é isso |
 | App nas duas listas, app de risco **não declarado** atingiu primeiro | A tela é da moderação | Quem nunca gera tela não "interrompe": senão, ninguém interromperia |
 | As duas atingem o limite na mesma verificação | Vale o menor id de compulsão | A spec não define; precisava ser determinístico nos dois lados |
-| Limite aumentado no meio do dia | Sem tela até passar do novo limite, e sem novo aviso quando passar | O aviso é "uma vez no dia" |
+| Limite aumentado no meio do dia | **Mudou na revisão do PR #24:** ver "Aumento do limite só vale no dia seguinte", no passo 4 | |
 | Abstinência, 3º "Continuar" | Encerra as telas, mas os avisos de 10 min de outros apps de risco seguem | A spec encerra só "a tela" |
 | Aviso de que o 3º "Continuar" encerra a meta | Só na moderação | Está só na tabela da moderação |
 
@@ -2528,6 +2531,139 @@ sem ele, conferir a regra exigiria 45 minutos de uso real.
   Resolvido pelo procedimento registrado (matar o `adb.exe`, `adb start-server`,
   `adb install -r`).
 - O AP5 não voltou com o Metro parado antes do build.
+
+## Fase 4 · Passo 4 · Tela de interrupção (08/11/2026)
+
+Branch `fase4/tela-interrupcao`.
+
+### Aumento do limite só vale no dia seguinte (decisão do responsável, 08/11/2026)
+
+Revisão do PR #24: aumentar o limite de vídeos curtos só vale a partir do dia
+seguinte; diminuir vale na hora. Na tela de edição, um aumento mostra "O novo
+limite começa a valer amanhã.".
+
+- **Por quê:** sem isso, aumentar o limite seria um jeito de escapar do alerta do
+  dia.
+- **Regra** (`src/domain/dailyLimit.ts`, testada): um valor maior que o limite
+  **em vigor hoje** é aumento. Aumentar duas vezes no dia mantém o limite da
+  manhã. Reduzir abaixo do de hoje vale na hora e apaga o aumento pendente.
+  Reduzir e voltar a aumentar no mesmo dia não recupera o limite antigo.
+- **Migração 006** (`drizzle/0005_daily_limit_raise.sql`): só `ALTER TABLE ADD` em
+  `user_compulsions` (`previous_daily_limit_minutes` e `daily_limit_raised_on`).
+- **Só no Perfil:** `changeDailyLimit`. O onboarding e "Adicionar compulsão" usam
+  `setDailyLimit`, que vale na hora, porque ali não há limite anterior a proteger.
+- **Por que no banco, e não só no estado do nativo:** o Início precisa mostrar o
+  limite em vigor (no dia do aumento, ainda o antigo), e o nativo precisa virar
+  para o novo à meia-noite com o app fechado. A configuração leva os dois:
+  `dailyLimitMinutes` (o novo) e `limitToday` (dia e minutos, só no dia do
+  aumento). As regras escolhem pelo dia, sem estado a mais.
+- **Vetores:** três cenários novos (aumento depois de atingir, aumento antes de
+  atingir, redução), nas duas versões das regras.
+- **Mutação de controle:** ignorar o `limitToday` derruba testes no Jest e no
+  JUnit.
+
+### Tela de interrupção
+
+Documentação oficial conferida em 08/11/2026 (voltar preditivo, início de
+Activity em segundo plano, `AudioManager`).
+
+- **`InterruptionScreen`:** a tela, em código, usada pelas duas formas. Fundo
+  opaco, identidade "Quedo", frase de apoio (varia a cada tela do dia),
+  motivação, botões da spec 5.2, texto em sp, rolagem para a fonte no máximo e
+  leitor de tela começando no título. Cores em `res/values` e `values-night`,
+  iguais aos tokens (um teste Jest confere).
+- **`InterruptionPresenter`:** mostra, confere e tira.
+  - **Só conta se apareceu (I-28):** o `interruption_shown` sai depois de conferir
+    foco da janela e visibilidade, ou seja, não no pedido.
+  - **20 s sem aparecer:** descarta.
+  - **`InterruptionAttempts`** (Kotlin puro, JUnit): sobreposição escondida →
+    tela própria uma vez → recuo de 1, 2, 5 e 15 min. Zera quando aparece ou
+    quando o usuário sai dos apps monitorados.
+- **Chamada:** com a sobreposição aberta, o modo do `AudioManager` é conferido a
+  cada segundo (sem permissão). Em chamada, a tela sai sem resposta e nenhuma nova
+  é pedida. Volta na verificação seguinte depois da chamada, se ainda fizer sentido.
+- **Usuário saiu do app com a tela aberta** (gesto de início): sai sem resposta.
+  **Com a tela do aparelho apagada, ela fica**, para não contar outra tela ao
+  desbloquear.
+- **Voltar:** a raiz da sobreposição consome a tecla e registra um
+  `OnBackInvokedCallback`; a tela própria liga `enableOnBackInvokedCallback` só
+  para si (o app segue com o voltar preditivo desligado, decisão de 02/11).
+- **Uso:** o tempo com a tela na frente não conta (`suspend`/`resume`). Se o
+  processo morrer com a tela aberta, o serviço volta a contar ao nascer.
+- **Sem `FLAG_KEEP_SCREEN_ON`** (o protótipo tinha): a tela não deve impedir o
+  aparelho de apagar.
+- **Emergência:** por enquanto só abre o app e grava `emergency_requested`; a rota
+  é do passo 6.
+- **Sem a permissão de sobreposição:** não há tela (a notificação é do passo 5).
+- **Regras:** nova função `exited` (tela saiu sem resposta: só a carência), com
+  vetor nas duas versões.
+- **Versão da configuração:** continua 1. Só precisa mudar depois da primeira
+  publicação, porque antes não há aparelho com configuração antiga. (Correção do
+  que está no passo 2.)
+
+### Justificativa do `specialUse` (pedido do responsável)
+
+Atualizada no manifesto e em `docs/rascunhos/play-console-justificativas.md`
+(seções 2 e 3): menciona a tela de pausa e os apps marcados como de risco.
+
+### Textos novos (`src/i18n/pt-BR/monitoring.json`)
+
+Listados no PR para revisão.
+
+### Testes
+
+- Jest: 608. JUnit: 46 (`InterruptionAttempts`, novos vetores).
+- Mutação de controle: sem a tentativa da tela própria, 3 testes JUnit falham.
+
+### No aparelho (S22, 08/11, com o limite de teste de 1 minuto)
+
+- Sobreposição sobre o YouTube, com `interruption_shown` só depois de conferida.
+- Voltar (`KEYCODE_BACK`) não fecha, na sobreposição e na tela própria.
+- "Ir para a tela inicial" leva ao lançador; reabrir o app gera nova tela, com
+  outra frase.
+- "Emergência" abre o app e não pausa.
+- Com a tela aberta, o uso quase não anda: 0,6 s em 25 s.
+- Importação: as telas e as respostas chegam a `interruption_events`.
+- **Reserva (I-25), com o `labtarget` do protótipo** (`setHideOverlayWindows`),
+  incluído só para o teste no banco de desenvolvimento e removido depois:
+  sobreposição escondida às 14:12, descartada em 20 s **sem contar**; na
+  verificação seguinte, tela própria, que contou, mostrou "Ignorar" (3ª tela) e,
+  com "Continuar", devolveu ao app e iniciou a pausa, sem nova tela em 38 s.
+- **AP3 de novo** no `adb`, com o `assembleDebug` seguido de `adb install -r`:
+  mesmo procedimento.
+
+### Testes do responsável no S22 (08/11)
+
+- Aprovados: aparência e textos da tela, gesto de voltar na sobreposição, tema
+  escuro e fonte no máximo (M18) e a mensagem "O novo limite começa a valer
+  amanhã.".
+- **M20 (chamada) não testado:** o S22 está sem chip. O código confere o modo do
+  `AudioManager`, mas isso **não foi visto funcionando**. Pendente para o roteiro
+  final (passo 8): uma ligação simulada no emulador (`adb emu gsm call`) cobre a
+  chamada telefônica; WhatsApp ou Teams, instalados no S22, cobrem a chamada
+  pela internet, cujo modo de áudio ao tocar ainda é uma incógnita.
+- **M17 (voltar preditivo) conferido num build temporário** (08/11): só o
+  `android:enableOnBackInvokedCallback` do `android/` gerado virou `true`, sem
+  mudar o `app.config.ts`, e voltou a `false` depois. Gesto real de borda
+  (`adb shell input swipe` a partir da borda, que o sistema trata como voltar):
+
+  | Tela | Voltar preditivo | Caminho no `logcat` | Resultado |
+  |---|---|---|---|
+  | Sobreposição | Ligado | `onBackInvoked, callback=InterruptionRootView` | Não fecha, nas duas bordas |
+  | Tela própria | Ligado | `onBackInvoked, callback=InterruptionRootView` | Não fecha, nas duas bordas |
+  | Sobreposição | Desligado (como o app sai) | `OnBackInvokedCallback is not enabled` e o callback de compatibilidade do `ViewRootImpl` | Não fecha |
+
+  O aviso da última linha confirma que a sobreposição, por não ser Activity, segue
+  o valor do app. O app continua com o voltar preditivo desligado (decisão de
+  02/11): ligar de vez é outra decisão, porque muda o voltar de todas as telas.
+
+### Cuidado: copiar o banco para o aparelho
+
+Com o `adb` travado (AP3), `adb exec-out ... cat app.db > app.db` grava um arquivo
+de **0 byte** sem dar erro. Em 08/11 um script meu seguiu adiante e mandou copiar
+esse arquivo de volta. O banco só escapou porque o `adb` também travou na cópia.
+Antes de escrever no aparelho: conferir o tamanho do arquivo lido, abrir o banco e
+guardar uma cópia.
 
 ## Problemas
 

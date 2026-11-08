@@ -81,6 +81,42 @@ describe('compulsões', () => {
     expect(() => repositories.compulsions.add({ type: 'short_videos', startedAt: NOW })).toThrow();
   });
 
+  it('mudança do limite pelo Perfil: aumentar guarda o de hoje; diminuir vale na hora', () => {
+    const { id } = repositories.compulsions.add({
+      type: 'short_videos',
+      startedAt: NOW,
+      dailyLimitMinutes: 45,
+    });
+    repositories.compulsions.changeDailyLimit(id, 60);
+    expect(repositories.compulsions.list()[0]).toMatchObject({
+      dailyLimitMinutes: 60,
+      previousDailyLimitMinutes: 45,
+      dailyLimitRaisedOn: '2026-11-02',
+    });
+    repositories.compulsions.changeDailyLimit(id, 30);
+    expect(repositories.compulsions.list()[0]).toMatchObject({
+      dailyLimitMinutes: 30,
+      previousDailyLimitMinutes: null,
+      dailyLimitRaisedOn: null,
+    });
+    expect(() => repositories.compulsions.changeDailyLimit(id, 4)).toThrow(RangeError);
+  });
+
+  it('o limite do onboarding (setDailyLimit) vale na hora e limpa um aumento pendente', () => {
+    const { id } = repositories.compulsions.add({
+      type: 'short_videos',
+      startedAt: NOW,
+      dailyLimitMinutes: 45,
+    });
+    repositories.compulsions.changeDailyLimit(id, 60);
+    repositories.compulsions.setDailyLimit(id, 90);
+    expect(repositories.compulsions.list()[0]).toMatchObject({
+      dailyLimitMinutes: 90,
+      previousDailyLimitMinutes: null,
+      dailyLimitRaisedOn: null,
+    });
+  });
+
   it('limite diário: só na moderação e de 5 a 600 minutos', () => {
     const { id } = repositories.compulsions.add({ type: 'short_videos', startedAt: NOW });
     repositories.compulsions.setDailyLimit(id, 45);

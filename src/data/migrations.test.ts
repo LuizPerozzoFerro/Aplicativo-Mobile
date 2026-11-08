@@ -82,7 +82,13 @@ describe('migrações', () => {
     expect(tableNames(raw)).toEqual(
       expect.arrayContaining([...TABLES_001, ...TABLES_002, ...TABLES_005]),
     );
-    expect(columnNames(raw, 'user_compulsions')).toContain('initial_streak_days');
+    expect(columnNames(raw, 'user_compulsions')).toEqual(
+      expect.arrayContaining([
+        'initial_streak_days',
+        'previous_daily_limit_minutes',
+        'daily_limit_raised_on',
+      ]),
+    );
     expect(columnNames(raw, 'check_ins')).toEqual(
       expect.arrayContaining(['previous_answer', 'previous_source', 'previous_answered_at']),
     );
@@ -138,6 +144,8 @@ describe('migrações', () => {
         startedAt: new Date(2000),
         dailyLimitMinutes: 30,
         initialStreakDays: null,
+        previousDailyLimitMinutes: null,
+        dailyLimitRaisedOn: null,
       },
     ]);
     expect(repositories.monitoredApps.listByCompulsion(7)).toHaveLength(1);

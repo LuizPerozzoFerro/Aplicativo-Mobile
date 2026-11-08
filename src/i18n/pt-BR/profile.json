@@ -59,5 +59,8 @@
       "confirm": "Apagar tudo",
       "cancel": "Cancelar"
     }
+  },
+  "shortVideos": {
+    "limitStartsTomorrow": "O novo limite começa a valer amanhã."
   }
 }

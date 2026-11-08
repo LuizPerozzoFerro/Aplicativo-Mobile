@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { getRepositories } from '@/data/bootstrap';
 import type { UserCompulsion } from '@/data/repositories';
 import type { CompulsionType } from '@/domain/compulsion';
+import { isDailyLimitIncrease } from '@/domain/dailyLimit';
+import { toDayKey } from '@/domain/day';
 import { getMotivationProblem } from '@/domain/onboarding';
 import {
   AbstinenceFields,
@@ -17,14 +19,17 @@ import {
 import { useAppTargets } from '@/features/setup/appTargets';
 import { MotivationField, useMotivationProblemText } from '@/features/setup/MotivationField';
 import {
+  getDailyLimit,
   getShortVideoProblem,
   loadShortVideoSetup,
   preselectShortVideoApps,
-  saveShortVideoSetup,
+  saveShortVideoEdit,
   ShortVideoFields,
   useShortVideoProblemText,
 } from '@/features/setup/ShortVideoFields';
 import { loadTriggers, saveTriggers, TriggerFields } from '@/features/setup/TriggerFields';
+
+import { Text } from '@/ui';
 
 import { EditScreen } from './EditScreen';
 
@@ -56,9 +61,12 @@ export function EditShortVideosScreen() {
       blockedReason={
         apps.targets === null ? t('onboarding:setup.loadingApps') : problem && problemText[problem]
       }
-      onSave={() => saveShortVideoSetup(compulsion.id, value)}
+      onSave={() => saveShortVideoEdit(compulsion.id, value)}
     >
       <ShortVideoFields value={value} onChange={setValue} apps={apps} showHeading={false} />
+      {isDailyLimitIncrease(compulsion, getDailyLimit(value), toDayKey(new Date())) ? (
+        <Text>{t('shortVideos.limitStartsTomorrow')}</Text>
+      ) : null}
     </EditScreen>
   );
 }

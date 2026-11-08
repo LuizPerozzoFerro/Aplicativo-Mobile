@@ -14,6 +14,8 @@ export type ModerationRule = {
   readonly compulsionId: number;
   readonly targets: readonly string[];
   readonly limitMs: number;
+  /** Limite que vale só naquele dia: o de antes de um aumento (src/domain/dailyLimit.ts). */
+  readonly todayLimit?: { readonly dayKey: string; readonly limitMs: number } | null;
 };
 
 export type RiskRule = {
@@ -115,6 +117,10 @@ function withCompulsion(
   };
 }
 
+/** O limite da regra no dia: um aumento só vale a partir do dia seguinte. */
+const moderationLimit = (rule: ModerationRule, dayKey: string) =>
+  rule.todayLimit?.dayKey === dayKey ? rule.todayLimit.limitMs : rule.limitMs;
+
 const usedMs = (usage: MomentTick['usage'], targets: readonly string[]) =>
   targets.reduce((total, target) => total + (usage[target] ?? 0), 0);
 
@@ -131,7 +137,10 @@ export function momentTick(
 
   for (const rule of config.moderation) {
     const moment = getCompulsionMoment(state, rule.compulsionId);
-    if (usedMs(tick.usage, rule.targets) >= rule.limitMs && moment.reachedAt === null) {
+    if (
+      usedMs(tick.usage, rule.targets) >= moderationLimit(rule, tick.dayKey) &&
+      moment.reachedAt === null
+    ) {
       state = withCompulsion(state, rule.compulsionId, { reachedAt: tick.now });
       actions.push({ type: 'limit_reached', compulsionId: rule.compulsionId, target: null });
     }
@@ -169,7 +178,7 @@ function chooseInterruption(
       rule.targets.includes(foreground) &&
       moment.reachedAt !== null &&
       !moment.stopped &&
-      usedMs(tick.usage, rule.targets) >= rule.limitMs
+      usedMs(tick.usage, rule.targets) >= moderationLimit(rule, tick.dayKey)
     ) {
       candidates.push({
         compulsionId: rule.compulsionId,
@@ -224,6 +233,11 @@ export function momentShown(
   return withCompulsion(state, compulsionId, {
     interruptions: getCompulsionMoment(state, compulsionId).interruptions + 1,
   });
+}
+
+/** A tela saiu sem resposta (chamada, usuário foi embora): só a carência. */
+export function momentExited(previous: MomentState, now: number, dayKey: string): MomentState {
+  return { ...forDay(previous, dayKey), lastExitAt: now };
 }
 
 /** O usuário respondeu na tela. */

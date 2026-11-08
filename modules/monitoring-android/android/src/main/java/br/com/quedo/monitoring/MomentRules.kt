@@ -19,7 +19,18 @@ object MomentRules {
   const val CONTINUES_TO_STOP = 3
   const val INTERRUPTIONS_TO_IGNORE = 3
 
-  data class ModerationRule(val compulsionId: Int, val targets: List<String>, val limitMs: Long)
+  data class ModerationRule(
+    val compulsionId: Int,
+    val targets: List<String>,
+    val limitMs: Long,
+    /** Dia e limite que vale só nele: o de antes de um aumento (src/domain/dailyLimit.ts). */
+    val todayLimitDay: String? = null,
+    val todayLimitMs: Long? = null,
+  ) {
+    /** O limite no dia: um aumento só vale a partir do dia seguinte. */
+    fun limitOn(dayKey: String): Long =
+      if (todayLimitDay == dayKey && todayLimitMs != null) todayLimitMs else limitMs
+  }
 
   data class RiskRule(
     val compulsionId: Int,
@@ -143,7 +154,7 @@ object MomentRules {
     val actions = ArrayList<Action>()
 
     for (rule in config.moderation) {
-      if (used(tick.usage, rule.targets) >= rule.limitMs && state.peek(rule.compulsionId).reachedAt == null) {
+      if (used(tick.usage, rule.targets) >= rule.limitOn(tick.dayKey) && state.peek(rule.compulsionId).reachedAt == null) {
         state.moment(rule.compulsionId).reachedAt = tick.now
         actions.add(Action.LimitReached(rule.compulsionId, null))
       }
@@ -170,7 +181,7 @@ object MomentRules {
         foreground in rule.targets &&
         reachedAt != null &&
         !moment.stopped &&
-        used(tick.usage, rule.targets) >= rule.limitMs
+        used(tick.usage, rule.targets) >= rule.limitOn(tick.dayKey)
       ) {
         candidates.add(Candidate(rule.compulsionId, reachedAt, moderation = true))
       }
@@ -211,6 +222,12 @@ object MomentRules {
   fun shown(state: State, compulsionId: Int, dayKey: String) {
     state.enterDay(dayKey)
     state.moment(compulsionId).interruptions += 1
+  }
+
+  /** A tela saiu sem resposta (chamada, usuário foi embora): só a carência. */
+  fun exited(state: State, now: Long, dayKey: String) {
+    state.enterDay(dayKey)
+    state.lastExitAt = now
   }
 
   /** O usuário respondeu na tela: `emergency`, `home`, `continue` ou `ignore_today`. */
@@ -261,10 +278,13 @@ object MomentRules {
     val moderation = (0 until moderationJson.length()).map { index ->
       val rule = moderationJson.getJSONObject(index)
       val targets = rule.getJSONArray("targetIds")
+      val today = rule.optJSONObject("limitToday")
       ModerationRule(
         compulsionId = rule.getInt("compulsionId"),
         targets = (0 until targets.length()).map { targets.getString(it) },
         limitMs = limitMs(rule.getInt("dailyLimitMinutes")),
+        todayLimitDay = today?.getString("dayKey"),
+        todayLimitMs = today?.let { limitMs(it.getInt("minutes")) },
       )
     }
     val riskJson = json.getJSONArray("riskAppRules")

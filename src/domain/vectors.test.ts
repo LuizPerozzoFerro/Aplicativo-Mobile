@@ -2,6 +2,7 @@ import { startOfDay, startOfNextDay, toDayKey } from './day';
 import {
   createMomentState,
   getCompulsionMoment,
+  momentExited,
   momentRespond,
   momentShown,
   momentTick,
@@ -20,7 +21,12 @@ const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 
 type VectorConfig = {
-  moderation: { compulsionId: number; targets: string[]; limitMinutes: number }[];
+  moderation: {
+    compulsionId: number;
+    targets: string[];
+    limitMinutes: number;
+    todayLimit?: { day: string; minutes: number };
+  }[];
   risk: { compulsionId: number; target: string; limitMinutes: number; interruption: boolean }[];
 };
 
@@ -35,6 +41,7 @@ type VectorStep = {
   };
   shown?: { t: number; day: string; compulsionId: number };
   respond?: { t: number; day: string; compulsionId: number; response: MomentResponse };
+  exited?: { t: number; day: string };
   expect?: MomentAction[];
   state?: Record<string, { interruptions: number; continues: number; stopped: boolean }>;
 };
@@ -43,9 +50,12 @@ type VectorScenario = { name: string; config: VectorConfig; steps: VectorStep[] 
 
 function toConfig(config: VectorConfig): MomentConfig {
   return {
-    moderation: config.moderation.map(({ limitMinutes, ...rule }) => ({
+    moderation: config.moderation.map(({ limitMinutes, todayLimit, ...rule }) => ({
       ...rule,
       limitMs: limitMinutes * MINUTE,
+      todayLimit: todayLimit
+        ? { dayKey: todayLimit.day, limitMs: todayLimit.minutes * MINUTE }
+        : null,
     })),
     risk: config.risk.map(({ limitMinutes, ...rule }) => ({
       ...rule,
@@ -80,6 +90,8 @@ function runScenario({ config: first, steps }: VectorScenario) {
       actions = result.actions;
     } else if (step.shown) {
       state = momentShown(state, step.shown.compulsionId, step.shown.day);
+    } else if (step.exited) {
+      state = momentExited(state, EPOCH + step.exited.t * SECOND, step.exited.day);
     } else if (step.respond) {
       const { t, day, compulsionId, response } = step.respond;
       const result = momentRespond(config, state, {

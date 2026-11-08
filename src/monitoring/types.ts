@@ -127,7 +127,10 @@ export type MonitoringCompulsionConfig = {
 export type ModerationRuleConfig = {
   readonly compulsionId: number;
   readonly targetIds: readonly TargetId[];
+  /** O limite escolhido, que vale a partir do dia seguinte a um aumento. */
   readonly dailyLimitMinutes: number;
+  /** No dia de um aumento, o limite que continua valendo só nele; senão, nulo. */
+  readonly limitToday: { readonly dayKey: string; readonly minutes: number } | null;
 };
 
 export type RiskAppRuleConfig = {
@@ -157,6 +160,18 @@ export type MonitoringTexts = {
     readonly reminders: string;
   };
   readonly ongoing: { readonly title: string; readonly text: string };
+  readonly interruption: {
+    readonly brand: string;
+    readonly title: string;
+    /** Frases de apoio, alternadas a cada tela (spec 03, 5.9). */
+    readonly phrases: readonly string[];
+    readonly motivationLabel: string;
+    readonly emergency: string;
+    readonly home: string;
+    readonly continue: string;
+    readonly ignoreToday: string;
+    readonly endOfDayWarning: string;
+  };
 };
 
 export const MONITORING_EVENT_TYPES = [

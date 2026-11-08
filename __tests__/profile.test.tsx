@@ -300,6 +300,28 @@ describe('edições', () => {
     ).toEqual(['com.instagram.android']);
   });
 
+  it('aumentar o limite avisa que vale amanhã e guarda o de hoje; diminuir não avisa', async () => {
+    const videos = addVideos();
+    const message = 'O novo limite começa a valer amanhã.';
+    await renderRouter(APP_DIR, { initialUrl: '/edit/short-videos' });
+    await screen.findByTestId('short-video-apps');
+    expect(screen.queryByText(message)).toBeNull();
+
+    const user = userEvent.setup();
+    await user.press(screen.getByRole('radio', { name: '90 min' }));
+    expect(screen.getByText(message)).toBeOnTheScreen();
+    await user.press(screen.getByRole('radio', { name: '30 min' }));
+    expect(screen.queryByText(message)).toBeNull();
+
+    await user.press(screen.getByRole('radio', { name: '90 min' }));
+    await press('Salvar');
+    expect(mockRepositories.compulsions.list()[0]).toMatchObject({
+      id: videos.id,
+      dailyLimitMinutes: 90,
+      previousDailyLimitMinutes: 60,
+    });
+  });
+
   it('apps de risco: app novo precisa da resposta antes de salvar', async () => {
     const adult = addAdult();
     await renderRouter(APP_DIR, { initialUrl: '/edit/risk-apps' });

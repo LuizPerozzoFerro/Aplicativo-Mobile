@@ -8,6 +8,17 @@ const NOW = new Date('2026-11-07T13:00:00.000Z');
 const TEXTS: MonitoringTexts = {
   channels: { tracking: 'a', alerts: 'b', reminders: 'c' },
   ongoing: { title: 'd', text: 'e' },
+  interruption: {
+    brand: 'a',
+    title: 'b',
+    phrases: ['c'],
+    motivationLabel: 'd',
+    emergency: 'e',
+    home: 'f',
+    continue: 'g',
+    ignoreToday: 'h',
+    endOfDayWarning: 'i',
+  },
 };
 
 let repositories: Repositories;

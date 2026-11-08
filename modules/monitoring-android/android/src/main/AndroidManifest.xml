@@ -53,6 +53,24 @@
     </receiver>
 
     <!--
+      Reserva da sobreposição (spec 03, 5.3). taskAffinity vazio, fora dos
+      recentes e sem histórico, para não entrar na pilha do app; retrato fixo.
+      enableOnBackInvokedCallback: o app inteiro desliga o voltar preditivo, mas
+      esta tela liga, para o gesto chegar ao callback que impede fechá-la.
+    -->
+    <activity
+      android:name=".InterruptionActivity"
+      android:exported="false"
+      android:excludeFromRecents="true"
+      android:noHistory="true"
+      android:taskAffinity=""
+      android:launchMode="singleInstance"
+      android:screenOrientation="portrait"
+      android:enableOnBackInvokedCallback="true"
+      android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|fontScale|density|keyboard|keyboardHidden"
+      android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+
+    <!--
       specialUse: o texto da property é lido por um revisor do Google Play, por
       isso em inglês (rascunho em docs/rascunhos/play-console-justificativas.md,
       seção 2).
@@ -63,7 +81,7 @@
       android:foregroundServiceType="specialUse">
       <property
         android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-        android:value="Monitors, on the device only, how long the user has used apps that the user personally chose, and shows a reminder when the daily limit the user set is reached. Runs continuously because usage can start at any time. No usage data leaves the device." />
+        android:value="Monitors, on the device only, how long the user has used apps that the user personally chose, including apps the user marked as risky. When the limit the user set is reached, it shows a reminder and, if the user keeps using that app, a full-screen pause screen identified as this app, where the user chooses to go to the home screen, open a support flow or continue. Runs continuously because usage can start at any time. No usage data leaves the device." />
     </service>
   </application>
 </manifest>

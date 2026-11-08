@@ -46,10 +46,13 @@ class VectorsTest {
       moderation = (0 until moderation.length()).map {
         val rule = moderation.getJSONObject(it)
         val targets = rule.getJSONArray("targets")
+        val today = rule.optJSONObject("todayLimit")
         MomentRules.ModerationRule(
           rule.getInt("compulsionId"),
           (0 until targets.length()).map { i -> targets.getString(i) },
           rule.getLong("limitMinutes") * minute,
+          today?.getString("day"),
+          today?.let { it.getLong("minutes") * minute },
         )
       },
       risk = (0 until risk.length()).map {
@@ -134,6 +137,11 @@ class VectorsTest {
             MomentRules.shown(state, shown.getInt("compulsionId"), shown.getString("day"))
           }
 
+          step.has("exited") -> {
+            val exited = step.getJSONObject("exited")
+            MomentRules.exited(state, epoch + exited.getLong("t") * 1000, exited.getString("day"))
+          }
+
           step.has("respond") -> {
             val respond = step.getJSONObject("respond")
             actions = MomentRules.respond(
@@ -170,14 +178,14 @@ class VectorsTest {
     val json = JSONObject(
       """
       {
-        "moderationRules": [{ "compulsionId": 3, "targetIds": ["a", "b"], "dailyLimitMinutes": 45 }],
+        "moderationRules": [{ "compulsionId": 3, "targetIds": ["a", "b"], "dailyLimitMinutes": 45, "limitToday": { "dayKey": "2026-11-08", "minutes": 30 } }],
         "riskAppRules": [{ "compulsionId": 2, "targetId": "c", "dailyLimitMinutes": 10, "interruption": false }]
       }
       """.trimIndent(),
     )
     assertEquals(
       MomentRules.Config(
-        listOf(MomentRules.ModerationRule(3, listOf("a", "b"), 45 * minute)),
+        listOf(MomentRules.ModerationRule(3, listOf("a", "b"), 45 * minute, "2026-11-08", 30 * minute)),
         listOf(MomentRules.RiskRule(2, "c", 10 * minute, false)),
       ),
       MomentRules.configFrom(json),
@@ -185,6 +193,7 @@ class VectorsTest {
     // Ferramenta de teste: todos os limites com o mesmo valor.
     val test = MomentRules.configFrom(json, testLimitMinutes = 1)
     assertEquals(minute, test.moderation[0].limitMs)
+    assertEquals(minute, test.moderation[0].limitOn("2026-11-08"))
     assertEquals(minute, test.risk[0].limitMs)
   }
 }

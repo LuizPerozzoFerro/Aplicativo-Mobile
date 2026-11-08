@@ -14,7 +14,8 @@ import android.os.IBinder
  * apps", e o `dataSync` tem teto de 6 horas por dia desde o Android 15 (A2 do
  * protótipo). A justificativa em inglês está no manifesto do módulo.
  *
- * A cada verificação roda as regras do momento (`MomentRunner`, passo 3).
+ * A cada verificação roda as regras do momento (`MomentRunner`) e, se for o
+ * caso, mostra a tela de interrupção (`InterruptionPresenter`).
  *
  * O processo pode morrer a qualquer momento e o sistema recria o serviço
  * (`START_STICKY`, I-31): tudo o que importa vai para `MonitoringState`.
@@ -82,6 +83,7 @@ class MonitoringService : Service() {
 
     isRunning = true
     MonitoringState.recordServiceStart(this, System.currentTimeMillis())
+    MomentRunner.onServiceStart(this)
 
     // A leitura percorre os eventos de uso: fora da thread principal, para não
     // arriscar um ANR.
@@ -105,6 +107,7 @@ class MonitoringService : Service() {
   }
 
   override fun onDestroy() {
+    InterruptionPresenter.close(this)
     handler?.removeCallbacks(check)
     thread?.quitSafely()
     thread = null

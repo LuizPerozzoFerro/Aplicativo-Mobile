@@ -46,6 +46,16 @@ object ConfigValidation {
   private val REQUIRED_TEXTS = mapOf(
     "channels" to listOf("tracking", "alerts", "reminders"),
     "ongoing" to listOf("title", "text"),
+    "interruption" to listOf(
+      "brand",
+      "title",
+      "motivationLabel",
+      "emergency",
+      "home",
+      "continue",
+      "ignoreToday",
+      "endOfDayWarning",
+    ),
   )
 
   fun parse(json: String): JSONObject? {
@@ -62,6 +72,8 @@ object ConfigValidation {
       val values = texts.optJSONObject(group) ?: return null
       if (keys.any { values.optString(it).isBlank() }) return null
     }
+    val phrases = texts.getJSONObject("interruption").optJSONArray("phrases")
+    if (phrases == null || phrases.length() == 0) return null
     return config
   }
 }

@@ -107,6 +107,12 @@ export const userCompulsions = sqliteTable(
      * a validação fica no domínio e no repositório.
      */
     initialStreakDays: integer('initial_streak_days'),
+    /**
+     * Aumento do limite pelo Perfil: só vale no dia seguinte (src/domain/dailyLimit.ts).
+     * Nulos sem aumento pendente. Sem CHECK, pelo mesmo motivo do campo acima.
+     */
+    previousDailyLimitMinutes: integer('previous_daily_limit_minutes'),
+    dailyLimitRaisedOn: text('daily_limit_raised_on'),
   },
   (table) => [
     uniqueIndex('user_compulsions_type_unique').on(table.type),

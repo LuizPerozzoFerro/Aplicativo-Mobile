@@ -438,6 +438,113 @@
       ]
     },
     {
+      "name": "a tela saiu sem resposta (chamada): só a carência, sem pausa e sem contar resposta",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.clips", "com.example.feed"],
+            "limitMinutes": 45
+          }
+        ],
+        "risk": []
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        },
+        {
+          "shown": {
+            "t": 21,
+            "day": "2026-11-07",
+            "compulsionId": 3
+          },
+          "expect": []
+        },
+        {
+          "exited": {
+            "t": 30,
+            "day": "2026-11-07"
+          },
+          "expect": [],
+          "state": {
+            "3": {
+              "interruptions": 1,
+              "continues": 0,
+              "stopped": false
+            }
+          }
+        },
+        {
+          "tick": {
+            "t": 32,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 33,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 46
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "show_interruption",
+              "compulsionId": 3,
+              "target": "com.example.clips",
+              "canIgnore": false,
+              "warnsEndOfDay": false
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "emergência: não conta como resposta e não pausa",
       "config": {
         "moderation": [
@@ -2653,7 +2760,7 @@
       ]
     },
     {
-      "name": "limite aumentado no meio do dia: sem nova tela nem novo aviso até passar do novo limite",
+      "name": "aumentar o limite: hoje segue o limite antigo, sem novo aviso; amanhã vale o novo",
       "config": {
         "moderation": [
           {
@@ -2684,6 +2791,22 @@
           ]
         },
         {
+          "config": {
+            "moderation": [
+              {
+                "compulsionId": 3,
+                "targets": ["com.example.clips", "com.example.feed"],
+                "limitMinutes": 60,
+                "todayLimit": {
+                  "day": "2026-11-07",
+                  "minutes": 45
+                }
+              }
+            ],
+            "risk": []
+          }
+        },
+        {
           "tick": {
             "t": 20,
             "day": "2026-11-07",
@@ -2704,21 +2827,9 @@
           ]
         },
         {
-          "config": {
-            "moderation": [
-              {
-                "compulsionId": 3,
-                "targets": ["com.example.clips", "com.example.feed"],
-                "limitMinutes": 60
-              }
-            ],
-            "risk": []
-          }
-        },
-        {
           "tick": {
-            "t": 40,
-            "day": "2026-11-07",
+            "t": 100,
+            "day": "2026-11-08",
             "usage": {
               "com.example.clips": 46
             },
@@ -2729,10 +2840,134 @@
         },
         {
           "tick": {
-            "t": 60,
-            "day": "2026-11-07",
+            "t": 120,
+            "day": "2026-11-08",
             "usage": {
               "com.example.clips": 60
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "aumentar o limite antes de atingi-lo: o aviso vem no limite antigo",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.clips", "com.example.feed"],
+            "limitMinutes": 60,
+            "todayLimit": {
+              "day": "2026-11-07",
+              "minutes": 45
+            }
+          }
+        ],
+        "risk": []
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 44
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": []
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 45
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "diminuir o limite vale na hora",
+      "config": {
+        "moderation": [
+          {
+            "compulsionId": 3,
+            "targets": ["com.example.clips", "com.example.feed"],
+            "limitMinutes": 45
+          }
+        ],
+        "risk": []
+      },
+      "steps": [
+        {
+          "tick": {
+            "t": 0,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 30
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": []
+        },
+        {
+          "config": {
+            "moderation": [
+              {
+                "compulsionId": 3,
+                "targets": ["com.example.clips", "com.example.feed"],
+                "limitMinutes": 30
+              }
+            ],
+            "risk": []
+          }
+        },
+        {
+          "tick": {
+            "t": 20,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 30
+            },
+            "foreground": "com.example.clips",
+            "blocked": false
+          },
+          "expect": [
+            {
+              "type": "limit_reached",
+              "compulsionId": 3,
+              "target": null
+            }
+          ]
+        },
+        {
+          "tick": {
+            "t": 40,
+            "day": "2026-11-07",
+            "usage": {
+              "com.example.clips": 30
             },
             "foreground": "com.example.clips",
             "blocked": false

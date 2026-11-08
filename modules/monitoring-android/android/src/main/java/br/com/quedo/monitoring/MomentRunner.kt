@@ -71,11 +71,23 @@ object MomentRunner {
       UsageReader.launcherPackages(context),
     )
 
+    val foreground = usage.foreground()
+    InterruptionPresenter.onCheck(
+      context,
+      foreground,
+      (config.moderation.flatMap { it.targets } + config.risk.map { it.target }).toSet(),
+    )
+    // Sem a sobreposição, fica só a notificação (spec 03, 5.3).
+    val blocked = InterruptionPresenter.isBusy ||
+      !InterruptionPresenter.canAttempt(now) ||
+      InterruptionPresenter.isInCall(context) ||
+      !Permissions.canDrawOverlays(context)
+
     val rules = loadRules(context)
     val actions = MomentRules.tick(
       config,
       rules,
-      MomentRules.Tick(now, dayKey, usage.totals(), usage.foreground(), blocked = false),
+      MomentRules.Tick(now, dayKey, usage.totals(), foreground, blocked),
     )
 
     val editor = prefs(context).edit()
@@ -89,16 +101,23 @@ object MomentRunner {
           mapOf("compulsionId" to action.compulsionId, "targetId" to action.target),
         )
 
-        is MomentRules.Action.ShowInterruption -> editor.putString(
-          KEY_LAST_SHOW,
-          JSONObject()
-            .put("at", now)
-            .put("compulsionId", action.compulsionId)
-            .put("target", action.target)
-            .put("canIgnore", action.canIgnore)
-            .put("warnsEndOfDay", action.warnsEndOfDay)
-            .toString(),
-        )
+        is MomentRules.Action.ShowInterruption -> {
+          editor.putString(
+            KEY_LAST_SHOW,
+            JSONObject()
+              .put("at", now)
+              .put("compulsionId", action.compulsionId)
+              .put("target", action.target)
+              .put("canIgnore", action.canIgnore)
+              .put("warnsEndOfDay", action.warnsEndOfDay)
+              .toString(),
+          )
+          InterruptionPresenter.show(
+            context,
+            action,
+            InterruptionContent.from(configJson, action, rules.peek(action.compulsionId).interruptions),
+          )
+        }
 
         is MomentRules.Action.DayFailed -> EventStore.append(
           context,
@@ -108,6 +127,93 @@ object MomentRunner {
       }
     }
     editor.apply()
+  }
+
+  private fun save(context: Context, rules: MomentRules.State, usage: UsageAccumulator) {
+    prefs(context).edit()
+      .putString(KEY_RULES, rules.toJson().toString())
+      .putString(KEY_USAGE, usage.toJson().toString())
+      .apply()
+  }
+
+  /** A tela de fato apareceu (I-28). Conta, para de medir o uso e devolve o id do evento. */
+  @Synchronized
+  fun onShown(context: Context, compulsionId: Int, target: String): String {
+    val now = System.currentTimeMillis()
+    val rules = loadRules(context)
+    val usage = loadUsage(context, now, DayBoundary.startOfDay(now))
+    MomentRules.shown(rules, compulsionId, DayBoundary.dayKey(now))
+    usage.suspend(now)
+    save(context, rules, usage)
+    return EventStore.append(
+      context,
+      "interruption_shown",
+      mapOf("compulsionId" to compulsionId, "targetId" to target),
+    )
+  }
+
+  /** Um botão da tela. */
+  @Synchronized
+  fun respond(context: Context, compulsionId: Int, interruptionId: String?, response: String) {
+    val configJson = ConfigStore.get(context) ?: return
+    val now = System.currentTimeMillis()
+    val dayKey = DayBoundary.dayKey(now)
+    val rules = loadRules(context)
+    val usage = loadUsage(context, now, DayBoundary.startOfDay(now))
+    val actions = MomentRules.respond(
+      MomentRules.configFrom(configJson, testLimit(context)),
+      rules,
+      compulsionId,
+      response,
+      now,
+      dayKey,
+    )
+    usage.resume(now)
+    save(context, rules, usage)
+
+    if (interruptionId != null) {
+      EventStore.append(
+        context,
+        "interruption_response",
+        mapOf(
+          "interruptionId" to interruptionId,
+          "compulsionId" to compulsionId,
+          "response" to response,
+        ),
+      )
+    }
+    if (response == "emergency") {
+      EventStore.append(context, "emergency_requested", mapOf("source" to "interruption"))
+    }
+    for (action in actions) {
+      if (action is MomentRules.Action.DayFailed) {
+        EventStore.append(
+          context,
+          "day_failed",
+          mapOf("compulsionId" to action.compulsionId, "reason" to action.reason),
+        )
+      }
+    }
+  }
+
+  /** A tela saiu sem resposta: chamada, ou o usuário foi embora. */
+  @Synchronized
+  fun onDismissed(context: Context) {
+    val now = System.currentTimeMillis()
+    val rules = loadRules(context)
+    val usage = loadUsage(context, now, DayBoundary.startOfDay(now))
+    MomentRules.exited(rules, now, DayBoundary.dayKey(now))
+    usage.resume(now)
+    save(context, rules, usage)
+  }
+
+  /** O serviço nasceu: se o processo morreu com a tela aberta, o uso volta a contar. */
+  @Synchronized
+  fun onServiceStart(context: Context) {
+    val now = System.currentTimeMillis()
+    val usage = loadUsage(context, now, DayBoundary.startOfDay(now))
+    usage.resume(now)
+    prefs(context).edit().putString(KEY_USAGE, usage.toJson().toString()).apply()
   }
 
   /** O estado de hoje, em JSON, para a tela de desenvolvimento. */
