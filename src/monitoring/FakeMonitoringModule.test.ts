@@ -2,7 +2,7 @@ import { getPreselectedPackages, isSuggestedPackage } from '@/domain/suggestedAp
 
 import { FAKE_TARGETS, FakeMonitoringModule } from './FakeMonitoringModule';
 import { getMonitoring } from './index';
-import { MonitoringError, UNSUPPORTED, asTargetId, type UsageRule } from './types';
+import { MonitoringError, UNSUPPORTED, asTargetId } from './types';
 
 // Fuso de São Paulo (jest.global-setup.js). 15/03/2026, 23:50 local.
 const LATE_NIGHT = new Date('2026-03-16T02:50:00.000Z');
@@ -10,14 +10,6 @@ const NEXT_MORNING = new Date('2026-03-16T12:00:00.000Z');
 
 const clips = asTargetId('com.example.clips');
 const feed = asTargetId('com.example.feed');
-
-const rule = (overrides: Partial<UsageRule> = {}): UsageRule => ({
-  id: 'videos',
-  targetIds: [clips, feed],
-  dailyLimitMinutes: 30,
-  interruption: true,
-  ...overrides,
-});
 
 function createAndroid(now: () => Date = () => LATE_NIGHT) {
   return new FakeMonitoringModule({ permissions: { usageAccess: 'granted' }, now });
@@ -104,32 +96,28 @@ describe('seleção de alvos (opaca)', () => {
   });
 });
 
-describe('limite de uso', () => {
-  it('liga, informa as regras e desliga', async () => {
+describe('serviço', () => {
+  it('liga, informa o estado e desliga', async () => {
     const monitoring = createAndroid();
-    await monitoring.startUsageLimit({ rules: [rule()] });
-    expect(await monitoring.getUsageLimitStatus()).toEqual({ active: true, rules: [rule()] });
-    await monitoring.stopUsageLimit();
-    expect(await monitoring.getUsageLimitStatus()).toEqual({ active: false });
+    await monitoring.startMonitoring();
+    expect(await monitoring.getServiceStatus()).toMatchObject({ active: true, running: true });
+    await monitoring.stopMonitoring();
+    expect(await monitoring.getServiceStatus()).toMatchObject({ active: false, running: false });
   });
 
   it('sem acesso ao uso, recusa com erro explícito', async () => {
     const monitoring = new FakeMonitoringModule();
-    await expect(monitoring.startUsageLimit({ rules: [rule()] })).rejects.toMatchObject({
+    await expect(monitoring.startMonitoring()).rejects.toMatchObject({
       code: 'permission_required',
     });
     await expect(monitoring.getUsageToday()).rejects.toBeInstanceOf(MonitoringError);
   });
 
-  it.each([
-    ['limite zero', [rule({ dailyLimitMinutes: 0 })]],
-    ['limite fracionado', [rule({ dailyLimitMinutes: 1.5 })]],
-    ['regra sem apps', [rule({ targetIds: [] })]],
-    ['regra repetida', [rule(), rule()]],
-  ])('recusa configuração inválida: %s', async (_name, rules) => {
-    await expect(createAndroid().startUsageLimit({ rules })).rejects.toMatchObject({
-      code: 'invalid_config',
-    });
+  it('serviço morto continua ligado, mas sem rodar', async () => {
+    const monitoring = createAndroid();
+    await monitoring.startMonitoring();
+    monitoring.simulateServiceStopped();
+    expect(await monitoring.getServiceStatus()).toMatchObject({ active: true, running: false });
   });
 });
 
@@ -217,14 +205,14 @@ describe('configuração e eventos (spec 03, 4.2 e 4.3)', () => {
     expect((await monitoring.getPendingEvents()).events).toEqual([second]);
   });
 
-  it('reset apaga configuração, regras e eventos', async () => {
+  it('reset apaga configuração e eventos e desliga o serviço', async () => {
     const monitoring = createAndroid();
     await monitoring.configure(config);
-    await monitoring.startUsageLimit({ rules: [rule()] });
+    await monitoring.startMonitoring();
     monitoring.simulateEvent({ type: 'service_started', origin: 'boot' });
     await monitoring.reset();
     expect(monitoring.getLastConfig()).toBeNull();
-    expect(await monitoring.getUsageLimitStatus()).toEqual({ active: false });
+    expect(await monitoring.getServiceStatus()).toMatchObject({ active: false, running: false });
     expect((await monitoring.getPendingEvents()).events).toEqual([]);
   });
 });
@@ -233,7 +221,6 @@ describe('uso de hoje', () => {
   it('soma por app e zera na virada da meia-noite', async () => {
     let now = LATE_NIGHT;
     const monitoring = createAndroid(() => now);
-    await monitoring.startUsageLimit({ rules: [rule({ dailyLimitMinutes: 25 })] });
     monitoring.simulateUsage(clips, 15);
     monitoring.simulateUsage(clips, 5);
     monitoring.simulateUsage(feed, 2);

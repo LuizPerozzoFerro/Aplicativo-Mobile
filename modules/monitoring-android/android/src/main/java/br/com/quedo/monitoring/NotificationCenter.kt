@@ -210,7 +210,7 @@ object NotificationCenter {
     recordSent(context, if (target == null) "limit" else "risk_app")
   }
 
-  /** Proteção pausada: no máximo uma por dia por motivo. Quem chama é a vigilância (passo 7). */
+  /** Proteção pausada: no máximo uma por dia por motivo. Quem chama é `ProtectionWatch`. */
   @Synchronized
   fun notifyProtectionPaused(context: Context, reason: String) {
     val config = ConfigStore.get(context) ?: return
@@ -259,10 +259,11 @@ object NotificationCenter {
   }
 }
 
-/** O alarme do próximo lembrete. */
+/** O alarme do próximo lembrete. Também confere o serviço, que pode ter parado sem aviso. */
 class NotificationAlarmReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
     NotificationCenter.run(context)
+    ProtectionWatch.run(context)
   }
 }
 

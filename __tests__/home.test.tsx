@@ -1,6 +1,7 @@
 import { userEvent } from '@testing-library/react-native';
 import { renderRouter, screen, waitFor, within } from 'expo-router/testing-library';
-import { Alert } from 'react-native';
+import { act } from '@testing-library/react-native';
+import { Alert, AppState } from 'react-native';
 
 import type { DatabaseState } from '@/data/bootstrap';
 import { createRepositories, type Repositories } from '@/data/repositories';
@@ -64,6 +65,8 @@ beforeEach(async () => {
   mockRepositories = createRepositories((await createTestDatabase()).db);
   mockMonitoring = new FakeMonitoringModule();
   onboardingStatus.setCompleted(true);
+  // O mock do React Native não define o estado; o serviço só liga com o app na tela.
+  Object.defineProperty(AppState, 'currentState', { value: 'active', configurable: true });
 });
 afterEach(() => jest.restoreAllMocks());
 
@@ -306,5 +309,169 @@ describe('card de vídeos curtos', () => {
     expect(
       notifications.getByText('Não permitido agora. Dá para permitir quando quiser, nesta tela.'),
     ).toBeOnTheScreen();
+  });
+});
+
+const GRANTED_ALL = {
+  usageAccess: 'granted',
+  notifications: 'granted',
+  overlay: 'granted',
+} as const;
+
+describe('aviso de proteção (doc 01, 6.1 e 6.10)', () => {
+  it('sem compulsão, nada faz falta e o aviso não aparece', async () => {
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+    await screen.findByTestId('home-empty');
+    await act(async () => {});
+    expect(screen.queryByTestId('home-protection')).not.toBeOnTheScreen();
+  });
+
+  it('com tudo funcionando, o aviso não aparece', async () => {
+    addVideos();
+    mockRepositories.settings.setOnboardingCompleted(true);
+    mockMonitoring = new FakeMonitoringModule({ permissions: GRANTED_ALL });
+    const start = jest.spyOn(mockMonitoring, 'startMonitoring');
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+    await (await videosCard()).findByText('0 min de 60 hoje');
+    await waitFor(() => expect(start).toHaveBeenCalled());
+    await act(async () => {});
+    expect(screen.queryByTestId('home-protection')).not.toBeOnTheScreen();
+  });
+
+  it('diz o que parou e leva à tela de estado', async () => {
+    addVideos();
+    mockRepositories.settings.setOnboardingCompleted(true);
+    mockMonitoring = new FakeMonitoringModule({
+      permissions: { notifications: 'granted', overlay: 'granted' },
+    });
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+    const notice = within(await screen.findByTestId('home-protection'));
+    expect(notice.getByText('Proteção pausada')).toBeOnTheScreen();
+    expect(
+      notice.getByText('O tempo nos apps escolhidos não está sendo acompanhado.'),
+    ).toBeOnTheScreen();
+    expect(notice.queryByText('Os lembretes e avisos não estão chegando.')).not.toBeOnTheScreen();
+    await press('Ver o que fazer');
+    await expectPath('/permission-status');
+  });
+
+  it('só de abstinência: não cobra o acesso ao uso', async () => {
+    addAdult(1);
+    mockMonitoring = new FakeMonitoringModule({ permissions: { notifications: 'denied' } });
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+    const notice = within(await screen.findByTestId('home-protection'));
+    expect(notice.getByText('Os lembretes e avisos não estão chegando.')).toBeOnTheScreen();
+    expect(
+      notice.queryByText('O tempo nos apps escolhidos não está sendo acompanhado.'),
+    ).not.toBeOnTheScreen();
+  });
+
+  it('serviço que não consegue subir aparece como parado', async () => {
+    addVideos();
+    mockRepositories.settings.setOnboardingCompleted(true);
+    mockMonitoring = new FakeMonitoringModule({ permissions: GRANTED_ALL });
+    jest.spyOn(mockMonitoring, 'startMonitoring').mockRejectedValue(new Error('falhou'));
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+    const notice = within(await screen.findByTestId('home-protection'));
+    expect(notice.getByText('O acompanhamento parou de funcionar.')).toBeOnTheScreen();
+  });
+});
+
+describe('estado do monitoramento (/permission-status)', () => {
+  const status = async () => within(await screen.findByTestId('monitoring-status'));
+
+  it('sem regra de uso: explica que não há o que acompanhar', async () => {
+    await renderRouter(APP_DIR, { initialUrl: '/permission-status' });
+    expect(await (await status()).findByText(/Nenhum app para acompanhar agora/)).toBeOnTheScreen();
+  });
+
+  it('sem o acesso ao uso: diz o que falta', async () => {
+    addVideos();
+    await renderRouter(APP_DIR, { initialUrl: '/permission-status' });
+    expect(await (await status()).findByText(/falta permitir o acesso/)).toBeOnTheScreen();
+  });
+
+  it('ativo: mostra a situação', async () => {
+    addVideos();
+    mockRepositories.settings.setOnboardingCompleted(true);
+    mockMonitoring = new FakeMonitoringModule({ permissions: GRANTED_ALL });
+    await renderRouter(APP_DIR, { initialUrl: '/permission-status' });
+    expect(await (await status()).findByText('Ativo.')).toBeOnTheScreen();
+  });
+
+  it('mostra a última verificação', async () => {
+    addVideos();
+    mockRepositories.settings.setOnboardingCompleted(true);
+    mockMonitoring = new FakeMonitoringModule({ permissions: GRANTED_ALL });
+    jest.spyOn(mockMonitoring, 'getServiceStatus').mockResolvedValue({
+      active: true,
+      running: true,
+      startRequestedAt: null,
+      lastCheckAt: new Date(2026, 10, 8, 17, 43).getTime(),
+    });
+    await renderRouter(APP_DIR, { initialUrl: '/permission-status' });
+    expect(
+      await (await status()).findByText(/Última verificação: 08\/11\/2026,? 17:43/),
+    ).toBeOnTheScreen();
+  });
+
+  it('parado: "Religar" liga de novo', async () => {
+    addVideos();
+    mockRepositories.settings.setOnboardingCompleted(true);
+    mockMonitoring = new FakeMonitoringModule({ permissions: GRANTED_ALL });
+    const start = mockMonitoring.startMonitoring.bind(mockMonitoring);
+    let failing = true;
+    jest.spyOn(mockMonitoring, 'startMonitoring').mockImplementation(async () => {
+      if (failing) throw new Error('falhou');
+      return start();
+    });
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    await renderRouter(APP_DIR, { initialUrl: '/permission-status' });
+    await (await status()).findByText(/Parado: o Android/);
+    failing = false;
+    await press('Religar o acompanhamento');
+    expect(await (await status()).findByText('Ativo.')).toBeOnTheScreen();
+  });
+
+  it('religar falhando avisa', async () => {
+    addVideos();
+    mockRepositories.settings.setOnboardingCompleted(true);
+    mockMonitoring = new FakeMonitoringModule({ permissions: GRANTED_ALL });
+    jest.spyOn(mockMonitoring, 'startMonitoring').mockRejectedValue(new Error('falhou'));
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    await renderRouter(APP_DIR, { initialUrl: '/permission-status' });
+    await (await status()).findByText(/Parado: o Android/);
+    await press('Religar o acompanhamento');
+    expect(await (await status()).findByText(/Não deu para religar/)).toBeOnTheScreen();
+  });
+
+  it('sem sobreposição: explica que ficam só as notificações', async () => {
+    addVideos();
+    mockRepositories.settings.setOnboardingCompleted(true);
+    mockMonitoring = new FakeMonitoringModule({
+      permissions: { usageAccess: 'granted', notifications: 'granted' },
+    });
+    await renderRouter(APP_DIR, { initialUrl: '/permission-status' });
+    expect(await (await status()).findByText(/sem a tela de pausa/)).toBeOnTheScreen();
+  });
+
+  it('volta dos Ajustes: lê de novo as permissões', async () => {
+    type Listener = (state: string) => void;
+    const listeners: Listener[] = [];
+    jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
+      listeners.push(listener as Listener);
+      return { remove: () => undefined };
+    });
+    mockMonitoring = new FakeMonitoringModule();
+    await renderRouter(APP_DIR, { initialUrl: '/permission-status' });
+    const usageAccess = within(await screen.findByTestId('permission-usageAccess'));
+    expect(usageAccess.queryByText('Permitido')).not.toBeOnTheScreen();
+
+    mockMonitoring.simulatePermission('usageAccess', 'granted');
+    await act(async () => {
+      listeners.forEach((listener) => listener('active'));
+    });
+    expect(await usageAccess.findByText('Permitido')).toBeOnTheScreen();
   });
 });

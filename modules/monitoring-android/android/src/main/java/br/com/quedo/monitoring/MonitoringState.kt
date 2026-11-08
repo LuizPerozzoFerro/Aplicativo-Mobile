@@ -15,6 +15,7 @@ object MonitoringState {
   private const val KEY_ACTIVE = "active"
   private const val KEY_SERVICE_STARTS = "serviceStarts"
   private const val KEY_SERVICE_STARTED_AT = "serviceStartedAt"
+  private const val KEY_START_REQUESTED_AT = "startRequestedAt"
   private const val KEY_CHECKS = "checks"
   private const val KEY_LAST_CHECK_AT = "lastCheckAt"
   private const val KEY_LAST_BOOT_AT = "lastBootAt"
@@ -34,6 +35,15 @@ object MonitoringState {
     // que pode ter acabado de nascer.
     prefs(context).edit().putBoolean(KEY_ACTIVE, active).commit()
   }
+
+  /** Pedido para ligar o serviço: dá tempo a ele antes de acusar que parou. */
+  fun recordStartRequested(context: Context, at: Long) {
+    prefs(context).edit().putLong(KEY_START_REQUESTED_AT, at).commit()
+  }
+
+  fun startRequestedAt(context: Context): Long = prefs(context).getLong(KEY_START_REQUESTED_AT, 0L)
+
+  fun lastCheckAt(context: Context): Long = prefs(context).getLong(KEY_LAST_CHECK_AT, 0L)
 
   /** Cada criação do serviço: pelo app, pelo boot ou pelo sistema depois de matá-lo. */
   fun recordServiceStart(context: Context, at: Long) {
@@ -72,6 +82,7 @@ object MonitoringState {
       "running" to MonitoringService.isRunning,
       "serviceStarts" to p.getInt(KEY_SERVICE_STARTS, 0),
       "serviceStartedAt" to p.getLong(KEY_SERVICE_STARTED_AT, 0L).takeIf { it > 0L },
+      "startRequestedAt" to p.getLong(KEY_START_REQUESTED_AT, 0L).takeIf { it > 0L },
       "checks" to p.getLong(KEY_CHECKS, 0L),
       "lastCheckAt" to p.getLong(KEY_LAST_CHECK_AT, 0L).takeIf { it > 0L },
       "lastBootAt" to p.getLong(KEY_LAST_BOOT_AT, 0L).takeIf { it > 0L },

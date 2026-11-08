@@ -9,7 +9,7 @@ import type { CompulsionType } from '@/domain/compulsion';
 import { onboardingProgress } from '@/features/onboarding/onboardingProgress';
 import { onboardingStatus } from '@/features/onboarding/onboardingStatus';
 import { useTriggerLabels } from '@/features/onboarding/useTriggerLabels';
-import { getMonitoringSync } from '@/monitoring';
+import { getMonitoring } from '@/monitoring';
 import { confirmDialog, ListItem, Screen, Text, useTheme } from '@/ui';
 
 function load() {
@@ -72,7 +72,7 @@ export function ProfileScreen() {
     // Primeiro o nativo (configuração, estado e eventos ainda não importados,
     // spec 03, 4.4), para nenhum evento antigo voltar ao banco vazio.
     try {
-      await getMonitoringSync().reset();
+      await getMonitoring().reset();
     } catch {
       console.error('Monitoramento: falha ao apagar os dados do nativo');
     }

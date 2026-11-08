@@ -28,6 +28,7 @@ const STOPPED: NativeServiceStatus = {
   running: false,
   serviceStarts: 0,
   serviceStartedAt: null,
+  startRequestedAt: null,
   checks: 0,
   lastCheckAt: null,
   lastBootAt: null,
@@ -71,6 +72,7 @@ function fakeNative(usageAccess: boolean): jest.Mocked<QuedoMonitoringNativeModu
       service = { ...service, active: false, running: false };
     }),
     getServiceStatus: jest.fn(() => service),
+    checkProtection: jest.fn(async () => undefined),
     configure: jest.fn(async (_json: string) => undefined),
     getConfig: jest.fn(() => config),
     getMomentStatus: jest.fn(() => JSON.stringify(moment)),

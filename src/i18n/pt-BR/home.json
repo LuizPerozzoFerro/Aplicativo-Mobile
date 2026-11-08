@@ -1,5 +1,13 @@
 {
   "emergency": "Emergência",
+  "protection": {
+    "title": "Proteção pausada",
+    "notifications": "Os lembretes e avisos não estão chegando.",
+    "usageAccess": "O tempo nos apps escolhidos não está sendo acompanhado.",
+    "overlay": "A tela de pausa não pode aparecer sobre os outros apps.",
+    "service": "O acompanhamento parou de funcionar.",
+    "action": "Ver o que fazer"
+  },
   "streak_zero": "0 dias",
   "streak_one": "{{count}} dia",
   "streak_other": "{{count}} dias",

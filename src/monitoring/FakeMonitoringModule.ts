@@ -10,6 +10,7 @@ import {
   type MonitoringEvent,
   type MonitoringModule,
   type MonitoringPlatform,
+  type MonitoringServiceStatus,
   type MonitoringTarget,
   type PermissionKind,
   type PermissionState,
@@ -17,9 +18,6 @@ import {
   type TargetId,
   type Unsupported,
   type UsageEntry,
-  type UsageLimitConfig,
-  type UsageLimitStatus,
-  type UsageRule,
 } from './types';
 
 // Implementação falsa (spec 01, seção 4.8): simula permissões, uso e eventos em
@@ -79,7 +77,12 @@ export class FakeMonitoringModule implements MonitoringModule {
   private readonly grantOnRequest: boolean;
   private readonly targets: readonly MonitoringTarget[];
   private readonly now: () => Date;
-  private rules: readonly UsageRule[] | null = null;
+  private service: MonitoringServiceStatus = {
+    active: false,
+    running: false,
+    startRequestedAt: null,
+    lastCheckAt: null,
+  };
   private usage: UsageSample[] = [];
   private events: MonitoringEvent[] = [];
   private config: MonitoringConfig | null = null;
@@ -121,19 +124,21 @@ export class FakeMonitoringModule implements MonitoringModule {
       : UNSUPPORTED;
   }
 
-  async startUsageLimit(config: UsageLimitConfig): Promise<void> {
+  async startMonitoring(): Promise<void> {
     this.requirePermission('usageAccess');
-    validateRules(config.rules);
-    this.rules = config.rules;
+    this.service = { ...this.service, active: true, running: true };
   }
 
-  async stopUsageLimit(): Promise<void> {
-    this.rules = null;
+  async stopMonitoring(): Promise<void> {
+    this.service = { ...this.service, active: false, running: false };
   }
 
-  async getUsageLimitStatus(): Promise<UsageLimitStatus> {
-    return this.rules ? { active: true, rules: this.rules } : { active: false };
+  async getServiceStatus(): Promise<MonitoringServiceStatus> {
+    return { ...this.service };
   }
+
+  /** No falso, a perda já é gravada em `simulatePermission`. */
+  async checkProtection(): Promise<void> {}
 
   async getUsageToday(): Promise<UsageEntry[] | Unsupported> {
     if (this.platform === 'ios') return UNSUPPORTED;
@@ -170,7 +175,7 @@ export class FakeMonitoringModule implements MonitoringModule {
   }
 
   async reset(): Promise<void> {
-    this.rules = null;
+    this.service = { ...this.service, active: false, running: false };
     this.config = null;
     this.events = [];
   }
@@ -187,6 +192,11 @@ export class FakeMonitoringModule implements MonitoringModule {
       this.record({ type: 'permission_lost', permission: kind });
     }
     this.permissions[kind] = state;
+  }
+
+  /** O serviço morreu sem ninguém pedir: continua "ligado", mas sem rodar. */
+  simulateServiceStopped(): void {
+    this.service = { ...this.service, running: false };
   }
 
   /** Soma uso a um app, para o `getUsageToday`. As regras do momento são do nativo (passo 3). */
@@ -225,21 +235,5 @@ export class FakeMonitoringModule implements MonitoringModule {
   private samplesToday(): UsageSample[] {
     const { start, end } = getDayBounds(this.now());
     return this.usage.filter((sample) => sample.at >= start.getTime() && sample.at < end.getTime());
-  }
-}
-
-function validateRules(rules: readonly UsageRule[]): void {
-  const ids = new Set<string>();
-  for (const rule of rules) {
-    if (ids.has(rule.id)) {
-      throw new MonitoringError('invalid_config', 'Regra de limite repetida');
-    }
-    ids.add(rule.id);
-    if (rule.targetIds.length === 0) {
-      throw new MonitoringError('invalid_config', 'Regra de limite sem apps');
-    }
-    if (!Number.isInteger(rule.dailyLimitMinutes) || rule.dailyLimitMinutes <= 0) {
-      throw new MonitoringError('invalid_config', 'Limite diário precisa ser um inteiro positivo');
-    }
   }
 }

@@ -27,8 +27,8 @@ class BootReceiver : BroadcastReceiver() {
     val now = System.currentTimeMillis()
     val result = when {
       !MonitoringState.isActive(context) -> MonitoringState.BootResult.INACTIVE
-      // Sem acesso ao uso o serviço não tem o que fazer. A vigilância das
-      // permissões (passo 7) avisa o usuário.
+      // Sem acesso ao uso o serviço não tem o que fazer. `ProtectionWatch`,
+      // logo abaixo, avisa o usuário.
       !Permissions.hasUsageAccess(context) -> MonitoringState.BootResult.NO_USAGE_ACCESS
       runCatching {
         val origin = if (action == Intent.ACTION_BOOT_COMPLETED) {
@@ -42,5 +42,6 @@ class BootReceiver : BroadcastReceiver() {
       else -> MonitoringState.BootResult.FAILED
     }
     MonitoringState.recordBoot(context, now, result)
+    ProtectionWatch.run(context)
   }
 }

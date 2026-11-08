@@ -59,12 +59,8 @@ function restartInput(repositories: Repositories, compulsion: UserCompulsion): R
   return { startedAt: compulsion.startedAt, breaks };
 }
 
-export function buildMonitoringConfig(
-  repositories: Repositories,
-  texts: MonitoringTexts,
-  now: Date,
-  links: MonitoringConfig['links'],
-): MonitoringConfig {
+/** Compulsões ativas e as regras de uso delas: base da configuração e do que faz falta. */
+export function buildUsageRules(repositories: Repositories, now: Date) {
   // Compulsão pausada não tem regras nem notificações.
   const active = repositories.compulsions.list().filter((item) => item.status === 'active');
 
@@ -102,6 +98,17 @@ export function buildMonitoringConfig(
       }
     }
   }
+
+  return { compulsions: active, moderationRules, riskAppRules };
+}
+
+export function buildMonitoringConfig(
+  repositories: Repositories,
+  texts: MonitoringTexts,
+  now: Date,
+  links: MonitoringConfig['links'],
+): MonitoringConfig {
+  const { compulsions: active, moderationRules, riskAppRules } = buildUsageRules(repositories, now);
 
   const triggers = repositories.triggers.list();
   const ranges = triggers
