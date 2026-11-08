@@ -12,9 +12,9 @@ do protótipo continua em `prototype/NOTAS.md`.
   integrados (PR #21). Seção "Fase 4 · Leitura da spec 03".
 - **Passo 1 (base nativa)** integrado (PR #22). Seção "Fase 4 · Passo 1".
 - **Passo 2 (configuração e eventos)** integrado (PR #23). Seção "Fase 4 · Passo 2".
-- **Passo 3 (regras do momento)** pronto para revisão no PR da branch
-  `fase4/regras`. Seção "Fase 4 · Passo 3". Próximo: passo 4 (tela de
-  interrupção), com a nova justificativa do `specialUse`.
+- **Passo 3 (regras do momento)** integrado (PR #24). Seção "Fase 4 · Passo 3".
+- **Passo 4 (tela de interrupção)** em andamento na branch
+  `fase4/tela-interrupcao`. Seção "Fase 4 · Passo 4".
 
 ---
 
@@ -2472,14 +2472,16 @@ rodar, `src/domain/momentRules.ts` repete as regras. **Não entra no bundle:
 nenhum código do app importa esse arquivo.** Os vetores são o que impede as duas
 versões de divergirem.
 
-### Interpretações da spec (a confirmar na revisão)
+### Interpretações da spec
+
+Casos 1, 2, 3, 5 e 6 aprovados pelo responsável na revisão do PR #24 (08/11/2026); o 4 mudou.
 
 | Caso | O que ficou | Por quê |
 |---|---|---|
 | App nas duas listas, a primeira compulsão em pausa | A outra não entra no lugar | A spec só libera a outra quando a primeira "para de interromper" (dia reprovado, alertas ou telas encerradas); pausa não é isso |
 | App nas duas listas, app de risco **não declarado** atingiu primeiro | A tela é da moderação | Quem nunca gera tela não "interrompe": senão, ninguém interromperia |
 | As duas atingem o limite na mesma verificação | Vale o menor id de compulsão | A spec não define; precisava ser determinístico nos dois lados |
-| Limite aumentado no meio do dia | Sem tela até passar do novo limite, e sem novo aviso quando passar | O aviso é "uma vez no dia" |
+| Limite aumentado no meio do dia | **Mudou na revisão do PR #24:** ver "Aumento do limite só vale no dia seguinte", no passo 4 | |
 | Abstinência, 3º "Continuar" | Encerra as telas, mas os avisos de 10 min de outros apps de risco seguem | A spec encerra só "a tela" |
 | Aviso de que o 3º "Continuar" encerra a meta | Só na moderação | Está só na tabela da moderação |
 
@@ -2528,6 +2530,36 @@ sem ele, conferir a regra exigiria 45 minutos de uso real.
   Resolvido pelo procedimento registrado (matar o `adb.exe`, `adb start-server`,
   `adb install -r`).
 - O AP5 não voltou com o Metro parado antes do build.
+
+## Fase 4 · Passo 4 · Tela de interrupção (08/11/2026)
+
+Branch `fase4/tela-interrupcao`.
+
+### Aumento do limite só vale no dia seguinte (decisão do responsável, 08/11/2026)
+
+Revisão do PR #24: aumentar o limite de vídeos curtos só vale a partir do dia
+seguinte; diminuir vale na hora. Na tela de edição, um aumento mostra "O novo
+limite começa a valer amanhã.".
+
+- **Por quê:** sem isso, aumentar o limite seria um jeito de escapar do alerta do
+  dia.
+- **Regra** (`src/domain/dailyLimit.ts`, testada): um valor maior que o limite
+  **em vigor hoje** é aumento. Aumentar duas vezes no dia mantém o limite da
+  manhã. Reduzir abaixo do de hoje vale na hora e apaga o aumento pendente.
+  Reduzir e voltar a aumentar no mesmo dia não recupera o limite antigo.
+- **Migração 006** (`drizzle/0005_daily_limit_raise.sql`): só `ALTER TABLE ADD` em
+  `user_compulsions` (`previous_daily_limit_minutes` e `daily_limit_raised_on`).
+- **Só no Perfil:** `changeDailyLimit`. O onboarding e "Adicionar compulsão" usam
+  `setDailyLimit`, que vale na hora, porque ali não há limite anterior a proteger.
+- **Por que no banco, e não só no estado do nativo:** o Início precisa mostrar o
+  limite em vigor (no dia do aumento, ainda o antigo), e o nativo precisa virar
+  para o novo à meia-noite com o app fechado. A configuração leva os dois:
+  `dailyLimitMinutes` (o novo) e `limitToday` (dia e minutos, só no dia do
+  aumento). As regras escolhem pelo dia, sem estado a mais.
+- **Vetores:** três cenários novos (aumento depois de atingir, aumento antes de
+  atingir, redução), nas duas versões das regras.
+- **Mutação de controle:** ignorar o `limitToday` derruba testes no Jest e no
+  JUnit.
 
 ## Problemas
 

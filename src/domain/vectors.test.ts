@@ -20,7 +20,12 @@ const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 
 type VectorConfig = {
-  moderation: { compulsionId: number; targets: string[]; limitMinutes: number }[];
+  moderation: {
+    compulsionId: number;
+    targets: string[];
+    limitMinutes: number;
+    todayLimit?: { day: string; minutes: number };
+  }[];
   risk: { compulsionId: number; target: string; limitMinutes: number; interruption: boolean }[];
 };
 
@@ -43,9 +48,12 @@ type VectorScenario = { name: string; config: VectorConfig; steps: VectorStep[] 
 
 function toConfig(config: VectorConfig): MomentConfig {
   return {
-    moderation: config.moderation.map(({ limitMinutes, ...rule }) => ({
+    moderation: config.moderation.map(({ limitMinutes, todayLimit, ...rule }) => ({
       ...rule,
       limitMs: limitMinutes * MINUTE,
+      todayLimit: todayLimit
+        ? { dayKey: todayLimit.day, limitMs: todayLimit.minutes * MINUTE }
+        : null,
     })),
     risk: config.risk.map(({ limitMinutes, ...rule }) => ({
       ...rule,

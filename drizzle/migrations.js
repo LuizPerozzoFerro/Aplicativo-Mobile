@@ -6,6 +6,7 @@ import m0001 from './0001_fase3_core.sql';
 import m0002 from './0002_initial_streak_days.sql';
 import m0003 from './0003_check_in_previous_answer.sql';
 import m0004 from './0004_fase4_monitoring.sql';
+import m0005 from './0005_daily_limit_raise.sql';
 
   export default {
     journal,
@@ -14,7 +15,8 @@ import m0004 from './0004_fase4_monitoring.sql';
 m0001,
 m0002,
 m0003,
-m0004
+m0004,
+m0005
     }
   }
   

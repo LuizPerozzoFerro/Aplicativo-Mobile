@@ -81,6 +81,7 @@ describe('buildMonitoringConfig', () => {
         compulsionId: videos,
         targetIds: ['com.example.clips', 'com.example.feed'],
         dailyLimitMinutes: 45,
+        limitToday: null,
       },
     ]);
     expect(config.riskAppRules).toEqual([
@@ -97,6 +98,21 @@ describe('buildMonitoringConfig', () => {
         interruption: false,
       },
     ]);
+  });
+
+  it('no dia de um aumento, leva também o limite que continua valendo', () => {
+    const videos = addVideos();
+    repositories.compulsions.changeDailyLimit(videos, 90);
+    expect(build().moderationRules[0]).toMatchObject({
+      dailyLimitMinutes: 90,
+      limitToday: { dayKey: '2026-11-07', minutes: 45 },
+    });
+    // No dia seguinte, só o novo.
+    const tomorrow = new Date('2026-11-08T13:00:00.000Z');
+    expect(buildMonitoringConfig(repositories, TEXTS, tomorrow).moderationRules[0]).toMatchObject({
+      dailyLimitMinutes: 90,
+      limitToday: null,
+    });
   });
 
   it('dia-base da streak e último check-in por compulsão', () => {

@@ -62,14 +62,23 @@ export function getShortVideoProblem(setup: ShortVideoSetup): ShortVideoSetupPro
   });
 }
 
-/** Grava apps e limite de uma compulsão de vídeos curtos já existente. */
-export function saveShortVideoSetup(compulsionId: number, setup: ShortVideoSetup): void {
-  const repositories = getRepositories();
-  repositories.monitoredApps.replaceForCompulsion(
+function saveShortVideoApps(compulsionId: number, setup: ShortVideoSetup): void {
+  getRepositories().monitoredApps.replaceForCompulsion(
     compulsionId,
     (setup.apps ?? []).map((packageName) => ({ packageName, role: 'short_video' })),
   );
-  repositories.compulsions.setDailyLimit(compulsionId, getDailyLimit(setup));
+}
+
+/** Grava apps e limite no onboarding e ao adicionar a compulsão: o limite vale na hora. */
+export function saveShortVideoSetup(compulsionId: number, setup: ShortVideoSetup): void {
+  saveShortVideoApps(compulsionId, setup);
+  getRepositories().compulsions.setDailyLimit(compulsionId, getDailyLimit(setup));
+}
+
+/** Grava a edição pelo Perfil: aumentar o limite só vale no dia seguinte. */
+export function saveShortVideoEdit(compulsionId: number, setup: ShortVideoSetup): void {
+  saveShortVideoApps(compulsionId, setup);
+  getRepositories().compulsions.changeDailyLimit(compulsionId, getDailyLimit(setup));
 }
 
 /** Texto de cada problema da seção, para o motivo do botão. */

@@ -127,7 +127,10 @@ export type MonitoringCompulsionConfig = {
 export type ModerationRuleConfig = {
   readonly compulsionId: number;
   readonly targetIds: readonly TargetId[];
+  /** O limite escolhido, que vale a partir do dia seguinte a um aumento. */
   readonly dailyLimitMinutes: number;
+  /** No dia de um aumento, o limite que continua valendo só nele; senão, nulo. */
+  readonly limitToday: { readonly dayKey: string; readonly minutes: number } | null;
 };
 
 export type RiskAppRuleConfig = {

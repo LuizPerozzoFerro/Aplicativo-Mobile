@@ -1,5 +1,6 @@
 import type { Repositories, UserCompulsion } from '@/data/repositories';
 import { getCompulsionDefinition } from '@/domain/compulsion';
+import { getDailyLimitToday } from '@/domain/dailyLimit';
 import { toDayKey } from '@/domain/day';
 import { getPreventiveStartMinutes, RISK_APP_DAILY_LIMIT_MINUTES } from '@/domain/monitoring';
 import { getStreakBase } from '@/domain/streak';
@@ -60,10 +61,16 @@ export function buildMonitoringConfig(
         .map((app) => asTargetId(app.packageName));
       // Sem apps ou sem limite, não há o que medir.
       if (targetIds.length > 0 && compulsion.dailyLimitMinutes !== null) {
+        const dayKey = toDayKey(now);
+        const today = getDailyLimitToday(compulsion, dayKey);
         moderationRules.push({
           compulsionId: compulsion.id,
           targetIds,
           dailyLimitMinutes: compulsion.dailyLimitMinutes,
+          limitToday:
+            today !== null && today !== compulsion.dailyLimitMinutes
+              ? { dayKey, minutes: today }
+              : null,
         });
       }
     } else {

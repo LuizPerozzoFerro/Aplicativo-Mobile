@@ -15,6 +15,7 @@ const WRITES = [
   'compulsions.setStatus',
   'compulsions.setStartedAt',
   'compulsions.setDailyLimit',
+  'compulsions.changeDailyLimit',
   'compulsions.setInitialStreakDays',
   'compulsions.remove',
   'monitoredApps.add',

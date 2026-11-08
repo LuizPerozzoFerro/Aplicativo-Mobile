@@ -10,7 +10,8 @@ import {
   type TriggerKind,
 } from '@/domain/compulsion';
 import { isValidCheckInMinutes, type CheckInAnswer, type CheckInSource } from '@/domain/checkIn';
-import { fromDayKey } from '@/domain/day';
+import { applyDailyLimitChange } from '@/domain/dailyLimit';
+import { fromDayKey, toDayKey } from '@/domain/day';
 import { isValidDailyLimit, type OnboardingStep } from '@/domain/onboarding';
 import { isValidDaysAlreadyWithoutRelapse, type DayFailureReason } from '@/domain/streak';
 import { isValidTriggerValue } from '@/domain/triggers';
@@ -68,6 +69,8 @@ export type CompulsionRepository = {
   setStartedAt(id: number, startedAt: Date): void;
   /** Limite diário da moderação, somado entre os apps. */
   setDailyLimit(id: number, minutes: number): void;
+  /** Mudança pelo Perfil: aumentar só vale no dia seguinte; diminuir vale na hora. */
+  changeDailyLimit(id: number, minutes: number): void;
   /** Abstinência: dias sem recair informados no onboarding (0 = começando hoje). */
   setInitialStreakDays(id: number, days: number): void;
   /** Apaga a compulsão e, em cascata, apps, gatilhos, check-ins, recaídas e dias. */
@@ -544,9 +547,24 @@ export function createRepositories(
       setDailyLimit: (id, minutes) => {
         requireDailyLimit(requireCompulsionType(db, id), minutes);
         db.update(userCompulsions)
-          .set({ dailyLimitMinutes: minutes })
+          .set({
+            dailyLimitMinutes: minutes,
+            previousDailyLimitMinutes: null,
+            dailyLimitRaisedOn: null,
+          })
           .where(eq(userCompulsions.id, id))
           .run();
+      },
+      changeDailyLimit: (id, minutes) => {
+        requireDailyLimit(requireCompulsionType(db, id), minutes);
+        db.transaction((tx) => {
+          const current = tx.select().from(userCompulsions).where(eq(userCompulsions.id, id)).get();
+          if (!current) throw new Error('Compulsão não encontrada');
+          tx.update(userCompulsions)
+            .set(applyDailyLimitChange(current, minutes, toDayKey(now())))
+            .where(eq(userCompulsions.id, id))
+            .run();
+        });
       },
       setInitialStreakDays: (id, days) => {
         if (getCompulsionDefinition(requireCompulsionType(db, id)).mechanic !== 'abstinence') {
