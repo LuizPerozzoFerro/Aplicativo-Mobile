@@ -22,8 +22,16 @@ class EventLog(private val file: File, private val maxEvents: Int = MAX_EVENTS) 
     /**
      * Teto do arquivo. Sem o JS abrir o app por muito tempo, os mais antigos
      * saem primeiro. Com as regras da spec, um dia normal gera algumas dezenas.
+     * Os de `STREAK_EVENT_TYPES` não saem nunca: só eles podem passar do teto.
      */
     const val MAX_EVENTS = 2000
+
+    /**
+     * Eventos que mudam a streak: perder um deles mudaria a contagem do
+     * usuário sem aviso (pedido do responsável, 08/11/2026). No máximo alguns
+     * por dia, então o arquivo não cresce sem limite na prática.
+     */
+    val STREAK_EVENT_TYPES = setOf("day_failed", "check_in_answered")
   }
 
   /** Grava um evento e devolve o id. `fields` não pode ter id, at, dayKey nem type. */
@@ -37,10 +45,19 @@ class EventLog(private val file: File, private val maxEvents: Int = MAX_EVENTS) 
       .put("type", type)
     for ((key, value) in fields) event.put(key, value ?: JSONObject.NULL)
 
-    val lines = readLines() + event.toString()
-    // Acima do teto, os mais antigos saem.
-    write(if (lines.size > maxEvents) lines.takeLast(maxEvents) else lines)
+    write(withinCeiling(readLines() + event.toString()))
     return id
+  }
+
+  /** Acima do teto, saem os mais antigos, pulando os que mudam a streak. */
+  private fun withinCeiling(lines: List<String>): List<String> {
+    var excess = lines.size - maxEvents
+    if (excess <= 0) return lines
+    return lines.filter { line ->
+      val drop = excess > 0 && parse(line)?.optString("type") !in STREAK_EVENT_TYPES
+      if (drop) excess -= 1
+      !drop
+    }
   }
 
   /** Todos os eventos ainda não confirmados, como uma lista JSON, do mais antigo ao mais novo. */
