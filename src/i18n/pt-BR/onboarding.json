@@ -30,6 +30,11 @@
     "title": "Configuração",
     "body": "Ajuste cada escolha do seu jeito. Dá para mudar tudo depois, no Perfil.",
     "noAppsFound": "Nenhum app encontrado neste aparelho.",
+    "noSuggestedApps": "Nenhum dos apps mais comuns está neste aparelho.",
+    "showOtherApps": "Ver outros apps",
+    "hideOtherApps": "Recolher a lista",
+    "searchApps": "Buscar app",
+    "noSearchResults": "Nenhum app encontrado.",
     "shortVideos": {
       "heading": "Vídeos curtos e redes sociais",
       "apps": "Quais apps acompanhar?",

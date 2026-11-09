@@ -13,6 +13,7 @@ import {
 import { getPreselectedPackages } from '@/domain/suggestedApps';
 import { ChipGroup, Text, TextField, useTheme } from '@/ui';
 
+import { AppChooser } from './AppChooser';
 import type { AppTargets } from './appTargets';
 
 export type LimitChoice = number | 'other';
@@ -113,17 +114,14 @@ export function ShortVideoFields({ value, onChange, apps, showHeading = true }: 
       {showHeading ? <Text variant="heading">{t('setup.shortVideos.heading')}</Text> : null}
       <Text variant="bodyStrong">{t('setup.shortVideos.apps')}</Text>
       <Text color="textMuted">{t('setup.shortVideos.appsHint')}</Text>
-      {apps.options.length > 0 ? (
-        <ChipGroup
-          label={t('setup.shortVideos.apps')}
-          options={apps.options}
-          selected={value.apps ?? []}
-          onChange={(selected) => onChange({ ...value, apps: selected })}
-          testID="short-video-apps"
-        />
-      ) : apps.targets === null ? null : (
-        <Text color="textMuted">{t('setup.noAppsFound')}</Text>
-      )}
+      <AppChooser
+        label={t('setup.shortVideos.apps')}
+        role="short_video"
+        apps={apps}
+        selected={value.apps ?? []}
+        onChange={(selected) => onChange({ ...value, apps: selected })}
+        testID="short-video-apps"
+      />
       <Text variant="bodyStrong">{t('setup.shortVideos.limit')}</Text>
       <Text color="textMuted">{t('setup.shortVideos.limitHint')}</Text>
       <ChipGroup<LimitChoice>

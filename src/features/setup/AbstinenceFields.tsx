@@ -12,6 +12,7 @@ import {
 import { getPreselectedPackages } from '@/domain/suggestedApps';
 import { ChipGroup, Text, TextField, TimePicker, useTheme } from '@/ui';
 
+import { AppChooser } from './AppChooser';
 import type { AppTargets } from './appTargets';
 
 /**
@@ -143,26 +144,23 @@ export function AbstinenceFields({
       ) : null}
       <Text variant="bodyStrong">{t('setup.adult.riskApps')}</Text>
       <Text color="textMuted">{t('setup.adult.riskAppsHint')}</Text>
-      {apps.options.length > 0 ? (
-        <ChipGroup
-          label={t('setup.adult.riskApps')}
-          options={apps.options}
-          selected={value.riskApps ?? []}
-          onChange={(riskApps) =>
-            onChange({
-              ...value,
-              riskApps,
-              // App novo começa sem resposta; quem sai da lista perde a dele.
-              declarations: Object.fromEntries(
-                riskApps.map((id) => [id, value.declarations[id] ?? null]),
-              ),
-            })
-          }
-          testID="risk-apps"
-        />
-      ) : apps.targets === null ? null : (
-        <Text color="textMuted">{t('setup.noAppsFound')}</Text>
-      )}
+      <AppChooser
+        label={t('setup.adult.riskApps')}
+        role="risk"
+        apps={apps}
+        selected={value.riskApps ?? []}
+        onChange={(riskApps) =>
+          onChange({
+            ...value,
+            riskApps,
+            // App novo começa sem resposta; quem sai da lista perde a dele.
+            declarations: Object.fromEntries(
+              riskApps.map((id) => [id, value.declarations[id] ?? null]),
+            ),
+          })
+        }
+        testID="risk-apps"
+      />
       {(value.riskApps ?? []).map((id) => {
         const question = t('setup.adult.declare', { app: apps.labelOf(id) });
         const declared = value.declarations[id] ?? null;

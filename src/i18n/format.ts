@@ -19,6 +19,11 @@ export function formatTime(date: Date, language?: string): string {
   return new Intl.DateTimeFormat(activeLanguage(language), { timeStyle: 'short' }).format(date);
 }
 
+/** Comparador de textos no idioma ativo: acentos na ordem certa e sem separar maiúsculas. */
+export function createTextComparer(language?: string): (a: string, b: string) => number {
+  return new Intl.Collator(activeLanguage(language), { sensitivity: 'base' }).compare;
+}
+
 export function formatNumber(
   value: number,
   options: Intl.NumberFormatOptions = {},

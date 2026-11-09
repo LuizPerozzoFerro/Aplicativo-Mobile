@@ -144,9 +144,9 @@ describe('etapa 3: configuração', () => {
     setupBoth();
     await renderRouter(APP_DIR, { initialUrl: '/setup' });
     await waitFor(() =>
-      expect(checkedIn('short-video-apps')).toEqual(['Instagram', 'TikTok', 'YouTube', 'Kwai']),
+      expect(checkedIn('short-video-apps')).toEqual(['Instagram', 'Kwai', 'TikTok', 'YouTube']),
     );
-    expect(checkedIn('risk-apps')).toEqual(['X', 'Reddit']);
+    expect(checkedIn('risk-apps')).toEqual(['Reddit', 'X']);
     expect(screen.getByRole('radio', { name: '60 min' })).toBeChecked();
     expect(screen.getByRole('radio', { name: 'Estou começando hoje' })).toBeChecked();
   });
