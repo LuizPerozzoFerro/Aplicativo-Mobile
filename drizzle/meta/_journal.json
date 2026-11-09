@@ -43,6 +43,13 @@
       "when": 1794153691756,
       "tag": "0005_daily_limit_raise",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1794183728484,
+      "tag": "0006_permission_history",
+      "breakpoints": true
     }
   ]
 }

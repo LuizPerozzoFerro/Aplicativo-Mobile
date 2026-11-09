@@ -77,6 +77,20 @@ export const settings = sqliteTable(
     onboardingStep: text('onboarding_step', { enum: ONBOARDING_STEPS }),
     /** Horário do check-in em minutos desde a meia-noite (padrão 21h). */
     checkInMinutes: integer('check_in_minutes').notNull().default(DEFAULT_CHECK_IN_MINUTES),
+    /** Já esteve concedida alguma vez: separa permissão perdida de nunca concedida. */
+    usageAccessGrantedOnce: integer('usage_access_granted_once', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    notificationsGrantedOnce: integer('notifications_granted_once', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    overlayGrantedOnce: integer('overlay_granted_once', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    /** Quando o aviso "Ative o acompanhamento" do Início foi adiado pela última vez. */
+    protectionNoticeDismissedAt: integer('protection_notice_dismissed_at', {
+      mode: 'timestamp_ms',
+    }),
   },
   () => [
     // A tabela é recriada na 002: o CHECK da 001 passa a citar a coluna sem a tabela.
