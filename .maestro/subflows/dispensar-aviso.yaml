@@ -1,0 +1,13 @@
+# Adia o aviso "Ative o acompanhamento": ele empurra os cards do Início para
+# fora da tela, e o `clearState` sempre tira a permissão de notificações.
+appId: br.com.quedo.app.dev
+---
+- extendedWaitUntil:
+    visible: Ative o acompanhamento
+    timeout: 15000
+- tapOn:
+    text: Agora não
+    below: Ver o que fazer
+- extendedWaitUntil:
+    notVisible: Ative o acompanhamento
+    timeout: 10000

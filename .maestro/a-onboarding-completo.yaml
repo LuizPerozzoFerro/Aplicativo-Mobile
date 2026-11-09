@@ -54,9 +54,25 @@ name: (a) Onboarding completo com as duas opções até o Início
 - assertVisible:
     text: Reddit
     checked: true
-- assertVisible:
-    text: Instagram
-    checked: false
+
+# A lista começa recolhida. A busca ignora acentos, e recolher limpa a busca.
+- scrollUntilVisible:
+    element: Ver outros apps
+    direction: DOWN
+- tapOn: Ver outros apps
+- tapOn: Buscar app
+- inputText: camera
+- hideKeyboard
+- extendedWaitUntil:
+    visible: Câmera
+    timeout: 10000
+- assertNotVisible: Chrome
+- scrollUntilVisible:
+    element: Recolher a lista
+    direction: DOWN
+- tapOn: Recolher a lista
+- assertNotVisible: Buscar app
+
 - scrollUntilVisible:
     element: Você costuma ver esse tipo de conteúdo em X?
     direction: DOWN
@@ -156,22 +172,35 @@ name: (a) Onboarding completo com as duas opções até o Início
     direction: DOWN
 - tapOn: Continuar
 
-# Etapa 6: "Agora não" nas três permissões (modo reduzido).
+# Etapa 6: "Agora não" no que faltar (modo reduzido). O `clearState` só tira a
+# de notificações: acesso ao uso e sobreposição continuam como estavam.
 - extendedWaitUntil:
     visible: Permissões
     timeout: 10000
 - scrollUntilVisible:
     element: Agora não
     direction: DOWN
-- tapOn: Agora não
+    timeout: 4000
+    optional: true
+- tapOn:
+    text: Agora não
+    optional: true
 - scrollUntilVisible:
     element: Agora não
     direction: DOWN
-- tapOn: Agora não
+    timeout: 4000
+    optional: true
+- tapOn:
+    text: Agora não
+    optional: true
 - scrollUntilVisible:
     element: Agora não
     direction: DOWN
-- tapOn: Agora não
+    timeout: 4000
+    optional: true
+- tapOn:
+    text: Agora não
+    optional: true
 - scrollUntilVisible:
     element: Continuar
     direction: DOWN
@@ -188,7 +217,7 @@ name: (a) Onboarding completo com as duas opções até o Início
     element: Sem recair há 3 dias
     direction: DOWN
 - scrollUntilVisible:
-    element: 'Apps de risco: X, Reddit'
+    element: 'Apps de risco: Reddit, X'
     direction: DOWN
 - scrollUntilVisible:
     element: 'Horários: 20h–01h'
@@ -212,6 +241,7 @@ name: (a) Onboarding completo com as duas opções até o Início
     visible:
       id: home-card-pornography
     timeout: 10000
+- runFlow: subflows/dispensar-aviso.yaml
 - assertVisible: 3 dias
 - assertVisible: 'Próximo marco: 7 dias'
 - assertVisible: Como foi hoje?
@@ -225,8 +255,9 @@ name: (a) Onboarding completo com as duas opções até o Início
 - scrollUntilVisible:
     element: 'Próximo marco: 1 dia'
     direction: DOWN
+# Conforme o acesso ao uso que o aparelho já tinha.
 - scrollUntilVisible:
-    element: O acompanhamento do tempo ainda não está ativo.
+    element: (O acompanhamento do tempo ainda não está ativo\.|\d+ min de 45 hoje)
     direction: DOWN
 - assertNotVisible: Boas-vindas
 

@@ -1,0 +1,77 @@
+# Fluxo da spec 03 (seção 5.13): aviso de permissão nunca concedida no Início,
+# tela de permissões e ferramentas de teste. O `clearState` tira a permissão de
+# notificações, que é a que faz falta para quem só tem conteúdo adulto.
+#
+# Apaga os dados do app de desenvolvimento antes de começar.
+appId: br.com.quedo.app.dev
+name: (f) Aviso de permissão, tela de permissões e ferramentas de teste
+---
+- runFlow: subflows/onboarding-curto.yaml
+
+# Nunca concedida: convida a ativar e leva à tela de permissões.
+- extendedWaitUntil:
+    visible: Ative o acompanhamento
+    timeout: 15000
+- assertVisible: Os lembretes e avisos não estão chegando.
+- assertNotVisible: Proteção pausada
+- tapOn: Ver o que fazer
+- extendedWaitUntil:
+    visible: Acompanhamento
+    timeout: 10000
+- assertVisible:
+    id: monitoring-status
+- assertVisible: Nenhum app para acompanhar agora.*
+- scrollUntilVisible:
+    element: Voltar
+    direction: DOWN
+- tapOn: Voltar
+
+# "Agora não" esconde, e continua escondido ao reabrir.
+- extendedWaitUntil:
+    visible: Ative o acompanhamento
+    timeout: 10000
+- tapOn:
+    text: Agora não
+    below: Ver o que fazer
+- extendedWaitUntil:
+    notVisible: Ative o acompanhamento
+    timeout: 10000
+- stopApp
+- runFlow: subflows/abrir-app.yaml
+- extendedWaitUntil:
+    visible:
+      id: home-card-pornography
+    timeout: 60000
+- assertNotVisible: Ative o acompanhamento
+
+# Ferramentas de teste.
+- tapOn: Perfil
+- extendedWaitUntil:
+    visible: Minhas escolhas
+    timeout: 10000
+- scrollUntilVisible:
+    element: Monitoramento \(base\)
+    direction: DOWN
+- tapOn: Monitoramento \(base\)
+- extendedWaitUntil:
+    visible: Permissões
+    timeout: 15000
+- scrollUntilVisible:
+    element: Usar limite de 1 minuto
+    direction: DOWN
+- tapOn: Usar limite de 1 minuto
+- scrollUntilVisible:
+    element: Voltar aos limites reais
+    direction: UP
+- tapOn: Voltar aos limites reais
+- scrollUntilVisible:
+    element: Zerar o estado de hoje
+    direction: DOWN
+- tapOn: Zerar o estado de hoje
+- scrollUntilVisible:
+    element: Mostrar a tela de interrupção
+    direction: UP
+- tapOn: Mostrar a tela de interrupção
+- scrollUntilVisible:
+    element: Sem regra com tela ou sem a permissão de sobreposição.
+    direction: UP

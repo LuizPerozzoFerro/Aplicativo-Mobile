@@ -1,0 +1,34 @@
+# Fluxo da spec 03 (seção 5.13): emergência pelo Início, sem esperar a
+# respiração, com "Ainda não" no fechamento (M9). "Pular" vai direto à pergunta.
+#
+# "Pular" é tocado logo no início da etapa: durante a respiração a tela não
+# fica parada e o `uiautomator dump` pode falhar (NOTAS-APP.md, passo 6).
+#
+# Apaga os dados do app de desenvolvimento antes de começar.
+appId: br.com.quedo.app.dev
+name: (e) Emergência pelo Início
+---
+- runFlow: subflows/onboarding-curto.yaml
+
+- tapOn: Emergência
+- extendedWaitUntil:
+    visible: Este momento vai passar
+    timeout: 10000
+- assertVisible: Dormir melhor
+- tapOn: Começar a respiração
+
+- tapOn: Pular
+
+- extendedWaitUntil:
+    visible: A vontade passou?
+    timeout: 15000
+- tapOn: Ainda não
+- extendedWaitUntil:
+    visible: Tudo bem
+    timeout: 10000
+- assertVisible: Algumas vontades demoram mais para passar.*
+- tapOn: Voltar ao início
+- extendedWaitUntil:
+    visible:
+      id: home-card-pornography
+    timeout: 10000

@@ -127,7 +127,7 @@ Preencher e manter atualizado na Fase 2.
 |---|---|
 | Instalar dependências | `npm install` (novas bibliotecas: `npx expo install <pacote>`) |
 | Gerar o projeto Android (`android/`) | `npm run android:prebuild` (com `APP_ENV=preview` ou `production` para as outras variantes) |
-| Build local de desenvolvimento (Android) | `npm run android:install` (exige caminhos longos ligados e CMake 3.31.6 no SDK: `NOTAS-APP.md`, AP1) |
+| Build local de desenvolvimento (Android) | `npm run android:install` (com limite de tempo e reinício do `adb`; exige caminhos longos ligados e CMake 3.31.6 no SDK: `NOTAS-APP.md`, AP1) |
 | Iniciar servidor de desenvolvimento | `npx expo start --dev-client --port 8081`, desacoplado, e depois `adb reverse tcp:8081 tcp:8081` (refazer após reinstalar ou reiniciar) |
 | Abrir o app no Metro pelo cabo | `adb shell am start -a android.intent.action.VIEW -d "quedo-dev://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081" br.com.quedo.app.dev` |
 | Verificar tipos | `npm run typecheck` |
@@ -136,7 +136,7 @@ Preencher e manter atualizado na Fase 2.
 | Testes | `npm test` |
 | Gerar migração do banco (depois de mudar `src/data/schema/`) | `npm run db:generate` |
 | Ler o banco do app de desenvolvimento no aparelho | `adb exec-out run-as br.com.quedo.app.dev cat files/SQLite/app.db > app.db` |
-| Fluxos Maestro (ponta a ponta no S22) | `npm run e2e` roda os quatro de `.maestro/` (~12 min), com o Metro ligado e o `adb reverse` feito. Apaga os dados do app de desenvolvimento. Maestro em `C:\Users\User\tools\maestro` (`NOTAS-APP.md`, passo 10 da Fase 2 e passo 7 da Fase 3) |
+| Fluxos Maestro (ponta a ponta no S22) | `npm run e2e` roda os seis de `.maestro/` (~15 min), com o Metro ligado e o `adb reverse` feito. Apaga os dados do app de desenvolvimento. Maestro em `C:\Users\User\tools\maestro` (`NOTAS-APP.md`, passo 10 da Fase 2 e passo 7 da Fase 3) |
 | Um fluxo Maestro só | `C:\Users\User\tools\maestro\bin\maestro test .maestro/<arquivo>.yaml`, com `MAESTRO_CLI_NO_ANALYTICS=true` |
 | Ver o que o Maestro enxerga na tela | `C:\Users\User\tools\maestro\bin\maestro hierarchy --compact` |
 | Instalação pelo `adb` recusada (`INSTALL_FAILED_VERIFICATION_FAILURE`) | `adb logcat -d`, filtrando `VerifyApps`; em geral, basta tentar de novo (`NOTAS-APP.md`, AP4) |
