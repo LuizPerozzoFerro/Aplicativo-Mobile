@@ -1,6 +1,7 @@
 package br.com.quedo.monitoring
 
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.modules.Module
@@ -88,6 +89,17 @@ class MonitoringModule : Module() {
     Function("getNotificationStatus") { NotificationCenter.statusJson(context) }
 
     Function("debugFireNotification") { kind: String -> NotificationCenter.debugFire(context, kind) }
+
+    Function("debugResetToday") { MomentRunner.debugResetToday(context) }
+
+    Function("debugShowInterruption") { MomentRunner.debugShowInterruption(context) }
+
+    /** Para o serviço sem desligar o monitoramento: é o "parou sozinho" da vigilância. */
+    Function("debugStopService") {
+      if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+        MonitoringService.stop(context)
+      }
+    }
 
     AsyncFunction("getPendingEvents") { EventStore.pendingJson(context) }
 

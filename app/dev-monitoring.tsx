@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { AppState } from 'react-native';
 
 import { variant } from '@/config/variant';
+import { getRepositories } from '@/data/bootstrap';
+import { toDayKey } from '@/domain/day';
 import { SUGGESTED_PACKAGES } from '@/domain/suggestedApps';
 import { getAppMonitoringSync } from '@/features/monitoring/useMonitoringSync';
 import { Button, Screen, Text } from '@/ui';
@@ -42,6 +44,8 @@ type Snapshot = {
   readonly config: ConfigSummary | null;
   readonly moment: NativeMomentStatus;
   readonly notifications: NativeNotificationStatus;
+  /** Eventos na fila do nativo, contados por tipo. */
+  readonly pending: readonly (readonly [string, number])[];
 };
 
 function summarizeConfig(json: string | null): ConfigSummary | null {
@@ -56,6 +60,14 @@ function summarizeConfig(json: string | null): ConfigSummary | null {
   } catch {
     return null;
   }
+}
+
+function countByType(json: string): (readonly [string, number])[] {
+  const counts = new Map<string, number>();
+  for (const { type } of JSON.parse(json) as { type: string }[]) {
+    counts.set(type, (counts.get(type) ?? 0) + 1);
+  }
+  return [...counts];
 }
 
 function formatTime(epochMs: number | null): string | null {
@@ -83,6 +95,7 @@ async function readSnapshot(native: QuedoMonitoringNativeModule): Promise<Snapsh
     config: summarizeConfig(native.getConfig()),
     moment: JSON.parse(native.getMomentStatus()) as NativeMomentStatus,
     notifications: JSON.parse(native.getNotificationStatus()) as NativeNotificationStatus,
+    pending: countByType(await native.getPendingEvents()),
   };
 }
 
@@ -90,12 +103,11 @@ function hasCode(error: unknown, code: string): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === code;
 }
 
-// Ferramenta dos passos 1 a 5 da Fase 4, só em development: conferir no
-// aparelho as permissões reais, o serviço em primeiro plano, o boot, a lista
-// de apps, o uso de hoje, a configuração guardada no nativo e os eventos
-// pendentes, antes de o módulo nativo substituir o falso (passo 7). Nas
-// outras variantes, volta ao início. Vira parte das ferramentas de teste do
-// passo 8 (spec 03, seção 5.10).
+// Ferramentas de teste da Fase 4 (spec 03, seção 5.10), só em development:
+// conferir no aparelho permissões, serviço, boot, apps, uso, regras do dia e
+// eventos pendentes, usar o limite de 1 minuto (vale também para os apps de
+// risco), disparar as notificações, mostrar a tela de interrupção e zerar o
+// estado de hoje. Nas outras variantes, volta ao início.
 export default function DevMonitoringScreen() {
   const { t } = useTranslation(['dev', 'common']);
   const native = getQuedoMonitoring();
@@ -159,6 +171,11 @@ export default function DevMonitoringScreen() {
     await refresh();
   };
 
+  const debugStopService = async () => {
+    native?.debugStopService();
+    await refresh();
+  };
+
   // A mesma rodada que o app faz ao abrir: importa os eventos e reenvia a configuração.
   const syncNow = async () => {
     await getAppMonitoringSync().sync();
@@ -168,6 +185,18 @@ export default function DevMonitoringScreen() {
   const toggleTestLimit = async () => {
     native?.setTestLimit(snapshot?.moment.testLimitMinutes ? null : TEST_LIMIT_MINUTES);
     await refresh();
+  };
+
+  const showInterruption = () => {
+    setMessage(native?.debugShowInterruption() ? null : t('monitoring.moment.showFailed'));
+  };
+
+  // O que está na fila entra antes, para não reprovar de novo o dia zerado.
+  const resetToday = async () => {
+    await getAppMonitoringSync().sync();
+    native?.debugResetToday();
+    getRepositories().dayStates.clearDay(toDayKey(new Date()));
+    await syncNow();
   };
 
   const labelOf = (id: string) => snapshot?.targets.find((target) => target.id === id)?.label ?? id;
@@ -247,6 +276,11 @@ export default function DevMonitoringScreen() {
             variant="secondary"
             onPress={() => void stopService()}
           />
+          <Button
+            label={t('monitoring.service.debugStop')}
+            variant="secondary"
+            onPress={() => void debugStopService()}
+          />
 
           <Text variant="heading">{t('monitoring.sync.title')}</Text>
           {snapshot.config ? (
@@ -261,6 +295,9 @@ export default function DevMonitoringScreen() {
             <Text>{t('monitoring.sync.noConfig')}</Text>
           )}
           <Text>{t('monitoring.sync.pending', { count: snapshot.service.pendingEvents })}</Text>
+          {snapshot.pending.map(([type, count]) => (
+            <Text key={type}>{t('monitoring.sync.pendingEntry', { type, count })}</Text>
+          ))}
           <Button
             label={t('monitoring.sync.now')}
             variant="secondary"
@@ -312,6 +349,16 @@ export default function DevMonitoringScreen() {
             }
             variant="secondary"
             onPress={() => void toggleTestLimit()}
+          />
+          <Button
+            label={t('monitoring.moment.showInterruption')}
+            variant="secondary"
+            onPress={showInterruption}
+          />
+          <Button
+            label={t('monitoring.moment.resetToday')}
+            variant="secondary"
+            onPress={() => void resetToday()}
           />
 
           <Text variant="heading">{t('monitoring.notifications.title')}</Text>

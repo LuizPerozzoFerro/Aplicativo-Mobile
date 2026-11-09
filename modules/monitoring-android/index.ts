@@ -97,6 +97,12 @@ export type QuedoMonitoringNativeModule = {
   debugFireNotification(
     kind: 'limit' | 'risk_app' | 'check_in' | 'preventive' | 'restart' | 'protection_paused',
   ): void;
+  /** Esquece as telas e reprovações de hoje e zera o uso visto pelas regras. Só em build depurável. */
+  debugResetToday(): void;
+  /** Abre a tela de interrupção sem esperar o limite. `false` sem regra com tela ou sem sobreposição. */
+  debugShowInterruption(): boolean;
+  /** Para o serviço sem desligar o monitoramento, para testar a vigilância. Só em build depurável. */
+  debugStopService(): void;
   /** Eventos ainda não confirmados, em JSON (lista). */
   getPendingEvents(): Promise<string>;
   acknowledgeEvents(ids: string[]): Promise<void>;
