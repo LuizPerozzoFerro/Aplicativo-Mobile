@@ -65,7 +65,7 @@ aceite da spec 03, seção 8, e aviso de fase pronta (CLAUDE.md, seção 11).
 - **"Zerar o estado de hoje" não mexe em notificações nem em check-ins**, e um recomeço já
   agendado pela reprovação continua agendado.
 - **Instalar sempre com `npm run android:install`**, que tem limite de tempo. O `adb` travou
-  três vezes em 08/11 (AP3).
+  duas vezes em 08/11 (AP3).
 - **Subir o Metro depois do build** (AP5) e refazer o `adb reverse` depois de reinstalar.
 - **Tarefas longas com vigia:** acusar saída parada e avisar o responsável.
 - **Não gravar no banco do aparelho pelo `adb` sem avisar.** Desinstalar o app de
