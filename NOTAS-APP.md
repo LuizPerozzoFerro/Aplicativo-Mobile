@@ -24,7 +24,9 @@ do protótipo continua em `prototype/NOTAS.md`.
   chip e WhatsApp desconectado: usar o emulador e/ou o Teams), M14 agendamentos depois do
   reinício, M10 "Tive uma recaída" pela notificação, M12 tela bloqueada vista a olho,
   remoção do check-in à meia-noite, recomeço esperando o desbloqueio, atraso em economia
-  profunda, e M4/M5 ("Continuar" três vezes e "Ignorar o limite por hoje") no aparelho.
+  profunda, M4/M5 ("Continuar" três vezes e "Ignorar o limite por hoje") no aparelho, e o
+  aviso "Ative o acompanhamento" com "Agora não" (precisa de app sem permissões, como
+  depois de limpar os dados), mais M15 de novo com o histórico de permissões já ativo.
 
 ---
 
@@ -2927,6 +2929,33 @@ parado com o app fechado e a tela acesa em prévia ou produção também ficam p
 
 Os fluxos Maestro agora rodam contra a lista real de apps do aparelho, e não foram
 executados neste passo porque apagam os dados do app de desenvolvimento.
+
+### Revisão do PR #28: dois avisos no Início (decisão do responsável)
+
+M15 confirmado pelo responsável no S22. Decidido sobre o aviso do Início:
+
+- Permissão perdida ou serviço parado: "Proteção pausada", sem como adiar.
+- Permissão nunca concedida: "Ative o acompanhamento", mesmo texto, "Ver o que fazer" e
+  "Agora não", que esconde o aviso por 7 dias (7 × 24 h, contadas do toque).
+
+Como separei os casos, e por quê:
+
+- `settings` ganhou três colunas `*_granted_once` e `protection_notice_dismissed_at`
+  (migração 0006). `useProtection` registra o que está concedido a cada leitura, só quando
+  há novidade, porque toda gravação dispara uma sincronização.
+- Não usei os eventos `permission_lost`: o evento gerado no fim de uma rodada só seria
+  importado na seguinte, e adiantar a vigilância na rodada acusaria serviço parado antes
+  de ele religar. Também não mexi no nativo, então não precisa de build novo.
+- Limite conhecido: quem concede e revoga antes de qualquer leitura de `useProtection`
+  (ainda no onboarding) cai em "Ative o acompanhamento". O texto continua correto.
+- Uma perdida junto de uma nunca concedida: "Proteção pausada", com as duas linhas.
+- Durante o adiamento, a tela de estado continua mostrando tudo o que falta.
+- Relógio voltado para antes do adiamento: o aviso aparece.
+
+Verificado: Jest 747, 21 mutações derrubam testes (2 sobreviveram na primeira rodada e
+viraram teste). No S22, a migração rodou sobre os dados reais, as três permissões ficaram
+registradas e o Início abriu sem aviso. O aviso novo e o "Agora não" só foram vistos em
+teste automatizado: o S22 está com tudo permitido e já registrado.
 
 ## Problemas
 

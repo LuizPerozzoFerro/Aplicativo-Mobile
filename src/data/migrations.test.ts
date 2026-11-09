@@ -135,6 +135,10 @@ describe('migrações', () => {
       createdAt: new Date(500),
       onboardingStep: null,
       checkInMinutes: 1260,
+      usageAccessGrantedOnce: false,
+      notificationsGrantedOnce: false,
+      overlayGrantedOnce: false,
+      protectionNoticeDismissedAt: null,
     });
     expect(repositories.compulsions.list()).toEqual([
       {

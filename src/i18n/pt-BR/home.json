@@ -6,7 +6,9 @@
     "usageAccess": "O tempo nos apps escolhidos não está sendo acompanhado.",
     "overlay": "A tela de pausa não pode aparecer sobre os outros apps.",
     "service": "O acompanhamento parou de funcionar.",
-    "action": "Ver o que fazer"
+    "activateTitle": "Ative o acompanhamento",
+    "action": "Ver o que fazer",
+    "notNow": "Agora não"
   },
   "streak_zero": "0 dias",
   "streak_one": "{{count}} dia",

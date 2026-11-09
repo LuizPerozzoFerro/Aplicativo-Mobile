@@ -11,6 +11,8 @@ const WRITES = [
   'settings.setAgeConfirmedAt',
   'settings.setOnboardingStep',
   'settings.setCheckInMinutes',
+  'settings.markPermissionsGranted',
+  'settings.setProtectionNoticeDismissedAt',
   'compulsions.add',
   'compulsions.setStatus',
   'compulsions.setStartedAt',

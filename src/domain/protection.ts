@@ -5,6 +5,9 @@
 /** Tempo para o serviço subir depois de pedido, sem acusar que ele parou. */
 export const SERVICE_START_GRACE_MS = 15_000;
 
+/** Quanto tempo o "Agora não" esconde o aviso de permissão nunca concedida. */
+export const PROTECTION_NOTICE_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
+
 type PermissionValue = 'granted' | 'denied' | 'unsupported';
 
 export type ProtectionPermissions = {
@@ -12,6 +15,11 @@ export type ProtectionPermissions = {
   readonly notifications: PermissionValue;
   readonly overlay: PermissionValue;
 };
+
+export type ProtectionPermission = keyof ProtectionPermissions;
+
+/** Quais permissões já estiveram concedidas alguma vez. */
+export type PermissionHistory = Readonly<Record<ProtectionPermission, boolean>>;
 
 export type ProtectionService = {
   readonly active: boolean;
@@ -79,4 +87,40 @@ export function getProtectionIssues(
   if (needs.overlay && permissions.overlay === 'denied') issues.push('overlay');
   if (getServiceSituation(needs, permissions, service, now) === 'stopped') issues.push('service');
   return issues;
+}
+
+const PROTECTION_PERMISSIONS = ['usageAccess', 'notifications', 'overlay'] as const;
+
+/** Concedidas agora e ainda fora do histórico: o que falta registrar. */
+export function getNewlyGrantedPermissions(
+  permissions: ProtectionPermissions,
+  history: PermissionHistory,
+): ProtectionPermission[] {
+  return PROTECTION_PERMISSIONS.filter((name) => permissions[name] === 'granted' && !history[name]);
+}
+
+export type ProtectionNotice = {
+  /** `paused`: algo que funcionava parou. `activate`: falta só o que nunca foi concedido. */
+  readonly kind: 'paused' | 'activate';
+  readonly issues: readonly ProtectionIssue[];
+};
+
+/**
+ * Qual aviso o Início mostra. O que parou tem prioridade e nunca fica escondido;
+ * só o convite para ativar pode ser adiado. Relógio voltado para antes do
+ * adiamento mostra o aviso: na dúvida, avisa.
+ */
+export function getProtectionNotice(
+  issues: readonly ProtectionIssue[],
+  history: PermissionHistory,
+  dismissedAt: number | null,
+  now: number,
+): ProtectionNotice | null {
+  if (issues.length === 0) return null;
+  if (issues.some((issue) => issue === 'service' || history[issue])) {
+    return { kind: 'paused', issues };
+  }
+  const elapsed = dismissedAt === null ? null : now - dismissedAt;
+  const snoozed = elapsed !== null && elapsed >= 0 && elapsed < PROTECTION_NOTICE_SNOOZE_MS;
+  return snoozed ? null : { kind: 'activate', issues };
 }

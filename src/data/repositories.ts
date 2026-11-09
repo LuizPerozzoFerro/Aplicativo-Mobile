@@ -14,6 +14,7 @@ import { applyDailyLimitChange } from '@/domain/dailyLimit';
 import { fromDayKey, toDayKey } from '@/domain/day';
 import type { EmergencyOutcome, EmergencySource } from '@/domain/monitoring';
 import { isValidDailyLimit, type OnboardingStep } from '@/domain/onboarding';
+import type { ProtectionPermission } from '@/domain/protection';
 import { isValidDaysAlreadyWithoutRelapse, type DayFailureReason } from '@/domain/streak';
 import { isValidTriggerValue } from '@/domain/triggers';
 import type { MonitoringEvent } from '@/monitoring/types';
@@ -49,6 +50,12 @@ export type DayState = typeof dayStates.$inferSelect;
 export type InterruptionEvent = typeof interruptionEvents.$inferSelect;
 export type EmergencySession = typeof emergencySessions.$inferSelect;
 
+const GRANTED_ONCE_COLUMN = {
+  usageAccess: 'usageAccessGrantedOnce',
+  notifications: 'notificationsGrantedOnce',
+  overlay: 'overlayGrantedOnce',
+} as const satisfies Record<ProtectionPermission, keyof Settings>;
+
 export type SettingsRepository = {
   /** Lê as configurações; cria a linha com os valores padrão na primeira vez. */
   get(): Settings;
@@ -57,6 +64,9 @@ export type SettingsRepository = {
   /** Etapa em que o onboarding está; null antes de começar e depois de concluído. */
   setOnboardingStep(step: OnboardingStep | null): void;
   setCheckInMinutes(minutes: number): void;
+  /** Registra para sempre que estas permissões já estiveram concedidas. */
+  markPermissionsGranted(permissions: readonly ProtectionPermission[]): void;
+  setProtectionNoticeDismissedAt(date: Date | null): void;
 };
 
 export type CompulsionRepository = {
@@ -320,6 +330,20 @@ export function createRepositories(
       settingsRepository.get();
       db.update(settings)
         .set({ checkInMinutes: minutes })
+        .where(eq(settings.id, SETTINGS_ID))
+        .run();
+    },
+    markPermissionsGranted(permissions) {
+      settingsRepository.get();
+      db.update(settings)
+        .set(Object.fromEntries(permissions.map((name) => [GRANTED_ONCE_COLUMN[name], true])))
+        .where(eq(settings.id, SETTINGS_ID))
+        .run();
+    },
+    setProtectionNoticeDismissedAt(date) {
+      settingsRepository.get();
+      db.update(settings)
+        .set({ protectionNoticeDismissedAt: date })
         .where(eq(settings.id, SETTINGS_ID))
         .run();
     },

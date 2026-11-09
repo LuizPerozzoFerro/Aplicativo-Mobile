@@ -1,8 +1,12 @@
 import {
+  PROTECTION_NOTICE_SNOOZE_MS,
   SERVICE_START_GRACE_MS,
+  getNewlyGrantedPermissions,
   getProtectionIssues,
   getProtectionNeeds,
+  getProtectionNotice,
   getServiceSituation,
+  type PermissionHistory,
   type ProtectionNeeds,
   type ProtectionPermissions,
   type ProtectionService,
@@ -18,6 +22,99 @@ const GRANTED: ProtectionPermissions = {
 };
 const RUNNING: ProtectionService = { active: true, running: true, startRequestedAt: null };
 const STOPPED: ProtectionService = { active: true, running: false, startRequestedAt: null };
+
+const NEVER: PermissionHistory = { usageAccess: false, notifications: false, overlay: false };
+
+describe('getNewlyGrantedPermissions', () => {
+  it('lista o que está concedido e ainda não foi registrado', () => {
+    expect(getNewlyGrantedPermissions(GRANTED, NEVER)).toEqual([
+      'usageAccess',
+      'notifications',
+      'overlay',
+    ]);
+  });
+
+  it('o que já está no histórico não entra de novo', () => {
+    expect(getNewlyGrantedPermissions(GRANTED, { ...NEVER, overlay: true })).toEqual([
+      'usageAccess',
+      'notifications',
+    ]);
+  });
+
+  it('negada ou sem suporte não entra', () => {
+    expect(
+      getNewlyGrantedPermissions(
+        { usageAccess: 'denied', notifications: 'unsupported', overlay: 'granted' },
+        NEVER,
+      ),
+    ).toEqual(['overlay']);
+  });
+});
+
+describe('getProtectionNotice', () => {
+  it('sem nada faltando, não há aviso', () => {
+    expect(getProtectionNotice([], NEVER, null, NOW)).toBeNull();
+  });
+
+  it('nunca concedida: convida a ativar', () => {
+    expect(getProtectionNotice(['usageAccess'], NEVER, null, NOW)).toEqual({
+      kind: 'activate',
+      issues: ['usageAccess'],
+    });
+  });
+
+  it('já esteve concedida: proteção pausada', () => {
+    expect(
+      getProtectionNotice(['usageAccess'], { ...NEVER, usageAccess: true }, null, NOW)?.kind,
+    ).toBe('paused');
+  });
+
+  it('o histórico de outra permissão não conta', () => {
+    expect(getProtectionNotice(['usageAccess'], { ...NEVER, overlay: true }, null, NOW)?.kind).toBe(
+      'activate',
+    );
+  });
+
+  it('serviço parado: proteção pausada', () => {
+    expect(getProtectionNotice(['service'], NEVER, null, NOW)?.kind).toBe('paused');
+  });
+
+  it('uma perdida junto de uma nunca concedida: pausada, com as duas linhas', () => {
+    expect(
+      getProtectionNotice(
+        ['notifications', 'usageAccess'],
+        { ...NEVER, usageAccess: true },
+        null,
+        NOW,
+      ),
+    ).toEqual({ kind: 'paused', issues: ['notifications', 'usageAccess'] });
+  });
+
+  it('adiado: esconde até o último instante dos 7 dias', () => {
+    const dismissedAt = NOW - PROTECTION_NOTICE_SNOOZE_MS + 1;
+    expect(getProtectionNotice(['usageAccess'], NEVER, dismissedAt, NOW)).toBeNull();
+  });
+
+  it('passados os 7 dias, volta a aparecer', () => {
+    const dismissedAt = NOW - PROTECTION_NOTICE_SNOOZE_MS;
+    expect(getProtectionNotice(['usageAccess'], NEVER, dismissedAt, NOW)?.kind).toBe('activate');
+  });
+
+  it('o adiamento vale 7 dias', () => {
+    expect(PROTECTION_NOTICE_SNOOZE_MS).toBe(604_800_000);
+  });
+
+  it('adiar não esconde o que parou de funcionar', () => {
+    expect(
+      getProtectionNotice(['usageAccess'], { ...NEVER, usageAccess: true }, NOW, NOW)?.kind,
+    ).toBe('paused');
+    expect(getProtectionNotice(['service'], NEVER, NOW, NOW)?.kind).toBe('paused');
+  });
+
+  it('relógio voltado para antes do adiamento: mostra o aviso', () => {
+    expect(getProtectionNotice(['usageAccess'], NEVER, NOW + 1, NOW)?.kind).toBe('activate');
+  });
+});
 
 describe('getProtectionNeeds', () => {
   const compulsions = [{}];

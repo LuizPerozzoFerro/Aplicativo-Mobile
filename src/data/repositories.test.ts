@@ -21,6 +21,23 @@ beforeEach(async () => {
 });
 
 describe('settings', () => {
+  it('registra só as permissões pedidas e mantém as já registradas', () => {
+    repositories.settings.markPermissionsGranted(['usageAccess']);
+    repositories.settings.markPermissionsGranted(['overlay']);
+    expect(repositories.settings.get()).toMatchObject({
+      usageAccessGrantedOnce: true,
+      notificationsGrantedOnce: false,
+      overlayGrantedOnce: true,
+    });
+  });
+
+  it('guarda e limpa o adiamento do aviso de proteção', () => {
+    repositories.settings.setProtectionNoticeDismissedAt(NOW);
+    expect(repositories.settings.get().protectionNoticeDismissedAt).toEqual(NOW);
+    repositories.settings.setProtectionNoticeDismissedAt(null);
+    expect(repositories.settings.get().protectionNoticeDismissedAt).toBeNull();
+  });
+
   it('cria a linha com os valores padrão na primeira leitura', () => {
     expect(repositories.settings.get()).toEqual({
       id: 1,
@@ -30,6 +47,10 @@ describe('settings', () => {
       createdAt: NOW,
       onboardingStep: null,
       checkInMinutes: 1260,
+      usageAccessGrantedOnce: false,
+      notificationsGrantedOnce: false,
+      overlayGrantedOnce: false,
+      protectionNoticeDismissedAt: null,
     });
     repositories.settings.get();
     expect(count('settings')).toBe(1);

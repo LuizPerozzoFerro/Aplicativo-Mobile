@@ -312,6 +312,7 @@ describe('card de vídeos curtos', () => {
   });
 });
 
+const DAY_MS = 24 * 60 * 60 * 1000;
 const GRANTED_ALL = {
   usageAccess: 'granted',
   notifications: 'granted',
@@ -338,9 +339,10 @@ describe('aviso de proteção (doc 01, 6.1 e 6.10)', () => {
     expect(screen.queryByTestId('home-protection')).not.toBeOnTheScreen();
   });
 
-  it('diz o que parou e leva à tela de estado', async () => {
+  it('permissão perdida: diz o que parou, leva à tela de estado e não pode ser adiado', async () => {
     addVideos();
     mockRepositories.settings.setOnboardingCompleted(true);
+    mockRepositories.settings.markPermissionsGranted(['usageAccess']);
     mockMonitoring = new FakeMonitoringModule({
       permissions: { notifications: 'granted', overlay: 'granted' },
     });
@@ -351,8 +353,124 @@ describe('aviso de proteção (doc 01, 6.1 e 6.10)', () => {
       notice.getByText('O tempo nos apps escolhidos não está sendo acompanhado.'),
     ).toBeOnTheScreen();
     expect(notice.queryByText('Os lembretes e avisos não estão chegando.')).not.toBeOnTheScreen();
+    expect(notice.queryByRole('button', { name: 'Agora não' })).not.toBeOnTheScreen();
     await press('Ver o que fazer');
     await expectPath('/permission-status');
+  });
+
+  it('nunca concedida: convida a ativar, com o mesmo texto e os dois botões', async () => {
+    addVideos();
+    mockRepositories.settings.setOnboardingCompleted(true);
+    mockMonitoring = new FakeMonitoringModule({
+      permissions: { notifications: 'granted', overlay: 'granted' },
+    });
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+    const notice = within(await screen.findByTestId('home-protection'));
+    expect(notice.getByText('Ative o acompanhamento')).toBeOnTheScreen();
+    expect(notice.queryByText('Proteção pausada')).not.toBeOnTheScreen();
+    expect(
+      notice.getByText('O tempo nos apps escolhidos não está sendo acompanhado.'),
+    ).toBeOnTheScreen();
+    expect(notice.getByRole('button', { name: 'Agora não' })).toBeOnTheScreen();
+    await press('Ver o que fazer');
+    await expectPath('/permission-status');
+  });
+
+  it('"Agora não" esconde o aviso e grava quando foi adiado', async () => {
+    addVideos();
+    mockRepositories.settings.setOnboardingCompleted(true);
+    mockMonitoring = new FakeMonitoringModule({
+      permissions: { notifications: 'granted', overlay: 'granted' },
+    });
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+    await screen.findByTestId('home-protection');
+    const before = Date.now();
+    await press('Agora não');
+    await waitFor(() => expect(screen.queryByTestId('home-protection')).not.toBeOnTheScreen());
+    const dismissedAt = mockRepositories.settings.get().protectionNoticeDismissedAt;
+    expect(dismissedAt?.getTime()).toBeGreaterThanOrEqual(before);
+  });
+
+  it('continua escondido ao abrir de novo dentro dos 7 dias', async () => {
+    addVideos();
+    mockRepositories.settings.setOnboardingCompleted(true);
+    mockRepositories.settings.setProtectionNoticeDismissedAt(new Date(Date.now() - DAY_MS * 6));
+    mockMonitoring = new FakeMonitoringModule({
+      permissions: { notifications: 'granted', overlay: 'granted' },
+    });
+    const status = jest.spyOn(mockMonitoring, 'getServiceStatus');
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+    await videosCard();
+    await waitFor(() => expect(status).toHaveBeenCalled());
+    await act(async () => {});
+    expect(screen.queryByTestId('home-protection')).not.toBeOnTheScreen();
+  });
+
+  it('volta a aparecer depois dos 7 dias', async () => {
+    addVideos();
+    mockRepositories.settings.setOnboardingCompleted(true);
+    mockRepositories.settings.setProtectionNoticeDismissedAt(new Date(Date.now() - DAY_MS * 7));
+    mockMonitoring = new FakeMonitoringModule({
+      permissions: { notifications: 'granted', overlay: 'granted' },
+    });
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+    const notice = within(await screen.findByTestId('home-protection'));
+    expect(notice.getByText('Ative o acompanhamento')).toBeOnTheScreen();
+  });
+
+  it('concedida e depois revogada: vira "Proteção pausada", mesmo com o aviso adiado', async () => {
+    type Listener = (state: string) => void;
+    const listeners: Listener[] = [];
+    jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
+      listeners.push(listener as Listener);
+      return { remove: () => undefined };
+    });
+    addVideos();
+    mockRepositories.settings.setOnboardingCompleted(true);
+    mockRepositories.settings.setProtectionNoticeDismissedAt(new Date());
+    mockMonitoring = new FakeMonitoringModule({ permissions: GRANTED_ALL });
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+    await waitFor(() =>
+      expect(mockRepositories.settings.get()).toMatchObject({
+        usageAccessGrantedOnce: true,
+        notificationsGrantedOnce: true,
+        overlayGrantedOnce: true,
+      }),
+    );
+
+    mockMonitoring.simulatePermission('usageAccess', 'denied');
+    await act(async () => {
+      listeners.forEach((listener) => listener('active'));
+    });
+    const notice = within(await screen.findByTestId('home-protection'));
+    expect(notice.getByText('Proteção pausada')).toBeOnTheScreen();
+  });
+
+  it.each(['notifications', 'overlay'] as const)(
+    '%s já concedida antes e negada agora: proteção pausada',
+    async (name) => {
+      addVideos();
+      mockRepositories.settings.setOnboardingCompleted(true);
+      mockRepositories.settings.markPermissionsGranted([name]);
+      mockMonitoring = new FakeMonitoringModule({
+        permissions: { ...GRANTED_ALL, [name]: 'denied' },
+      });
+      await renderRouter(APP_DIR, { initialUrl: '/' });
+      const notice = within(await screen.findByTestId('home-protection'));
+      expect(notice.getByText('Proteção pausada')).toBeOnTheScreen();
+    },
+  );
+
+  it('serviço parado nunca oferece "Agora não"', async () => {
+    addVideos();
+    mockRepositories.settings.setOnboardingCompleted(true);
+    mockMonitoring = new FakeMonitoringModule({ permissions: GRANTED_ALL });
+    jest.spyOn(mockMonitoring, 'startMonitoring').mockRejectedValue(new Error('falhou'));
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+    const notice = within(await screen.findByTestId('home-protection'));
+    expect(notice.getByText('Proteção pausada')).toBeOnTheScreen();
+    expect(notice.queryByRole('button', { name: 'Agora não' })).not.toBeOnTheScreen();
   });
 
   it('só de abstinência: não cobra o acesso ao uso', async () => {
