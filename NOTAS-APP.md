@@ -17,9 +17,9 @@ do protótipo continua em `prototype/NOTAS.md`.
   roteiro.
 - **Passo 5 (notificações)** integrado (PR #26). Seção "Fase 4 · Passo 5".
 - **Passo 6 (emergência)** integrado (PR #27). Seção "Fase 4 · Passo 6".
-- **Passo 7 (permissões reais, vigilância e estado)** pronto para revisão no PR da branch
-  `fase4/permissoes`. Seção "Fase 4 · Passo 7". Próximo: passo 8 (ferramentas de teste,
-  Maestro e roteiro manual).
+- **Passo 7 (permissões reais, vigilância e estado)** integrado (PR #28). Seção "Fase 4 ·
+  Passo 7". O ajuste do aviso do Início foi em PR próprio, porque o #28 já estava
+  integrado. Próximo: passo 8 (ferramentas de teste, Maestro e roteiro manual).
 - **Pendências para o roteiro do passo 8 (não esquecer):** M20 chamada recebida (S22 sem
   chip e WhatsApp desconectado: usar o emulador e/ou o Teams), M14 agendamentos depois do
   reinício, M10 "Tive uma recaída" pela notificação, M12 tela bloqueada vista a olho,
