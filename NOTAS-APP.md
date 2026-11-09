@@ -5,7 +5,7 @@ do protótipo continua em `prototype/NOTAS.md`.
 
 ---
 
-## Onde paramos (08/11/2026)
+## Onde paramos (09/11/2026)
 
 - **Fase 3 encerrada:** passos 1 a 7 integrados na `main` (PRs #12 a #20).
 - **Fase 4 (spec 03 v0.2):** documentos e decisões da leitura da spec
@@ -20,15 +20,59 @@ do protótipo continua em `prototype/NOTAS.md`.
 - **Passo 7 (permissões reais, vigilância e estado)** integrado (PR #28). Seção "Fase 4 ·
   Passo 7". O ajuste do aviso do Início foi em PR próprio, porque o #28 já estava
   integrado (PR #29).
-- **Passo 8 (ferramentas, Maestro e roteiro)** em andamento na branch `fase4/roteiro`.
-  Seção "Fase 4 · Passo 8", com o roteiro aprovado.
-- **Pendências para o roteiro do passo 8 (não esquecer):** M20 chamada recebida (S22 sem
-  chip e WhatsApp desconectado: usar o emulador e/ou o Teams), M14 agendamentos depois do
-  reinício, M10 "Tive uma recaída" pela notificação, M12 tela bloqueada vista a olho,
-  remoção do check-in à meia-noite, recomeço esperando o desbloqueio, atraso em economia
-  profunda, M4/M5 ("Continuar" três vezes e "Ignorar o limite por hoje") no aparelho, e o
-  aviso "Ative o acompanhamento" com "Agora não" (precisa de app sem permissões, como
-  depois de limpar os dados), mais M15 de novo com o histórico de permissões já ativo.
+- **Passo 8 (ferramentas, Maestro e roteiro):** **Bloco 0 concluído**, no PR #30 (branch
+  `fase4/roteiro`), com CI verde, **aguardando o merge do responsável**. Seção "Fase 4 ·
+  Passo 8", com as decisões e o resultado.
+
+### Retomada: o próximo passo é o Bloco 1
+
+Sessão encerrada em 09/11/2026, sem nenhuma tarefa rodando no computador.
+
+**Estado do S22:** build de desenvolvimento com o código do PR #30. Dados apagados, app nas
+boas-vindas. Acesso ao uso e sobreposição continuam concedidos; notificações, não. Nada foi
+desinstalado.
+
+**Para retomar:** conectar o S22, `adb devices`, voltar à `main` com `git pull` se o PR #30
+já estiver integrado, subir o Metro (`npx expo start --dev-client --port 8081`) e fazer o
+`adb reverse tcp:8081 tcp:8081`.
+
+**O que falta em cada bloco:**
+
+| Bloco | O que falta | O que exige do responsável |
+|---|---|---|
+| 1 · App zerado | **Começa desinstalando e reinstalando o app de desenvolvimento**, para ficar sem permissões. Depois: "Ative o acompanhamento" e "Agora não"; conferir a lista recolhida, a busca e a ordem; M1 e a janela do sistema das notificações | Onboarding duas vezes. Na segunda, Instagram e YouTube na moderação, Reddit e X como risco, pelo menos 1 dia sem recair |
+| 2 · Limite de 1 minuto | M2, M3, M9 ("Pular", "Ainda não", "Pular" na motivação), M4, M8 completo depois do M4, M5, M6, M7, M8, limite maior salvo depois de estourar, M19 | Usar os apps. M4 e M6 levam pelo menos 15 min cada |
+| 3 · Aparência | M18 na emergência, animações removidas | Fonte no máximo e remover animações nos Ajustes; desfazer depois |
+| 4 · Tela bloqueada | M12, M13, recaída registrada hoje para ontem sem recomeço | PIN ou senha no S22 |
+| 5 · Permissão e serviço | M15 de novo, serviço parado com o app fechado | Desligar e religar o acesso ao uso |
+| 6 · Chamada | M20 no emulador `lab_android16` e pelo Teams | Segunda conta no Teams para ligar |
+| 7 · Dois dias | Dia 1: M11, remoção à meia-noite (check-in às 23h30, sem responder), economia profunda (faixa perto das 5h, S22 parado e fora da tomada). Dia 2: bateria, M10, M14 com agendamentos. Manhã do Dia 3: recomeço esperando o desbloqueio depois das 9h | Mudar horários no Perfil; S22 fora da tomada à noite |
+| 8 · Prévia e produção | Ferramentas ausentes, tela acesa, abertura a frio, `check:manifest` pela lista estrita nos builds de prévia e de produção | Onboarding e permissões no app de prévia |
+
+M16, M17 e AP4 já feitos. Bloco 7 pode correr em paralelo aos outros. Ao final: critérios de
+aceite da spec 03, seção 8, e aviso de fase pronta (CLAUDE.md, seção 11).
+
+**Cuidados:**
+
+- **M12 pode expor texto na tela bloqueada.** O S22 está com "mostrar conteúdo"
+  (`lock_screen_allow_private_notifications=1`), e o `Notifier.kt` usa `VISIBILITY_PRIVATE`.
+  Pelo comportamento documentado do Android, a versão neutra só vale com "ocultar conteúdo".
+  Ainda não visto no aparelho. **Decisão do responsável: testar primeiro como está e, se
+  vazar, trazer as opções antes de fechar a fase.**
+- **Limite de teste ligado iguala todos os limites a 1 minuto.** O item "limite maior depois
+  de estourar" precisa dos limites reais, com "Voltar aos limites reais".
+- **M7 antes do M8:** o X precisa estar só na lista de risco no M7 e nas duas no M8.
+- **"Zerar o estado de hoje" não mexe em notificações nem em check-ins**, e um recomeço já
+  agendado pela reprovação continua agendado.
+- **Instalar sempre com `npm run android:install`**, que tem limite de tempo. O `adb` travou
+  três vezes em 08/11 (AP3).
+- **Subir o Metro depois do build** (AP5) e refazer o `adb reverse` depois de reinstalar.
+- **Tarefas longas com vigia:** acusar saída parada e avisar o responsável.
+- **Não gravar no banco do aparelho pelo `adb` sem avisar.** Desinstalar o app de
+  desenvolvimento no Bloco 1 está previsto no roteiro, mas o responsável pediu para não
+  fazer antes da retomada.
+- O emulador `lab_android16` ainda não foi usado neste passo: conferir se o build roda nele.
+- A DV2 continua aberta: levar a nota da recusa por tempo esgotado ao chat de planejamento.
 
 ---
 
