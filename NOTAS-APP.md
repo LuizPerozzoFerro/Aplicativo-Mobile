@@ -73,6 +73,23 @@ no Perfil volta ao onboarding com as permissões ainda nunca concedidas, e a seg
 | 13/11 (manhã) | Recomeço esperando o desbloqueio: tela bloqueada até depois das 9h |
 | 13/11 | M11 (check-in respondido no app antes da hora) |
 
+**Bloco 1 concluído (11/11, confirmado pelo responsável):** passada 1 ("Agora não" nas três
+permissões, "Ative o acompanhamento", "Agora não" escondendo o aviso e continuando
+escondido ao reabrir, e a lista de apps nova: sugeridos no topo, "Ver outros apps", busca e
+ordem) e passada 2 (M1: cada permissão abriu a tela certa, voltou como permitida, a janela
+do sistema das notificações apareceu e a notificação permanente surgiu), tudo como descrito.
+
+**Preparo da noite de 11/11, lido no S22 às 23:08:** as três permissões concedidas; serviço
+ligado e notificação "Acompanhamento" na barra; recaída registrada para 10/11, com a base
+da streak em 10/11 e nenhum recomeço agendado (`nativeRestartDays` vazio); check-in de 11/11
+sem resposta e sem envio, com alarme às 23:45 (janela de 10 min); preventiva às 05:00, com o
+sentimento "Tédio". Ao dormir, o responsável tira o cabo e deixa o S22 parado.
+
+**Para conferir em 12/11, com o cabo:** se o check-in saiu e foi removido à meia-noite, a hora
+real da preventiva (o alarme de economia profunda pode atrasar) e que não houve recomeço.
+Sugestão: `adb shell dumpsys notification --noredact` e os eventos `notification_sent` da
+fila do nativo, antes de abrir o app.
+
 O M11 saiu da noite de 11/11 porque, às 22:50, não havia tempo para ele e para a remoção à
 meia-noite, que precisam de check-ins diferentes. Uma quebra da moderação no dia 11 não gera
 recomeço, porque a streak começa em 0. No dia 12, uma quebra na moderação se junta à do M10
