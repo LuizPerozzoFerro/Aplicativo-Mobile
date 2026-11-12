@@ -52,6 +52,32 @@ já estiver integrado, subir o Metro (`npx expo start --dev-client --port 8081`)
 M16, M17 e AP4 já feitos. Bloco 7 pode correr em paralelo aos outros. Ao final: critérios de
 aceite da spec 03, seção 8, e aviso de fase pronta (CLAUDE.md, seção 11).
 
+### Retomada em 11/11/2026: Bloco 1 e calendário do Bloco 7
+
+PR #30 integrado. Branch `fase4/roteiro-final`, criada da `main`. Às 22:52 o app de
+desenvolvimento foi desinstalado (autorizado pelo responsável) e reinstalado, sem
+permissões.
+
+**Bloco 1 em duas passadas, sem reinstalar de novo:** na primeira, "Agora não" nas três
+permissões, dentro do app, o que não aciona a janela do sistema. Depois, "Apagar meus dados"
+no Perfil volta ao onboarding com as permissões ainda nunca concedidas, e a segunda passada
+é o M1.
+
+**Calendário do Bloco 7.** Cada item depende do check-in de um dia diferente:
+
+| Dia | O que entra |
+|---|---|
+| 11/11 (noite) | Recaída registrada hoje para ontem (item do Bloco 4); check-in às 23h45, sem responder; faixa 05h–06h para a preventiva; S22 fora da tomada e parado até de manhã |
+| 12/11 (manhã) | Conferir: check-in removido à meia-noite, preventiva das 5h com o horário real de saída e **nenhum** recomeço |
+| 12/11 | Bateria (zerar `batterystats` no cabo e algumas horas de uso fora dele); M10 com o check-in perto da hora e o app fechado; M14 reiniciando depois do M10 |
+| 13/11 (manhã) | Recomeço esperando o desbloqueio: tela bloqueada até depois das 9h |
+| 13/11 | M11 (check-in respondido no app antes da hora) |
+
+O M11 saiu da noite de 11/11 porque, às 22:50, não havia tempo para ele e para a remoção à
+meia-noite, que precisam de check-ins diferentes. Uma quebra da moderação no dia 11 não gera
+recomeço, porque a streak começa em 0. No dia 12, uma quebra na moderação se junta à do M10
+numa notificação só.
+
 **Cuidados:**
 
 - **M12 pode expor texto na tela bloqueada.** O S22 está com "mostrar conteúdo"
