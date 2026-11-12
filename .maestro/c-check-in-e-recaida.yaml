@@ -9,6 +9,7 @@ appId: br.com.quedo.app.dev
 name: (c) Check-in, desfazer e registrar recaída
 ---
 - runFlow: subflows/onboarding-curto.yaml
+- runFlow: subflows/dispensar-aviso.yaml
 
 # Sem recair há 3 dias.
 - assertVisible: 3 dias

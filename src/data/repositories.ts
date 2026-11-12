@@ -155,6 +155,8 @@ export type DayStateRepository = {
   listFailedDayKeys(compulsionId: number): string[];
   /** Reprova o dia (Fase 4: "Ignorar o limite por hoje" ou terceiro "Continuar"). */
   markFailed(day: CompulsionDay, reason: DayFailureReason): void;
+  /** Só para as ferramentas de teste: apaga as contagens, reprovações e telas do dia. */
+  clearDay(dayKey: string): void;
 };
 
 export type MonitoringEventRepository = {
@@ -723,6 +725,13 @@ export function createRepositories(
           .map((row) => row.dayKey),
       markFailed: (day, reason) => {
         db.transaction((tx) => markDayFailed(tx, day, reason));
+      },
+      clearDay: (dayKey) => {
+        requireDayKey(dayKey);
+        db.transaction((tx) => {
+          tx.delete(interruptionEvents).where(eq(interruptionEvents.dayKey, dayKey)).run();
+          tx.delete(dayStates).where(eq(dayStates.dayKey, dayKey)).run();
+        });
       },
     },
 

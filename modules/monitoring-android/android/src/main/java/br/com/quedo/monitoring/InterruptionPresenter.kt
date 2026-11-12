@@ -230,6 +230,10 @@ object InterruptionPresenter {
     if (session.confirmed) MomentRunner.onDismissed(context)
   }
 
+  /** Ferramenta de teste (spec 03, 5.10): sai do recuo e volta à tentativa normal. */
+  @Synchronized
+  fun resetAttempts() = attempts.reset()
+
   /** O serviço parou ou o usuário apagou os dados. */
   fun close(context: Context) {
     val app = context.applicationContext

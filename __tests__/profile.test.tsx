@@ -334,14 +334,18 @@ describe('edições', () => {
     await user.press(riskApps.getByRole('checkbox', { name: 'Reddit' }));
     expect(saveButton()).toBeDisabled();
     await screen.findByText('Você costuma ver esse tipo de conteúdo em Reddit?');
-    // X já respondido (Sim); o segundo "Sim" é o do Reddit.
-    await user.press(screen.getAllByRole('radio', { name: 'Sim' })[1]!);
+    // As perguntas seguem a ordem alfabética: o primeiro "Sim" é o do Reddit.
+    await user.press(screen.getAllByRole('radio', { name: 'Sim' })[0]!);
     await user.press(saveButton());
 
     await waitFor(() =>
       expect(mockRepositories.monitoredApps.listByCompulsion(adult.id)).toHaveLength(2),
     );
-    expect(mockRepositories.monitoredApps.listByCompulsion(adult.id)[1]).toMatchObject({
+    expect(
+      mockRepositories.monitoredApps
+        .listByCompulsion(adult.id)
+        .find((app) => app.packageName === 'com.reddit.frontpage'),
+    ).toMatchObject({
       packageName: 'com.reddit.frontpage',
       declaredConsumption: true,
     });

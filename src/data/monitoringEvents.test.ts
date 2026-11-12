@@ -37,6 +37,21 @@ beforeEach(async () => {
   nextId = 1;
 });
 
+it('zerar o dia apaga as telas e as contagens dele, e eventos novos voltam a contar', () => {
+  const shown = event({ type: 'interruption_shown', compulsionId: videos, targetId: clips });
+  repositories.monitoringEvents.importEvents([shown]);
+  expect(count('interruption_events')).toBe(1);
+
+  repositories.dayStates.clearDay(DAY);
+  expect(count('interruption_events')).toBe(0);
+  expect(repositories.dayStates.listByCompulsion(videos)).toEqual([]);
+
+  repositories.monitoringEvents.importEvents([
+    event({ type: 'interruption_shown', compulsionId: videos, targetId: clips }),
+  ]);
+  expect(repositories.dayStates.listByCompulsion(videos)[0]?.interruptions).toBe(1);
+});
+
 describe('importEvents', () => {
   it('"Tive uma recaída" pela notificação grava a recaída e o check-in do dia, como pelo app', () => {
     const answered = event({ type: 'check_in_answered', compulsionId: adult, answer: 'relapse' });

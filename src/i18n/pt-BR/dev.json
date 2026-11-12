@@ -28,7 +28,7 @@
   },
   "monitoring": {
     "title": "Monitoramento (base)",
-    "description": "Tela só do ambiente de desenvolvimento, para conferir no aparelho a base nativa do monitoramento, a sincronização e as regras (passos 1 a 3 da Fase 4).",
+    "description": "Ferramentas de teste, só no ambiente de desenvolvimento: estado do monitoramento, limites de teste e disparos manuais.",
     "missing": "O módulo nativo não está neste build.",
     "refresh": "Atualizar",
     "yes": "sim",
@@ -54,6 +54,7 @@
       "boot": "Último boot ou atualização: {{time}} ({{result}})",
       "start": "Ligar o serviço",
       "stop": "Desligar o serviço",
+      "debugStop": "Parar só o serviço (sem desligar)",
       "usageRequired": "Conceda o acesso ao uso antes de ligar o serviço.",
       "bootResults": {
         "started": "religado",
@@ -78,6 +79,7 @@
       "config": "Configuração recebida: {{compulsions}} compulsão(ões), {{moderation}} limite(s) de vídeos, {{risk}} app(s) de risco",
       "noConfig": "O nativo ainda não recebeu configuração.",
       "pending": "Eventos aguardando importação: {{count}}",
+      "pendingEntry": "{{type}}: {{count}}",
       "now": "Sincronizar agora"
     },
     "moment": {
@@ -88,7 +90,10 @@
       "lastShow": "Última tela pedida: {{name}}, {{time}}",
       "noShow": "Nenhuma tela pedida hoje.",
       "useTestLimit": "Usar limite de 1 minuto",
-      "useRealLimits": "Voltar aos limites reais"
+      "useRealLimits": "Voltar aos limites reais",
+      "showInterruption": "Mostrar a tela de interrupção",
+      "showFailed": "Sem regra com tela ou sem a permissão de sobreposição.",
+      "resetToday": "Zerar o estado de hoje"
     },
     "notifications": {
       "title": "Notificações",

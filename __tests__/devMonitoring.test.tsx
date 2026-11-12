@@ -3,6 +3,7 @@ import '@/i18n';
 
 import DevMonitoringScreen from '../app/dev-monitoring';
 import type { Environment } from '@/config/variant';
+import { toDayKey } from '@/domain/day';
 import type {
   NativeMomentStatus,
   NativeNotificationStatus,
@@ -80,6 +81,9 @@ function fakeNative(usageAccess: boolean): jest.Mocked<QuedoMonitoringNativeModu
     debugFireNotification: jest.fn(
       (_kind: Parameters<QuedoMonitoringNativeModule['debugFireNotification']>[0]) => undefined,
     ),
+    debugResetToday: jest.fn(() => undefined),
+    debugShowInterruption: jest.fn(() => true),
+    debugStopService: jest.fn(() => undefined),
     setTestLimit: jest.fn((minutes: number | null) => {
       moment = { ...moment, testLimitMinutes: minutes };
     }),
@@ -105,6 +109,11 @@ const notifications: NativeNotificationStatus = {
   state: { proactiveSent: 2, checkInSent: false, restartSent: false, restartWaiting: true },
 };
 
+const mockClearDay = jest.fn((_dayKey: string) => undefined);
+jest.mock('@/data/bootstrap', () => ({
+  getRepositories: () => ({ dayStates: { clearDay: mockClearDay } }),
+}));
+
 const mockSync = jest.fn(async () => undefined);
 jest.mock('@/features/monitoring/useMonitoringSync', () => ({
   getAppMonitoringSync: () => ({ sync: mockSync }),
@@ -121,7 +130,8 @@ afterEach(() => {
   mockNative.current = null;
   config = null;
   moment = NO_MOMENT;
-  mockSync.mockClear();
+  mockSync.mockReset();
+  mockClearDay.mockReset();
 });
 
 it('sem o módulo nativo (fora do Android), avisa', async () => {
@@ -271,8 +281,72 @@ it('mostra o estado das notificações e dispara cada uma', async () => {
   ).toBeOnTheScreen();
   expect(screen.getByText('Recomeço esperando o desbloqueio.')).toBeOnTheScreen();
 
-  fireEvent.press(screen.getByRole('button', { name: 'Disparar check-in' }));
-  fireEvent.press(screen.getByRole('button', { name: 'Disparar proteção pausada' }));
+  await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Disparar check-in' })));
+  await act(async () =>
+    fireEvent.press(screen.getByRole('button', { name: 'Disparar proteção pausada' })),
+  );
   expect(native.debugFireNotification).toHaveBeenCalledWith('check_in');
   expect(native.debugFireNotification).toHaveBeenCalledWith('protection_paused');
+});
+
+describe('ferramentas de teste (spec 03, 5.10)', () => {
+  const press = (name: string) =>
+    act(async () => fireEvent.press(screen.getByRole('button', { name })));
+
+  it('zerar hoje: importa a fila antes, zera o nativo e o dia no banco, e reenvia', async () => {
+    const native = fakeNative(true);
+    mockNative.current = native;
+    await renderScreen();
+    await screen.findByText('Acesso ao uso: permitido');
+    const order: string[] = [];
+    mockSync.mockImplementation(async () => void order.push('sync'));
+    native.debugResetToday.mockImplementation(() => void order.push('native'));
+    mockClearDay.mockImplementation(() => void order.push('database'));
+
+    await press('Zerar o estado de hoje');
+    expect(order).toEqual(['sync', 'native', 'database', 'sync']);
+    expect(mockClearDay).toHaveBeenCalledWith(toDayKey(new Date()));
+  });
+
+  it('mostra a tela de interrupção e avisa quando não dá', async () => {
+    const native = fakeNative(true);
+    mockNative.current = native;
+    await renderScreen();
+    await screen.findByText('Acesso ao uso: permitido');
+
+    await press('Mostrar a tela de interrupção');
+    expect(native.debugShowInterruption).toHaveBeenCalledTimes(1);
+    const failure = 'Sem regra com tela ou sem a permissão de sobreposição.';
+    expect(screen.queryByText(failure)).not.toBeOnTheScreen();
+
+    native.debugShowInterruption.mockReturnValue(false);
+    await press('Mostrar a tela de interrupção');
+    expect(screen.getByText(failure)).toBeOnTheScreen();
+  });
+
+  it('parar só o serviço não desliga o monitoramento', async () => {
+    const native = fakeNative(true);
+    mockNative.current = native;
+    await renderScreen();
+    await screen.findByText('Acesso ao uso: permitido');
+
+    await press('Parar só o serviço (sem desligar)');
+    expect(native.debugStopService).toHaveBeenCalledTimes(1);
+    expect(native.stopMonitoring).not.toHaveBeenCalled();
+  });
+
+  it('lista os eventos da fila por tipo', async () => {
+    const native = fakeNative(true);
+    native.getPendingEvents.mockResolvedValue(
+      JSON.stringify([
+        { type: 'limit_reached' },
+        { type: 'day_failed' },
+        { type: 'limit_reached' },
+      ]),
+    );
+    mockNative.current = native;
+    await renderScreen();
+    expect(await screen.findByText('limit_reached: 2')).toBeOnTheScreen();
+    expect(screen.getByText('day_failed: 1')).toBeOnTheScreen();
+  });
 });

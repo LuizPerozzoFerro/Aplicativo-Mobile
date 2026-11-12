@@ -506,6 +506,15 @@ describe('estado do dia (moderação)', () => {
     });
   });
 
+  it('zerar um dia não mexe nos outros', () => {
+    const { id } = repositories.compulsions.add({ type: 'short_videos', startedAt: NOW });
+    repositories.dayStates.markFailed({ compulsionId: id, dayKey: '2026-11-01' }, 'ignored_limit');
+    repositories.dayStates.markFailed({ compulsionId: id, dayKey: '2026-10-30' }, 'third_continue');
+    repositories.dayStates.clearDay('2026-11-01');
+    expect(repositories.dayStates.listFailedDayKeys(id)).toEqual(['2026-10-30']);
+    expect(() => repositories.dayStates.clearDay('ontem')).toThrow();
+  });
+
   it('só na moderação', () => {
     const { id } = repositories.compulsions.add({ type: 'pornography', startedAt: NOW });
     expect(() =>

@@ -5,7 +5,7 @@ do protótipo continua em `prototype/NOTAS.md`.
 
 ---
 
-## Onde paramos (08/11/2026)
+## Onde paramos (09/11/2026)
 
 - **Fase 3 encerrada:** passos 1 a 7 integrados na `main` (PRs #12 a #20).
 - **Fase 4 (spec 03 v0.2):** documentos e decisões da leitura da spec
@@ -19,14 +19,60 @@ do protótipo continua em `prototype/NOTAS.md`.
 - **Passo 6 (emergência)** integrado (PR #27). Seção "Fase 4 · Passo 6".
 - **Passo 7 (permissões reais, vigilância e estado)** integrado (PR #28). Seção "Fase 4 ·
   Passo 7". O ajuste do aviso do Início foi em PR próprio, porque o #28 já estava
-  integrado. Próximo: passo 8 (ferramentas de teste, Maestro e roteiro manual).
-- **Pendências para o roteiro do passo 8 (não esquecer):** M20 chamada recebida (S22 sem
-  chip e WhatsApp desconectado: usar o emulador e/ou o Teams), M14 agendamentos depois do
-  reinício, M10 "Tive uma recaída" pela notificação, M12 tela bloqueada vista a olho,
-  remoção do check-in à meia-noite, recomeço esperando o desbloqueio, atraso em economia
-  profunda, M4/M5 ("Continuar" três vezes e "Ignorar o limite por hoje") no aparelho, e o
-  aviso "Ative o acompanhamento" com "Agora não" (precisa de app sem permissões, como
-  depois de limpar os dados), mais M15 de novo com o histórico de permissões já ativo.
+  integrado (PR #29).
+- **Passo 8 (ferramentas, Maestro e roteiro):** **Bloco 0 concluído**, no PR #30 (branch
+  `fase4/roteiro`), com CI verde, **aguardando o merge do responsável**. Seção "Fase 4 ·
+  Passo 8", com as decisões e o resultado.
+
+### Retomada: o próximo passo é o Bloco 1
+
+Sessão encerrada em 09/11/2026, sem nenhuma tarefa rodando no computador.
+
+**Estado do S22:** build de desenvolvimento com o código do PR #30. Dados apagados, app nas
+boas-vindas. Acesso ao uso e sobreposição continuam concedidos; notificações, não. Nada foi
+desinstalado.
+
+**Para retomar:** conectar o S22, `adb devices`, voltar à `main` com `git pull` se o PR #30
+já estiver integrado, subir o Metro (`npx expo start --dev-client --port 8081`) e fazer o
+`adb reverse tcp:8081 tcp:8081`.
+
+**O que falta em cada bloco:**
+
+| Bloco | O que falta | O que exige do responsável |
+|---|---|---|
+| 1 · App zerado | **Começa desinstalando e reinstalando o app de desenvolvimento**, para ficar sem permissões. Depois: "Ative o acompanhamento" e "Agora não"; conferir a lista recolhida, a busca e a ordem; M1 e a janela do sistema das notificações | Onboarding duas vezes. Na segunda, Instagram e YouTube na moderação, Reddit e X como risco, pelo menos 1 dia sem recair |
+| 2 · Limite de 1 minuto | M2, M3, M9 ("Pular", "Ainda não", "Pular" na motivação), M4, M8 completo depois do M4, M5, M6, M7, M8, limite maior salvo depois de estourar, M19 | Usar os apps. M4 e M6 levam pelo menos 15 min cada |
+| 3 · Aparência | M18 na emergência, animações removidas | Fonte no máximo e remover animações nos Ajustes; desfazer depois |
+| 4 · Tela bloqueada | M12, M13, recaída registrada hoje para ontem sem recomeço | PIN ou senha no S22 |
+| 5 · Permissão e serviço | M15 de novo, serviço parado com o app fechado | Desligar e religar o acesso ao uso |
+| 6 · Chamada | M20 no emulador `lab_android16` e pelo Teams | Segunda conta no Teams para ligar |
+| 7 · Dois dias | Dia 1: M11, remoção à meia-noite (check-in às 23h30, sem responder), economia profunda (faixa perto das 5h, S22 parado e fora da tomada). Dia 2: bateria, M10, M14 com agendamentos. Manhã do Dia 3: recomeço esperando o desbloqueio depois das 9h | Mudar horários no Perfil; S22 fora da tomada à noite |
+| 8 · Prévia e produção | Ferramentas ausentes, tela acesa, abertura a frio, `check:manifest` pela lista estrita nos builds de prévia e de produção | Onboarding e permissões no app de prévia |
+
+M16, M17 e AP4 já feitos. Bloco 7 pode correr em paralelo aos outros. Ao final: critérios de
+aceite da spec 03, seção 8, e aviso de fase pronta (CLAUDE.md, seção 11).
+
+**Cuidados:**
+
+- **M12 pode expor texto na tela bloqueada.** O S22 está com "mostrar conteúdo"
+  (`lock_screen_allow_private_notifications=1`), e o `Notifier.kt` usa `VISIBILITY_PRIVATE`.
+  Pelo comportamento documentado do Android, a versão neutra só vale com "ocultar conteúdo".
+  Ainda não visto no aparelho. **Decisão do responsável: testar primeiro como está e, se
+  vazar, trazer as opções antes de fechar a fase.**
+- **Limite de teste ligado iguala todos os limites a 1 minuto.** O item "limite maior depois
+  de estourar" precisa dos limites reais, com "Voltar aos limites reais".
+- **M7 antes do M8:** o X precisa estar só na lista de risco no M7 e nas duas no M8.
+- **"Zerar o estado de hoje" não mexe em notificações nem em check-ins**, e um recomeço já
+  agendado pela reprovação continua agendado.
+- **Instalar sempre com `npm run android:install`**, que tem limite de tempo. O `adb` travou
+  duas vezes em 08/11 (AP3).
+- **Subir o Metro depois do build** (AP5) e refazer o `adb reverse` depois de reinstalar.
+- **Tarefas longas com vigia:** acusar saída parada e avisar o responsável.
+- **Não gravar no banco do aparelho pelo `adb` sem avisar.** Desinstalar o app de
+  desenvolvimento no Bloco 1 está previsto no roteiro, mas o responsável pediu para não
+  fazer antes da retomada.
+- O emulador `lab_android16` ainda não foi usado neste passo: conferir se o build roda nele.
+- A DV2 continua aberta: levar a nota da recusa por tempo esgotado ao chat de planejamento.
 
 ---
 
@@ -2956,6 +3002,97 @@ Verificado: Jest 747, 21 mutações derrubam testes (2 sobreviveram na primeira 
 viraram teste). No S22, a migração rodou sobre os dados reais, as três permissões ficaram
 registradas e o Início abriu sem aviso. O aviso novo e o "Agora não" só foram vistos em
 teste automatizado: o S22 está com tudo permitido e já registrado.
+
+## Fase 4 · Passo 8 · Ferramentas, Maestro e roteiro (08/11/2026)
+
+### Roteiro final aprovado pelo responsável
+
+Blocos agrupados pela preparação. Tela bloqueada: testar primeiro como está e, se o texto
+vazar, trazer as opções. O responsável autorizou apagar os dados do app de desenvolvimento.
+
+- **Bloco 0 (cabo):** ferramentas da 5.10, Maestro, "Apagar meus dados" com o nativo.
+- **Bloco 1 (app zerado):** "Ative o acompanhamento" e "Agora não"; M1 e a janela do
+  sistema das notificações.
+- **Bloco 2 (limite de 1 minuto):** M2, M3, M9 ("Pular", "Ainda não", "Pular" na
+  motivação), M4, **M8 completo depois do M4** (com o dia de vídeos curtos reprovado, o X
+  passa a seguir as regras do conteúdo adulto, se declarado), M5, M6, M7, M8, **limite
+  maior salvo depois de estourar** (a tela continua hoje com o limite antigo) e M19.
+- **Bloco 3 (ajustes de aparência):** M18 na emergência e animações removidas.
+- **Bloco 4 (tela bloqueada):** M12, M13 e **recaída registrada hoje para ontem sem
+  notificação de recomeço**.
+- **Bloco 5 (permissão e serviço):** M15 de novo e serviço parado com o app fechado.
+- **Bloco 6 (chamada):** M20 no emulador e pelo Teams.
+- **Bloco 7 (dois dias):** M11, remoção à meia-noite, atraso em economia profunda,
+  bateria, M10, M14 com agendamentos, recomeço esperando o desbloqueio.
+- **Bloco 8 (prévia e produção):** ferramentas ausentes, tela acesa, abertura a frio e
+  **`check:manifest` pela lista estrita nos builds de prévia e de produção**.
+- **Já feitos, sem repetir:** M16 (07/11), M17 (08/11), AP4 (07/11).
+
+### Ferramentas de teste (spec 03, 5.10)
+
+A tela continua em Perfil → "Monitoramento (base)". O limite de 1 minuto já valia para os
+apps de risco. Entraram:
+
+- **"Zerar o estado de hoje":** importa a fila, esquece telas, pausas e reprovações no
+  nativo, apaga `day_states` e `interruption_events` do dia e reenvia a configuração.
+  Não mexe em notificações nem em check-ins. Decidi zerar também o uso visto pelas regras,
+  com um desconto (`UsageBaseline`): o uso vem do histórico do sistema e não dá para
+  apagar, e sem isso o M2 e o M5 não medem nada num dia em que os apps já foram usados.
+- **"Mostrar a tela de interrupção":** tem como alvo o próprio app, porque a tela fecha
+  sozinha quando o app da frente não é o alvo. Conta como tela de verdade.
+- **"Parar só o serviço (sem desligar)":** para o "serviço parado com o app fechado".
+- A fila de eventos aparece contada por tipo.
+
+### Decisão do responsável: lista de apps recolhida (08/11/2026)
+
+Os fluxos Maestro revelaram que, com a lista real, a etapa de configuração mostrava 207
+etiquetas: os apps já marcados e as perguntas ficavam escondidos, e a ordem errava nos
+acentos. Vale para o onboarding e para o Perfil:
+
+- Sugeridos instalados no topo, já marcados. Os demais ficam atrás de "Ver outros apps".
+- App não sugerido e marcado continua à vista com a lista recolhida.
+- Na lista expandida: campo "Buscar app" (ignora acentos e maiúsculas) e ordem alfabética
+  do pt-BR (`Intl.Collator`, em `createTextComparer`).
+- Sem nenhum sugerido instalado: uma frase curta e o botão, nunca uma área vazia.
+
+Decidi por conta própria, para o responsável revisar no PR: botão "Recolher a lista" e
+frase "Nenhum app encontrado." quando a busca não acha nada.
+
+**Armadilha:** o `ChipGroup` devolve só o que está nas opções recebidas. Com a busca, as
+opções são parciais e o resto da seleção se perderia; `mergeAppSelection` junta as duas.
+
+Testes em `__tests__/appChooser.test.tsx`, com 202 apps falsos e nomes acentuados. Um app
+marcado na lista expandida não muda de lugar; só sobe ao recolher.
+
+### Decisão do responsável: limite de tempo e vigilância (08/11/2026)
+
+Em 08/11 o `adb` travou (AP3) e o build ficou parado cerca de 20 minutos sem erro.
+
+- `npm run android:install` agora é `scripts/android-install.js`: compila com
+  `assembleDebug`, confere o `adb` (15 s), instala (3 min) e, se falhar ou estourar o tempo,
+  reinicia o `adb` e tenta mais uma vez. Na segunda falha, termina com erro.
+- Toda tarefa longa em segundo plano é lançada com um vigia que acusa saída parada, e o
+  responsável é avisado sem precisar perguntar.
+
+### Bloco 0: resultado no S22 (08 e 09/11/2026)
+
+- **Fluxos Maestro:** (b) a (f) passaram na rodada completa; (a) e (d) passaram na repetição,
+  depois de ajustar só o texto esperado de (a) à ordem alfabética.
+- **"Apagar meus dados" com o nativo (fluxo d):** regras do dia vazias, fila de eventos
+  inexistente, serviço parado, nenhuma notificação do app e, ao reabrir, configuração sem
+  compulsões, regras nem motivação.
+- **Reinício do `adb` em uso real:** em 08/11, às 23:24, o `adb` estava travado, a primeira
+  tentativa falhou e o script reiniciou e instalou na segunda.
+- **`clearState` do Maestro só tira a permissão de notificações.** Acesso ao uso e
+  sobreposição continuam concedidos. Para ter o app sem permissões (Bloco 1), é preciso
+  desinstalar e instalar de novo.
+- Neste ambiente o Windows não procura executáveis na pasta atual: o script chama o
+  `gradlew.bat` pelo caminho completo.
+
+### Cuidado para testes com `fireEvent`
+
+`fireEvent.press` fora de `act` no fim de um teste fez todos os testes seguintes do mesmo
+arquivo não encontrarem a tela. O teste de notificações passava porque era o último.
 
 ## Problemas
 
