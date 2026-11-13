@@ -102,8 +102,14 @@ fila do nativo, antes de abrir o app.
 - Serviço ligado a noite toda (132 verificações), sem novo boot.
 
 **Dia 2 replanejado:** o responsável conectou às 22:43 de 12/11, sem tempo para a bateria.
-M10 e M14 ficam com o check-in das 23:45 de 12/11; a bateria passa para 13/11, depois do
-recomeço da manhã; o M11 também fica para 13/11.
+Por decisão dele, só o M10 fica para o check-in das 23:45 de 12/11. Novo calendário:
+
+| Dia | O que entra |
+|---|---|
+| 12/11 (noite) | M10 com o app fechado |
+| 13/11 (manhã) | Recomeço esperando o desbloqueio (agendado pela recaída do M10) |
+| 13/11 | Bateria; M11; à noite, M14 reiniciando o S22 |
+| 14/11 (manhã) | Fim do M14: a preventiva das 5h, agendada antes do reinício, precisa sair |
 
 O M11 saiu da noite de 11/11 porque, às 22:50, não havia tempo para ele e para a remoção à
 meia-noite, que precisam de check-ins diferentes. Uma quebra da moderação no dia 11 não gera
