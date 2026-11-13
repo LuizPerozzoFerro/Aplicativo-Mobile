@@ -106,10 +106,27 @@ Por decisão dele, só o M10 fica para o check-in das 23:45 de 12/11. Novo calen
 
 | Dia | O que entra |
 |---|---|
-| 12/11 (noite) | M10 com o app fechado |
-| 13/11 (manhã) | Recomeço esperando o desbloqueio (agendado pela recaída do M10) |
-| 13/11 | Bateria; M11; à noite, M14 reiniciando o S22 |
-| 14/11 (manhã) | Fim do M14: a preventiva das 5h, agendada antes do reinício, precisa sair |
+| 12/11, quinta (noite) | M10 com o app fechado |
+| 13/11, sexta | Sem computador; S22 em modo avião. **Às 9h, o S22 bloqueado**; o recomeço (agendado pela recaída do M10) deve sair no primeiro desbloqueio depois das 9h. O horário fica no evento `notification_sent` da fila do nativo, para ler no sábado sem abrir o app |
+| 14/11, sábado | Ler os eventos de sexta antes de abrir o app; bateria; M11; Blocos 2 a 6 e 8; à noite, M14 reiniciando o S22 |
+| 15/11, domingo (manhã) | Fim do M14: a preventiva das 5h, agendada antes do reinício, precisa sair |
+
+**M10 (12/11, 23:55): passou no nativo e no banco, falhou na tela.**
+
+- "Tive uma recaída" na notificação, com o app fechado: a notificação saiu da barra, o
+  nativo marcou o check-in respondido e agendou o recomeço para 13/11.
+- Ao abrir, o evento foi importado: o banco tem a recaída de 12/11 e o check-in de 12/11 com
+  `source = notification`, às 23:55:42.
+- **Defeito:** o Início continuou com "2 dias" e "Como foi hoje?", sem a recaída. O
+  `HomeScreen` recarrega ao ganhar o foco e quando o app volta à frente, no mesmo instante em
+  que a sincronização começa a importar. A leitura vence a importação, e o Início não escuta
+  `dataChanges` para recarregar depois. Também afeta o usuário real: quem responde pela
+  notificação e abre o app vê a contagem antiga até trocar de aba.
+- **Para sábado:** o Início passar a recarregar depois de cada gravação (`dataChanges`), com
+  teste que importa um evento depois do primeiro desenho da tela; repetir o M10 no aparelho.
+
+O modo avião não afeta o roteiro: alarmes e notificações são locais. Na sexta, o check-in das
+23:45 sai e fica sem resposta, o que só repete o teste da remoção à meia-noite.
 
 O M11 saiu da noite de 11/11 porque, às 22:50, não havia tempo para ele e para a remoção à
 meia-noite, que precisam de check-ins diferentes. Uma quebra da moderação no dia 11 não gera
