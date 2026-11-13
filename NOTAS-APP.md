@@ -90,6 +90,21 @@ real da preventiva (o alarme de economia profunda pode atrasar) e que não houve
 Sugestão: `adb shell dumpsys notification --noredact` e os eventos `notification_sent` da
 fila do nativo, antes de abrir o app.
 
+**Bloco 7, Dia 1: resultado (lido em 12/11, 22:43, antes de abrir o app):**
+
+- **Check-in:** enviado às 23:54:21 de 11/11, dentro da janela de 10 minutos do alarme das
+  23:45. Na manhã de 12/11 não estava mais na barra (id 1011 ausente; o responsável viu só a
+  preventiva). **Remoção à meia-noite: ok.**
+- **Preventiva da faixa das 05h:** enviada às 05:20:30, com o S22 fora da tomada e parado.
+  **O atraso de 20 minutos em economia profunda está dentro do aceito pela spec (5.4).**
+- **Recaída registrada hoje para ontem:** `restartSent` falso e `nativeRestartDays` vazio,
+  sem notificação de recomeço. **Item do Bloco 4: ok.**
+- Serviço ligado a noite toda (132 verificações), sem novo boot.
+
+**Dia 2 replanejado:** o responsável conectou às 22:43 de 12/11, sem tempo para a bateria.
+M10 e M14 ficam com o check-in das 23:45 de 12/11; a bateria passa para 13/11, depois do
+recomeço da manhã; o M11 também fica para 13/11.
+
 O M11 saiu da noite de 11/11 porque, às 22:50, não havia tempo para ele e para a remoção à
 meia-noite, que precisam de check-ins diferentes. Uma quebra da moderação no dia 11 não gera
 recomeço, porque a streak começa em 0. No dia 12, uma quebra na moderação se junta à do M10
