@@ -125,6 +125,31 @@ Por decisão dele, só o M10 fica para o check-in das 23:45 de 12/11. Novo calen
 - **Para sábado:** o Início passar a recarregar depois de cada gravação (`dataChanges`), com
   teste que importa um evento depois do primeiro desenho da tela; repetir o M10 no aparelho.
 
+**Sexta, 13/11, lida no sábado às 15:43 (antes de abrir o app):**
+
+- Check-in enviado às 23:50:30 e removido à meia-noite; preventivas às 05:20:31 em 13/11 e
+  em 14/11. Remoção e economia profunda repetiram o resultado da primeira noite.
+- **O recomeço de 13/11 não saiu, e não é defeito:** o histórico de tela do `batterystats`
+  mostra a tela desligada das 00:03 de 13/11 até a tarde de 14/11. Sem desbloqueio, o
+  recomeço esperou e expirou à meia-noite (`nativeRestartDays` limpa os dias passados). O
+  caminho "sai no primeiro desbloqueio depois das 9h" continua sem teste no aparelho.
+- O `usagestats` só guardava os desbloqueios do dia; o histórico de tela do
+  `dumpsys batterystats --history` (`+screen`/`-screen`) cobre os dias desde a última carga
+  completa.
+- **Ponto para o responsável:** a spec não diz o que fazer se o celular não for desbloqueado
+  no dia seguinte inteiro. Hoje o recomeço se perde.
+
+**Correção do M10 (14/11):** o `HomeScreen` agora também recarrega a cada gravação
+(`dataChanges`). O teste novo importa um "Tive uma recaída" depois do primeiro desenho da
+tela e falha sem a correção.
+
+**Calendário a partir de 14/11:**
+
+| Dia | O que entra |
+|---|---|
+| 14/11, sábado | M11; M10 de novo (check-in disparado pela ferramenta, respondido na notificação), que agenda o recomeço de domingo; Blocos 2 a 6 e 8; à noite, M14 reiniciando o S22 |
+| 15/11, domingo (manhã) | Preventiva das 5h, agendada antes do reinício (fim do M14); **S22 bloqueado às 9h** e recomeço no primeiro desbloqueio depois disso; depois, bateria |
+
 O modo avião não afeta o roteiro: alarmes e notificações são locais. Na sexta, o check-in das
 23:45 sai e fica sem resposta, o que só repete o teste da remoção à meia-noite.
 
