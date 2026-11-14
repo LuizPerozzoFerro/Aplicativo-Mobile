@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { AppState } from 'react-native';
 
 import { getRepositories } from '@/data/bootstrap';
+import { dataChanges } from '@/data/changes';
 import { startOfNextDay } from '@/domain/day';
 import { Button, EmptyState, Screen, Text } from '@/ui';
 
@@ -19,9 +20,11 @@ function load() {
 
 /**
  * Tela Início (spec 02, seção 4.5; doc 01, seção 6.1). Recarrega ao ganhar o
- * foco (volta do Perfil ou das permissões), ao voltar do segundo plano e à
- * meia-noite, para a streak e o check-in seguirem o dia. Tocar no card ainda
- * não leva a outra tela (aba Progresso, Fase 5).
+ * foco (volta do Perfil ou das permissões), ao voltar do segundo plano, à
+ * meia-noite e depois de cada gravação no banco. A última cobre o que a
+ * sincronização importa do nativo, que termina depois de a tela ter lido (uma
+ * resposta dada na notificação, M10). Tocar no card ainda não leva a outra
+ * tela (aba Progresso, Fase 5).
  */
 export function HomeScreen() {
   const { t } = useTranslation(['home', 'tabs']);
@@ -29,6 +32,8 @@ export function HomeScreen() {
   const refresh = useCallback(() => setSnapshot(load()), []);
 
   useFocusEffect(refresh);
+
+  useEffect(() => dataChanges.subscribe(refresh), [refresh]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
