@@ -161,7 +161,11 @@ preventiva de domingo às 05:08 e o serviço religado sozinho pelo Android às 1
   na notificação: a notificação saiu, o nativo agendou o recomeço para 16/11, e na abertura o
   Início já mostrou "0 dias", a mensagem de apoio e "Hoje: recaída registrada.", sem trocar
   de aba.
-- **Próximo:** M14 reiniciando o S22 esta noite. Em 16/11, a preventiva das 5h e o recomeço
+- **M14, primeira parte: ok.** Reinício às 22:03; em 3 minutos, `lastBootResult = started`, o
+  serviço em primeiro plano com a notificação "Proteção ativa.", o evento
+  `service_started origin=boot`, o recomeço de 16/11 preservado e o alarme da meia-noite
+  agendado de novo.
+- **Próximo:** fechar o M14 com o que foi agendado antes do reinício. Em 16/11, a preventiva das 5h e o recomeço
   no primeiro desbloqueio depois das 9h fecham o M14 e o recomeço esperando o desbloqueio.
 
 O modo avião não afeta o roteiro: alarmes e notificações são locais. Na sexta, o check-in das
