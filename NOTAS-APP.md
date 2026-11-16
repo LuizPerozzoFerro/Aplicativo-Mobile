@@ -24,7 +24,19 @@ do protótipo continua em `prototype/NOTAS.md`.
   `fase4/roteiro`), com CI verde, **aguardando o merge do responsável**. Seção "Fase 4 ·
   Passo 8", com as decisões e o resultado.
 
-### Retomada: o próximo passo é o Bloco 1
+### Retomada (atualizada em 15/11/2026, 22:05)
+
+**Próximo passo:** com o S22 no cabo e **antes de abrir o app**, ler a fila do nativo para
+fechar o M14 (preventiva das 5h de 16/11) e o recomeço esperando o desbloqueio (16/11, no
+primeiro desbloqueio depois das 9h). Se não houver desbloqueio depois das 9h, ver o histórico
+de tela no `batterystats`, como em 14/11. Depois: bateria e os Blocos 2 a 6 e 8. Feitos
+no Bloco 7: M10, M11, remoção à meia-noite, economia profunda e a primeira parte do M14.
+Detalhes na seção "Retomada em 11/11/2026" e seguintes, logo abaixo.
+
+**Ao retomar:** subir o Metro com o vigia (ele caiu com o fim da sessão de sábado) e fazer o
+`adb reverse tcp:8081 tcp:8081`.
+
+### Retomada anterior: o próximo passo era o Bloco 1
 
 Sessão encerrada em 09/11/2026, sem nenhuma tarefa rodando no computador.
 
