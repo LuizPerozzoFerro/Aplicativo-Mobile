@@ -150,6 +150,20 @@ tela e falha sem a correção.
 | 14/11, sábado | M11; M10 de novo (check-in disparado pela ferramenta, respondido na notificação), que agenda o recomeço de domingo; Blocos 2 a 6 e 8; à noite, M14 reiniciando o S22 |
 | 15/11, domingo (manhã) | Preventiva das 5h, agendada antes do reinício (fim do M14); **S22 bloqueado às 9h** e recomeço no primeiro desbloqueio depois disso; depois, bateria |
 
+**Domingo, 15/11.** O Metro caiu com o fim da sessão de sábado e o teste não aconteceu; agora
+ele sobe com um vigia que avisa se parar. A fila mostrou o check-in de sábado às 23:51, a
+preventiva de domingo às 05:08 e o serviço religado sozinho pelo Android às 18:34 de sábado
+(`origin=restart`).
+
+- **M11: ok.** Check-in às 21:45, "Sem recaída" no app antes; até 21:55 nada chegou. O nativo
+  tinha o dia respondido, sem envio, e o próximo alarme só à meia-noite.
+- **M10 repetido: ok.** Check-in disparado pela ferramenta, app fechado, "Tive uma recaída"
+  na notificação: a notificação saiu, o nativo agendou o recomeço para 16/11, e na abertura o
+  Início já mostrou "0 dias", a mensagem de apoio e "Hoje: recaída registrada.", sem trocar
+  de aba.
+- **Próximo:** M14 reiniciando o S22 esta noite. Em 16/11, a preventiva das 5h e o recomeço
+  no primeiro desbloqueio depois das 9h fecham o M14 e o recomeço esperando o desbloqueio.
+
 O modo avião não afeta o roteiro: alarmes e notificações são locais. Na sexta, o check-in das
 23:45 sai e fica sem resposta, o que só repete o teste da remoção à meia-noite.
 
