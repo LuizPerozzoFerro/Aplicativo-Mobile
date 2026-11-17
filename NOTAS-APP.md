@@ -24,14 +24,18 @@ do protótipo continua em `prototype/NOTAS.md`.
   `fase4/roteiro`), com CI verde, **aguardando o merge do responsável**. Seção "Fase 4 ·
   Passo 8", com as decisões e o resultado.
 
-### Retomada (atualizada em 15/11/2026, 22:05)
+### Retomada (atualizada em 16/11/2026, 23:46)
 
-**Próximo passo:** com o S22 no cabo e **antes de abrir o app**, ler a fila do nativo para
-fechar o M14 (preventiva das 5h de 16/11) e o recomeço esperando o desbloqueio (16/11, no
-primeiro desbloqueio depois das 9h). Se não houver desbloqueio depois das 9h, ver o histórico
-de tela no `batterystats`, como em 14/11. Depois: bateria e os Blocos 2 a 6 e 8. Feitos
-no Bloco 7: M10, M11, remoção à meia-noite, economia profunda e a primeira parte do M14.
-Detalhes na seção "Retomada em 11/11/2026" e seguintes, logo abaixo.
+**Bloco 7 concluído, menos a bateria.** Lido em 16/11 às 23:45, antes de abrir o app:
+
+- **M14: ok.** A preventiva das 5h, agendada antes do reinício de 15/11, saiu às 05:12:02.
+- **Recomeço esperando o desbloqueio: ok.** O S22 ficou com a tela apagada o dia todo. O
+  primeiro desbloqueio foi às 23:44:19 (`usagestats`), e o recomeço saiu às 23:44:20.
+- O check-in das 21:45 saiu às 21:54:35, sem resposta, e é removido à meia-noite.
+
+**Próximo passo, em outro dia por decisão do responsável:** bateria (zerar o
+`batterystats` no cabo e algumas horas de uso fora dele, sem abrir o Quedo) e os Blocos 2 a
+6 e 8. Detalhes na seção "Retomada em 11/11/2026" e seguintes, logo abaixo.
 
 **Ao retomar:** subir o Metro com o vigia (ele caiu com o fim da sessão de sábado) e fazer o
 `adb reverse tcp:8081 tcp:8081`.
