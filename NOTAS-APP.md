@@ -24,7 +24,108 @@ do protótipo continua em `prototype/NOTAS.md`.
   `fase4/roteiro`), com CI verde, **aguardando o merge do responsável**. Seção "Fase 4 ·
   Passo 8", com as decisões e o resultado.
 
-### Retomada: o próximo passo é o Bloco 1
+### Retomada (atualizada em 20/11/2026, 20:30): próximo passo, em 21/11
+
+**Feito em 20/11 (detalhes em "Sessão de 20/11/2026", abaixo):** Blocos 2 e 3 completos;
+Bloco 4 com M13 e o "ontem sem recomeço" ok e o M12 corrigido no código, ainda sem teste no
+aparelho; teste da decisão de 14/11 no JUnit. PR aberto com o que já estava pronto.
+
+**Em 21/11, nesta ordem:**
+
+1. **Antes de abrir o app:** ler a fila do nativo. O dia de vídeos reprovado em 20/11 (streak
+   de vários dias) deve ter gerado um recomeço no primeiro desbloqueio depois das 9h.
+2. **M12 com a correção:** check-in 10 minutos à frente, S22 bloqueado; a notificação deve
+   aparecer só como "Quedo / Você tem um lembrete.", sem botões; no desbloqueio, vira
+   "Como foi hoje?" com os botões, sem tocar de novo.
+3. **Bloco 5:** M15 de novo e serviço parado com o app fechado ("Parar só o serviço" e
+   esperar um alarme).
+4. **Bloco 6:** M20 no emulador `lab_android16` (`adb emu gsm call`) e, se houver uma segunda
+   pessoa, pelo Teams. **Antes do Bloco 8**, porque precisa do build de desenvolvimento.
+5. **Bloco 8:** builds de prévia e de produção (o `prebuild --clean` refaz a pasta
+   `android/`); ferramentas ausentes, tela acesa, abertura a frio e `check:manifest` nos dois.
+   No fim, **desinstalar o app de prévia** (avisar: apaga os dados dele) e refazer o
+   `prebuild` de desenvolvimento.
+6. **Bateria por último:** limite de teste desligado (já está), limite de vídeos de volta a 60
+   (hoje está em 30 a partir de 21/11), `batterystats --reset` no cabo e uso normal fora dele.
+
+**Estado do S22 ao encerrar 20/11:** build com a correção do M12 instalado; limite de teste
+desligado; check-in às 21:45; limite de vídeos de 5 min só em 20/11 e 30 min daí em diante;
+o X está nas duas listas e declarado.
+
+### Retomada anterior (16/11/2026, 23:46)
+
+**Bloco 7 concluído, menos a bateria.** Lido em 16/11 às 23:45, antes de abrir o app:
+
+- **M14: ok.** A preventiva das 5h, agendada antes do reinício de 15/11, saiu às 05:12:02.
+- **Recomeço esperando o desbloqueio: ok.** O S22 ficou com a tela apagada o dia todo. O
+  primeiro desbloqueio foi às 23:44:19 (`usagestats`), e o recomeço saiu às 23:44:20.
+- O check-in das 21:45 saiu às 21:54:35, sem resposta, e é removido à meia-noite.
+
+**Próximo passo, em outro dia por decisão do responsável:** bateria (zerar o
+`batterystats` no cabo e algumas horas de uso fora dele, sem abrir o Quedo) e os Blocos 2 a
+6 e 8. Detalhes na seção "Retomada em 11/11/2026" e seguintes, logo abaixo.
+
+**Sessão de 20/11/2026: Bloco 2 no S22 (tudo ok, com evidência no nativo e no banco):**
+
+- **Teste da decisão de 14/11:** `restartWaitingAllDayExpiresAtMidnight` (JUnit). O
+  recomeço que esperou o dia todo expira à meia-noite e não é reenviado, nem com a
+  configuração antiga do JS. Três mutações derrubam o teste.
+- **M2:** limite somado entre Instagram e YouTube; aviso e tela sobre o YouTube.
+- **M3:** "Ir para a tela inicial" e nova tela ao reabrir.
+- **M9:** emergência pela tela de pausa (respiração inteira, cronômetro, "Pular", "Ainda
+  não") e pelo Início ("Pular" na motivação leva à pergunta, "Sim"). Duas sessões no banco.
+- **M7:** X não declarado, só o aviso de app de risco.
+- **M8:** X nas duas listas; uma tela só, a dos vídeos, que estourou primeiro.
+- **M4:** três "Continuar", aviso de última vez, dia de vídeos reprovado (`third_continue`).
+- **M8 completo:** com os vídeos encerrados, o X, já declarado, mostrou a tela do conteúdo
+  adulto.
+- **M6:** Reddit declarado, tela sem "Ignorar"; o 3º "Continuar" encerrou as telas sem
+  recaída e sem dia reprovado.
+- **M5:** depois de "Zerar o estado de hoje", "Ignorar" só na 3ª tela; dia reprovado.
+- **Limite maior depois de estourar:** limite real em 5 min, tela; aumento para 30 com a
+  mensagem de amanhã; a tela continuou com o limite de hoje (`limitToday` 5).
+- **M19:** textos da tela de pausa aprovados pelo responsável.
+- **Atenção para a bateria:** o limite de vídeos ficou em 30 min a partir de 21/11.
+
+**Bloco 3 (20/11):** M18 na emergência com fonte no máximo (`font_scale` 2.0) e "Remover
+animações" (escalas em 0): tudo legível, confirmado pelo responsável. Os ajustes voltaram
+(animações em 1; fonte em 1.3, escolha do responsável).
+
+**Bloco 4 (20/11):**
+
+- **M12 falhou: o texto completo aparece na tela bloqueada.** O S22 está em "mostrar
+  conteúdo" (`lock_screen_allow_private_notifications=1`), e com isso o Android ignora o
+  `setPublicVersion` do `VISIBILITY_PRIVATE`. O responsável viu, bloqueado, "Você chegou ao
+  tempo que definiu para hoje." em vez de "Quedo / Você tem um lembrete.". A preventiva
+  (sentimento e motivação) e o check-in ("Tive uma recaída") também ficariam expostos.
+- **Decisão do responsável (opção 1 de 3):** com o aparelho bloqueado, o app publica a versão
+  neutra como conteúdo principal, sem ações, e troca pela completa depois do desbloqueio
+  (verificação do serviço ou abertura do app). As outras opções eram esconder as notificações
+  da tela bloqueada (foge da spec) ou manter e registrar.
+- **M13: ok** pela ferramenta: uma notificação "Um novo dia", texto conferido. A regra
+  "nenhuma se a streak era 0" só tem teste automatizado; a ferramenta dispara sempre. A
+  preventiva da ferramenta também chegou (na etapa do M12 ela não tinha sido publicada).
+- Recaída registrada hoje para ontem sem recomeço: já feito em 11/11.
+- O dia de vídeos reprovado em 20/11, com streak, deve gerar um recomeço natural em 21/11.
+
+**Correção do M12 (20/11, ainda sem teste no aparelho):**
+
+- `NotificationHold.kt`: com o aparelho bloqueado (`isKeyguardLocked`), toda notificação
+  (menos a permanente) sai com o título e o texto da versão pública e sem ações, e guarda
+  em disco como refazer a completa (`quedo-monitoring-held`).
+- A troca pela completa acontece no desbloqueio (`ACTION_USER_PRESENT`, registrado pelo
+  serviço), a cada verificação do serviço e quando o app manda configuração. Usa o mesmo
+  id, o horário original e `setOnlyAlertOnce`, para não tocar de novo. A que saiu da barra
+  é esquecida e não volta.
+- Sem o serviço (sem o acesso ao uso), a neutra só vira completa quando o app é aberto.
+- JUnit: 76 (7 novos); 6 mutações derrubam testes; manifesto sem permissão nova.
+- **Para testar:** bloquear, disparar pela ferramenta (com atraso) ou esperar um aviso real;
+  conferir a neutra na tela bloqueada; desbloquear e conferir a completa, com as ações.
+
+**Ao retomar:** subir o Metro com o vigia (ele caiu com o fim da sessão de sábado) e fazer o
+`adb reverse tcp:8081 tcp:8081`.
+
+### Retomada anterior: o próximo passo era o Bloco 1
 
 Sessão encerrada em 09/11/2026, sem nenhuma tarefa rodando no computador.
 
@@ -51,6 +152,130 @@ já estiver integrado, subir o Metro (`npx expo start --dev-client --port 8081`)
 
 M16, M17 e AP4 já feitos. Bloco 7 pode correr em paralelo aos outros. Ao final: critérios de
 aceite da spec 03, seção 8, e aviso de fase pronta (CLAUDE.md, seção 11).
+
+### Retomada em 11/11/2026: Bloco 1 e calendário do Bloco 7
+
+PR #30 integrado. Branch `fase4/roteiro-final`, criada da `main`. Às 22:52 o app de
+desenvolvimento foi desinstalado (autorizado pelo responsável) e reinstalado, sem
+permissões.
+
+**Bloco 1 em duas passadas, sem reinstalar de novo:** na primeira, "Agora não" nas três
+permissões, dentro do app, o que não aciona a janela do sistema. Depois, "Apagar meus dados"
+no Perfil volta ao onboarding com as permissões ainda nunca concedidas, e a segunda passada
+é o M1.
+
+**Calendário do Bloco 7.** Cada item depende do check-in de um dia diferente:
+
+| Dia | O que entra |
+|---|---|
+| 11/11 (noite) | Recaída registrada hoje para ontem (item do Bloco 4); check-in às 23h45, sem responder; faixa 05h–06h para a preventiva; S22 fora da tomada e parado até de manhã |
+| 12/11 (manhã) | Conferir: check-in removido à meia-noite, preventiva das 5h com o horário real de saída e **nenhum** recomeço |
+| 12/11 | Bateria (zerar `batterystats` no cabo e algumas horas de uso fora dele); M10 com o check-in perto da hora e o app fechado; M14 reiniciando depois do M10 |
+| 13/11 (manhã) | Recomeço esperando o desbloqueio: tela bloqueada até depois das 9h |
+| 13/11 | M11 (check-in respondido no app antes da hora) |
+
+**Bloco 1 concluído (11/11, confirmado pelo responsável):** passada 1 ("Agora não" nas três
+permissões, "Ative o acompanhamento", "Agora não" escondendo o aviso e continuando
+escondido ao reabrir, e a lista de apps nova: sugeridos no topo, "Ver outros apps", busca e
+ordem) e passada 2 (M1: cada permissão abriu a tela certa, voltou como permitida, a janela
+do sistema das notificações apareceu e a notificação permanente surgiu), tudo como descrito.
+
+**Preparo da noite de 11/11, lido no S22 às 23:08:** as três permissões concedidas; serviço
+ligado e notificação "Acompanhamento" na barra; recaída registrada para 10/11, com a base
+da streak em 10/11 e nenhum recomeço agendado (`nativeRestartDays` vazio); check-in de 11/11
+sem resposta e sem envio, com alarme às 23:45 (janela de 10 min); preventiva às 05:00, com o
+sentimento "Tédio". Ao dormir, o responsável tira o cabo e deixa o S22 parado.
+
+**Para conferir em 12/11, com o cabo:** se o check-in saiu e foi removido à meia-noite, a hora
+real da preventiva (o alarme de economia profunda pode atrasar) e que não houve recomeço.
+Sugestão: `adb shell dumpsys notification --noredact` e os eventos `notification_sent` da
+fila do nativo, antes de abrir o app.
+
+**Bloco 7, Dia 1: resultado (lido em 12/11, 22:43, antes de abrir o app):**
+
+- **Check-in:** enviado às 23:54:21 de 11/11, dentro da janela de 10 minutos do alarme das
+  23:45. Na manhã de 12/11 não estava mais na barra (id 1011 ausente; o responsável viu só a
+  preventiva). **Remoção à meia-noite: ok.**
+- **Preventiva da faixa das 05h:** enviada às 05:20:30, com o S22 fora da tomada e parado.
+  **O atraso de 20 minutos em economia profunda está dentro do aceito pela spec (5.4).**
+- **Recaída registrada hoje para ontem:** `restartSent` falso e `nativeRestartDays` vazio,
+  sem notificação de recomeço. **Item do Bloco 4: ok.**
+- Serviço ligado a noite toda (132 verificações), sem novo boot.
+
+**Dia 2 replanejado:** o responsável conectou às 22:43 de 12/11, sem tempo para a bateria.
+Por decisão dele, só o M10 fica para o check-in das 23:45 de 12/11. Novo calendário:
+
+| Dia | O que entra |
+|---|---|
+| 12/11, quinta (noite) | M10 com o app fechado |
+| 13/11, sexta | Sem computador; S22 em modo avião. **Às 9h, o S22 bloqueado**; o recomeço (agendado pela recaída do M10) deve sair no primeiro desbloqueio depois das 9h. O horário fica no evento `notification_sent` da fila do nativo, para ler no sábado sem abrir o app |
+| 14/11, sábado | Ler os eventos de sexta antes de abrir o app; bateria; M11; Blocos 2 a 6 e 8; à noite, M14 reiniciando o S22 |
+| 15/11, domingo (manhã) | Fim do M14: a preventiva das 5h, agendada antes do reinício, precisa sair |
+
+**M10 (12/11, 23:55): passou no nativo e no banco, falhou na tela.**
+
+- "Tive uma recaída" na notificação, com o app fechado: a notificação saiu da barra, o
+  nativo marcou o check-in respondido e agendou o recomeço para 13/11.
+- Ao abrir, o evento foi importado: o banco tem a recaída de 12/11 e o check-in de 12/11 com
+  `source = notification`, às 23:55:42.
+- **Defeito:** o Início continuou com "2 dias" e "Como foi hoje?", sem a recaída. O
+  `HomeScreen` recarrega ao ganhar o foco e quando o app volta à frente, no mesmo instante em
+  que a sincronização começa a importar. A leitura vence a importação, e o Início não escuta
+  `dataChanges` para recarregar depois. Também afeta o usuário real: quem responde pela
+  notificação e abre o app vê a contagem antiga até trocar de aba.
+- **Para sábado:** o Início passar a recarregar depois de cada gravação (`dataChanges`), com
+  teste que importa um evento depois do primeiro desenho da tela; repetir o M10 no aparelho.
+
+**Sexta, 13/11, lida no sábado às 15:43 (antes de abrir o app):**
+
+- Check-in enviado às 23:50:30 e removido à meia-noite; preventivas às 05:20:31 em 13/11 e
+  em 14/11. Remoção e economia profunda repetiram o resultado da primeira noite.
+- **O recomeço de 13/11 não saiu, e não é defeito:** o histórico de tela do `batterystats`
+  mostra a tela desligada das 00:03 de 13/11 até a tarde de 14/11. Sem desbloqueio, o
+  recomeço esperou e expirou à meia-noite (`nativeRestartDays` limpa os dias passados). O
+  caminho "sai no primeiro desbloqueio depois das 9h" continua sem teste no aparelho.
+- O `usagestats` só guardava os desbloqueios do dia; o histórico de tela do
+  `dumpsys batterystats --history` (`+screen`/`-screen`) cobre os dias desde a última carga
+  completa.
+- **Ponto para o responsável:** a spec não diz o que fazer se o celular não for desbloqueado
+  no dia seguinte inteiro. Hoje o recomeço se perde.
+
+**Correção do M10 (14/11):** o `HomeScreen` agora também recarrega a cada gravação
+(`dataChanges`). O teste novo importa um "Tive uma recaída" depois do primeiro desenho da
+tela e falha sem a correção.
+
+**Calendário a partir de 14/11:**
+
+| Dia | O que entra |
+|---|---|
+| 14/11, sábado | M11; M10 de novo (check-in disparado pela ferramenta, respondido na notificação), que agenda o recomeço de domingo; Blocos 2 a 6 e 8; à noite, M14 reiniciando o S22 |
+| 15/11, domingo (manhã) | Preventiva das 5h, agendada antes do reinício (fim do M14); **S22 bloqueado às 9h** e recomeço no primeiro desbloqueio depois disso; depois, bateria |
+
+**Domingo, 15/11.** O Metro caiu com o fim da sessão de sábado e o teste não aconteceu; agora
+ele sobe com um vigia que avisa se parar. A fila mostrou o check-in de sábado às 23:51, a
+preventiva de domingo às 05:08 e o serviço religado sozinho pelo Android às 18:34 de sábado
+(`origin=restart`).
+
+- **M11: ok.** Check-in às 21:45, "Sem recaída" no app antes; até 21:55 nada chegou. O nativo
+  tinha o dia respondido, sem envio, e o próximo alarme só à meia-noite.
+- **M10 repetido: ok.** Check-in disparado pela ferramenta, app fechado, "Tive uma recaída"
+  na notificação: a notificação saiu, o nativo agendou o recomeço para 16/11, e na abertura o
+  Início já mostrou "0 dias", a mensagem de apoio e "Hoje: recaída registrada.", sem trocar
+  de aba.
+- **M14, primeira parte: ok.** Reinício às 22:03; em 3 minutos, `lastBootResult = started`, o
+  serviço em primeiro plano com a notificação "Proteção ativa.", o evento
+  `service_started origin=boot`, o recomeço de 16/11 preservado e o alarme da meia-noite
+  agendado de novo.
+- **Próximo:** fechar o M14 com o que foi agendado antes do reinício. Em 16/11, a preventiva das 5h e o recomeço
+  no primeiro desbloqueio depois das 9h fecham o M14 e o recomeço esperando o desbloqueio.
+
+O modo avião não afeta o roteiro: alarmes e notificações são locais. Na sexta, o check-in das
+23:45 sai e fica sem resposta, o que só repete o teste da remoção à meia-noite.
+
+O M11 saiu da noite de 11/11 porque, às 22:50, não havia tempo para ele e para a remoção à
+meia-noite, que precisam de check-ins diferentes. Uma quebra da moderação no dia 11 não gera
+recomeço, porque a streak começa em 0. No dia 12, uma quebra na moderação se junta à do M10
+numa notificação só.
 
 **Cuidados:**
 

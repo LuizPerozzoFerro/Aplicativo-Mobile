@@ -4,6 +4,7 @@ import { act } from '@testing-library/react-native';
 import { Alert, AppState } from 'react-native';
 
 import type { DatabaseState } from '@/data/bootstrap';
+import { dataChanges, observeRepositories } from '@/data/changes';
 import { createRepositories, type Repositories } from '@/data/repositories';
 import { createTestDatabase } from '@/data/testing';
 import { addCalendarDays, toDayKey } from '@/domain/day';
@@ -110,6 +111,24 @@ describe('Início', () => {
     mockRepositories.compulsions.setStatus(adult.id, 'paused');
     await renderRouter(APP_DIR, { initialUrl: '/' });
     expect(await screen.findByTestId('home-empty')).toBeOnTheScreen();
+  });
+});
+
+describe('resposta dada na notificação (M10)', () => {
+  it('o Início mostra a recaída assim que a importação termina, sem trocar de tela', async () => {
+    const adult = addAdult(12);
+    // Como no app: cada gravação avisa quem assinou (src/data/bootstrap.ts).
+    mockRepositories = observeRepositories(mockRepositories, dataChanges.notify);
+    mockMonitoring.simulateEvent({
+      type: 'check_in_answered',
+      compulsionId: adult.id,
+      answer: 'relapse',
+    });
+    await renderRouter(APP_DIR, { initialUrl: '/' });
+
+    const card = await adultCard();
+    expect(await card.findByText('0 dias')).toBeOnTheScreen();
+    expect(card.getByText('Hoje: recaída registrada.')).toBeOnTheScreen();
   });
 });
 

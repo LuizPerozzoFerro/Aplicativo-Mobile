@@ -92,6 +92,37 @@ class NotificationPlanTest {
     assertEquals("2026-11-09", NotificationPlan.nextDay("2026-11-08"))
   }
 
+  /**
+   * Decisão de 14/11/2026: o recomeço que esperou o desbloqueio o dia inteiro
+   * expira à meia-noite e não é reenviado, nem com a configuração antiga do JS
+   * (o app pode não ter sido aberto para recalcular os dias).
+   */
+  @Test
+  fun restartWaitingAllDayExpiresAtMidnight() {
+    val zone = ZoneId.of("America/Sao_Paulo")
+    val config = NotificationPlan.Config(null, (0..6).toSet(), emptyList(), setOf("2026-11-13"))
+    val state = NotificationPlan.State()
+    NotificationPlan.enterDay(state, millis("2026-11-13T00:01", zone), zone)
+    state.nativeRestartDays.add("2026-11-13")
+
+    // Celular bloqueado às 9h: o recomeço é devido, mas espera o desbloqueio sem marcar envio.
+    val morning = millis("2026-11-13T09:30", zone)
+    assertEquals(listOf("restart"), NotificationPlan.due(config, state, morning, zone).map(::label))
+    state.restartWaiting = true
+    val lateNight = millis("2026-11-13T23:59", zone)
+    assertEquals(listOf("restart"), NotificationPlan.due(config, state, lateNight, zone).map(::label))
+
+    assertTrue(NotificationPlan.enterDay(state, millis("2026-11-14T00:01", zone), zone))
+    assertFalse(state.restartWaiting)
+    assertTrue(state.nativeRestartDays.isEmpty())
+    val nextMorning = millis("2026-11-14T09:30", zone)
+    assertTrue(NotificationPlan.due(config, state, nextMorning, zone).isEmpty())
+    assertEquals(
+      "2026-11-15T00:00",
+      local(NotificationPlan.nextWake(config, state, nextMorning, zone), zone),
+    )
+  }
+
   @Test
   fun dayChangeKeepsOnlyFutureNativeRestartDays() {
     val zone = ZoneId.of("America/Sao_Paulo")
