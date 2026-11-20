@@ -80,6 +80,20 @@ animações" (escalas em 0): tudo legível, confirmado pelo responsável. Os aju
 - Recaída registrada hoje para ontem sem recomeço: já feito em 11/11.
 - O dia de vídeos reprovado em 20/11, com streak, deve gerar um recomeço natural em 21/11.
 
+**Correção do M12 (20/11, ainda sem teste no aparelho):**
+
+- `NotificationHold.kt`: com o aparelho bloqueado (`isKeyguardLocked`), toda notificação
+  (menos a permanente) sai com o título e o texto da versão pública e sem ações, e guarda
+  em disco como refazer a completa (`quedo-monitoring-held`).
+- A troca pela completa acontece no desbloqueio (`ACTION_USER_PRESENT`, registrado pelo
+  serviço), a cada verificação do serviço e quando o app manda configuração. Usa o mesmo
+  id, o horário original e `setOnlyAlertOnce`, para não tocar de novo. A que saiu da barra
+  é esquecida e não volta.
+- Sem o serviço (sem o acesso ao uso), a neutra só vira completa quando o app é aberto.
+- JUnit: 76 (7 novos); 6 mutações derrubam testes; manifesto sem permissão nova.
+- **Para testar:** bloquear, disparar pela ferramenta (com atraso) ou esperar um aviso real;
+  conferir a neutra na tela bloqueada; desbloquear e conferir a completa, com as ações.
+
 **Ao retomar:** subir o Metro com o vigia (ele caiu com o fim da sessão de sábado) e fazer o
 `adb reverse tcp:8081 tcp:8081`.
 
