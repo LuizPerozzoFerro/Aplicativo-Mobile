@@ -24,7 +24,35 @@ do protótipo continua em `prototype/NOTAS.md`.
   `fase4/roteiro`), com CI verde, **aguardando o merge do responsável**. Seção "Fase 4 ·
   Passo 8", com as decisões e o resultado.
 
-### Retomada (atualizada em 16/11/2026, 23:46)
+### Retomada (atualizada em 20/11/2026, 20:30): próximo passo, em 21/11
+
+**Feito em 20/11 (detalhes em "Sessão de 20/11/2026", abaixo):** Blocos 2 e 3 completos;
+Bloco 4 com M13 e o "ontem sem recomeço" ok e o M12 corrigido no código, ainda sem teste no
+aparelho; teste da decisão de 14/11 no JUnit. PR aberto com o que já estava pronto.
+
+**Em 21/11, nesta ordem:**
+
+1. **Antes de abrir o app:** ler a fila do nativo. O dia de vídeos reprovado em 20/11 (streak
+   de vários dias) deve ter gerado um recomeço no primeiro desbloqueio depois das 9h.
+2. **M12 com a correção:** check-in 10 minutos à frente, S22 bloqueado; a notificação deve
+   aparecer só como "Quedo / Você tem um lembrete.", sem botões; no desbloqueio, vira
+   "Como foi hoje?" com os botões, sem tocar de novo.
+3. **Bloco 5:** M15 de novo e serviço parado com o app fechado ("Parar só o serviço" e
+   esperar um alarme).
+4. **Bloco 6:** M20 no emulador `lab_android16` (`adb emu gsm call`) e, se houver uma segunda
+   pessoa, pelo Teams. **Antes do Bloco 8**, porque precisa do build de desenvolvimento.
+5. **Bloco 8:** builds de prévia e de produção (o `prebuild --clean` refaz a pasta
+   `android/`); ferramentas ausentes, tela acesa, abertura a frio e `check:manifest` nos dois.
+   No fim, **desinstalar o app de prévia** (avisar: apaga os dados dele) e refazer o
+   `prebuild` de desenvolvimento.
+6. **Bateria por último:** limite de teste desligado (já está), limite de vídeos de volta a 60
+   (hoje está em 30 a partir de 21/11), `batterystats --reset` no cabo e uso normal fora dele.
+
+**Estado do S22 ao encerrar 20/11:** build com a correção do M12 instalado; limite de teste
+desligado; check-in às 21:45; limite de vídeos de 5 min só em 20/11 e 30 min daí em diante;
+o X está nas duas listas e declarado.
+
+### Retomada anterior (16/11/2026, 23:46)
 
 **Bloco 7 concluído, menos a bateria.** Lido em 16/11 às 23:45, antes de abrir o app:
 
