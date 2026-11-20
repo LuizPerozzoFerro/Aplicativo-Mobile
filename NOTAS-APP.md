@@ -37,6 +37,49 @@ do protótipo continua em `prototype/NOTAS.md`.
 `batterystats` no cabo e algumas horas de uso fora dele, sem abrir o Quedo) e os Blocos 2 a
 6 e 8. Detalhes na seção "Retomada em 11/11/2026" e seguintes, logo abaixo.
 
+**Sessão de 20/11/2026: Bloco 2 no S22 (tudo ok, com evidência no nativo e no banco):**
+
+- **Teste da decisão de 14/11:** `restartWaitingAllDayExpiresAtMidnight` (JUnit). O
+  recomeço que esperou o dia todo expira à meia-noite e não é reenviado, nem com a
+  configuração antiga do JS. Três mutações derrubam o teste.
+- **M2:** limite somado entre Instagram e YouTube; aviso e tela sobre o YouTube.
+- **M3:** "Ir para a tela inicial" e nova tela ao reabrir.
+- **M9:** emergência pela tela de pausa (respiração inteira, cronômetro, "Pular", "Ainda
+  não") e pelo Início ("Pular" na motivação leva à pergunta, "Sim"). Duas sessões no banco.
+- **M7:** X não declarado, só o aviso de app de risco.
+- **M8:** X nas duas listas; uma tela só, a dos vídeos, que estourou primeiro.
+- **M4:** três "Continuar", aviso de última vez, dia de vídeos reprovado (`third_continue`).
+- **M8 completo:** com os vídeos encerrados, o X, já declarado, mostrou a tela do conteúdo
+  adulto.
+- **M6:** Reddit declarado, tela sem "Ignorar"; o 3º "Continuar" encerrou as telas sem
+  recaída e sem dia reprovado.
+- **M5:** depois de "Zerar o estado de hoje", "Ignorar" só na 3ª tela; dia reprovado.
+- **Limite maior depois de estourar:** limite real em 5 min, tela; aumento para 30 com a
+  mensagem de amanhã; a tela continuou com o limite de hoje (`limitToday` 5).
+- **M19:** textos da tela de pausa aprovados pelo responsável.
+- **Atenção para a bateria:** o limite de vídeos ficou em 30 min a partir de 21/11.
+
+**Bloco 3 (20/11):** M18 na emergência com fonte no máximo (`font_scale` 2.0) e "Remover
+animações" (escalas em 0): tudo legível, confirmado pelo responsável. Os ajustes voltaram
+(animações em 1; fonte em 1.3, escolha do responsável).
+
+**Bloco 4 (20/11):**
+
+- **M12 falhou: o texto completo aparece na tela bloqueada.** O S22 está em "mostrar
+  conteúdo" (`lock_screen_allow_private_notifications=1`), e com isso o Android ignora o
+  `setPublicVersion` do `VISIBILITY_PRIVATE`. O responsável viu, bloqueado, "Você chegou ao
+  tempo que definiu para hoje." em vez de "Quedo / Você tem um lembrete.". A preventiva
+  (sentimento e motivação) e o check-in ("Tive uma recaída") também ficariam expostos.
+- **Decisão do responsável (opção 1 de 3):** com o aparelho bloqueado, o app publica a versão
+  neutra como conteúdo principal, sem ações, e troca pela completa depois do desbloqueio
+  (verificação do serviço ou abertura do app). As outras opções eram esconder as notificações
+  da tela bloqueada (foge da spec) ou manter e registrar.
+- **M13: ok** pela ferramenta: uma notificação "Um novo dia", texto conferido. A regra
+  "nenhuma se a streak era 0" só tem teste automatizado; a ferramenta dispara sempre. A
+  preventiva da ferramenta também chegou (na etapa do M12 ela não tinha sido publicada).
+- Recaída registrada hoje para ontem sem recomeço: já feito em 11/11.
+- O dia de vídeos reprovado em 20/11, com streak, deve gerar um recomeço natural em 21/11.
+
 **Ao retomar:** subir o Metro com o vigia (ele caiu com o fim da sessão de sábado) e fazer o
 `adb reverse tcp:8081 tcp:8081`.
 
