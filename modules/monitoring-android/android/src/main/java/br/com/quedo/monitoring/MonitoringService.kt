@@ -1,9 +1,12 @@
 package br.com.quedo.monitoring
 
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
+import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.IBinder
@@ -63,6 +66,17 @@ class MonitoringService : Service() {
     }
   }
 
+  /**
+   * O desbloqueio: o recomeço que esperava e as notificações neutras saem na
+   * hora, sem esperar a próxima verificação (até 20 s).
+   */
+  private val unlocked = object : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+      handler?.post { runCatching { NotificationCenter.onServiceCheck(this@MonitoringService) } }
+    }
+  }
+  private var unlockRegistered = false
+
   override fun onBind(intent: Intent?): IBinder? = null
 
   override fun onCreate() {
@@ -91,6 +105,15 @@ class MonitoringService : Service() {
     val worker = HandlerThread("quedo-monitoring").apply { start() }
     thread = worker
     handler = Handler(worker.looper).also { it.post(check) }
+
+    val filter = IntentFilter(Intent.ACTION_USER_PRESENT)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      registerReceiver(unlocked, filter, Context.RECEIVER_NOT_EXPORTED)
+    } else {
+      @Suppress("UnspecifiedRegisterReceiverFlag")
+      registerReceiver(unlocked, filter)
+    }
+    unlockRegistered = true
   }
 
   /** Se o `service_started` desta criação já foi gravado. */
@@ -108,6 +131,10 @@ class MonitoringService : Service() {
   }
 
   override fun onDestroy() {
+    if (unlockRegistered) {
+      runCatching { unregisterReceiver(unlocked) }
+      unlockRegistered = false
+    }
     InterruptionPresenter.close(this)
     handler?.removeCallbacks(check)
     thread?.quitSafely()
