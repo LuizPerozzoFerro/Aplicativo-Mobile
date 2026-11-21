@@ -84,6 +84,13 @@ publicada e se está neutra (`PostedNotifications`). JUnit 78; 9 mutações derr
   em `NotificationHold.lockScreen`, com JUnit (80 testes) e mutação. **O planejamento
   atualiza a spec 03 (5.4, "versão pública neutra") no fechamento da fase.** As opções
   recusadas: neutra sempre sem o serviço (perde texto e botões até abrir o app) e aceitar.
+- **Marcação secreta no S22 (21/11): ok.** Aviso de limite, check-in e preventiva disparados
+  pela ferramenta com o celular em uso, depois o S22 bloqueado:
+  - **com o serviço:** na tela bloqueada só as neutras; no desbloqueio, as completas, com os
+    botões, sem tocar de novo; lido no S22: as completas com `vis=SECRET`;
+  - **sem o serviço** (acesso ao uso desligado): na tela bloqueada as três não apareceram; no
+    desbloqueio estavam na barra, completas e com os botões (`vis=SECRET`).
+  Nenhuma versão completa apareceu na tela bloqueada nos dois casos (responsável).
 
 ### Retomada (atualizada em 20/11/2026, 20:30): próximo passo, em 21/11
 
