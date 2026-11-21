@@ -24,6 +24,25 @@ do protótipo continua em `prototype/NOTAS.md`.
   `fase4/roteiro`), com CI verde, **aguardando o merge do responsável**. Seção "Fase 4 ·
   Passo 8", com as decisões e o resultado.
 
+### Sessão de 21/11/2026 (parte 2 do roteiro, branch `fase4/roteiro-parte2`)
+
+**Fila do nativo lida às 14:06, antes de abrir o app:**
+
+- Check-in de 20/11 às 21:59:17, removido à meia-noite; preventiva de 21/11 às 05:15:40.
+- A preventiva saiu com o aparelho bloqueado e, às 14:06, estava na barra **completa**, com
+  "Emergência" e o horário original (05:15): a troca no desbloqueio funcionou. A aparência
+  dela bloqueada só foi vista no teste do M12, abaixo.
+- **Recomeço natural (dia de vídeos reprovado em 20/11): saiu às 14:02:52, no segundo
+  desbloqueio, não no primeiro.** O `batterystats` mostra o Quedo marcado como inativo
+  (`pkginactive`) às 09:38 e o aparelho em economia profunda; o alarme das 9h ficou adiado.
+  No primeiro desbloqueio (14:01:34), `restartWaiting` ainda era falso, porque o alarme não
+  tinha rodado, e a tela apagou 9 s depois. No segundo (14:02:45), o recomeço saiu em 7 s.
+- **Correção:** no desbloqueio (`ACTION_USER_PRESENT`), o serviço agora roda
+  `NotificationCenter.onUnlock`, que confere na hora tudo o que já venceu (o mesmo `run`
+  do alarme) e troca as neutras. Sem regra nova: o `run` já é testado em JUnit. Repetir o
+  cenário no aparelho exige uma quebra com streak, um dia, economia profunda e o desbloqueio
+  depois das 9h; fica para observar no uso.
+
 ### Retomada (atualizada em 20/11/2026, 20:30): próximo passo, em 21/11
 
 **Feito em 20/11 (detalhes em "Sessão de 20/11/2026", abaixo):** Blocos 2 e 3 completos;

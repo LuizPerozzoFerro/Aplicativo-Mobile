@@ -167,6 +167,17 @@ object NotificationCenter {
     Notifier.revealHeld(context)
   }
 
+  /**
+   * Desbloqueio: confere na hora tudo o que já venceu. Em economia profunda o
+   * alarme das 9h pode estar adiado, e sem isto o recomeço perdia o primeiro
+   * desbloqueio (visto em 21/11/2026: saiu só no segundo).
+   */
+  @Synchronized
+  fun onUnlock(context: Context) {
+    run(context)
+    Notifier.revealHeld(context)
+  }
+
   private fun scheduleRestartIfHadStreak(context: Context, config: JSONObject, compulsionId: Int) {
     val today = DayBoundary.dayKey(System.currentTimeMillis())
     val compulsions = config.getJSONArray("compulsions")

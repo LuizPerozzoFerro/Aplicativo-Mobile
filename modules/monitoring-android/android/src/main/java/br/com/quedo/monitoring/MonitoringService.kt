@@ -67,12 +67,17 @@ class MonitoringService : Service() {
   }
 
   /**
-   * O desbloqueio: o recomeço que esperava e as notificações neutras saem na
-   * hora, sem esperar a próxima verificação (até 20 s).
+   * Tela apagada: as notificações do app viram neutras antes da tela bloqueada.
+   * Desbloqueio: o que venceu sai na hora e as neutras viram completas, sem
+   * esperar a próxima verificação (até 20 s). M12.
    */
   private val unlocked = object : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-      handler?.post { runCatching { NotificationCenter.onServiceCheck(this@MonitoringService) } }
+      val service = this@MonitoringService
+      when (intent.action) {
+        Intent.ACTION_SCREEN_OFF -> handler?.post { runCatching { Notifier.hideVisible(service) } }
+        Intent.ACTION_USER_PRESENT -> handler?.post { runCatching { NotificationCenter.onUnlock(service) } }
+      }
     }
   }
   private var unlockRegistered = false
@@ -106,7 +111,10 @@ class MonitoringService : Service() {
     thread = worker
     handler = Handler(worker.looper).also { it.post(check) }
 
-    val filter = IntentFilter(Intent.ACTION_USER_PRESENT)
+    val filter = IntentFilter().apply {
+      addAction(Intent.ACTION_USER_PRESENT)
+      addAction(Intent.ACTION_SCREEN_OFF)
+    }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
       registerReceiver(unlocked, filter, Context.RECEIVER_NOT_EXPORTED)
     } else {

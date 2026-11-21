@@ -4,32 +4,54 @@ import android.content.Context
 import org.json.JSONObject
 
 /**
- * Notificação neutra enquanto o aparelho está bloqueado (decisão de 20/11/2026,
- * M12). Com "mostrar conteúdo" na tela bloqueada, o Android ignora a versão
- * pública e mostra o texto completo. Por isso, bloqueado, o app publica a versão
- * neutra como conteúdo principal e guarda como refazer a completa; depois do
- * desbloqueio, troca, sem tocar de novo.
+ * Notificação neutra na tela bloqueada (decisão de 20/11/2026, M12). Com
+ * "mostrar conteúdo" na tela bloqueada, o Android ignora a versão pública e
+ * mostra o texto completo. Por isso o app troca o próprio conteúdo:
+ *
+ * - o que chega com o aparelho bloqueado sai neutro;
+ * - o que estava na barra vira neutro quando a tela apaga (serviço ligado);
+ * - no desbloqueio, tudo volta à versão completa, sem tocar de novo.
  *
  * Sem nada do Android além do org.json (testada em JUnit).
  */
 object NotificationHold {
-  /** Bloqueado e não é a troca pela completa: publica a neutra e guarda. */
-  fun shouldHold(locked: Boolean, revealing: Boolean): Boolean = locked && !revealing
+  enum class Mode {
+    /** Notificação nova. */
+    NEW,
+
+    /** A tela apagou: a que estava completa vira neutra, em silêncio. */
+    HIDE,
+
+    /** Desbloqueio: a neutra vira completa, em silêncio. */
+    REVEAL,
+  }
+
+  fun shouldHold(locked: Boolean, mode: Mode): Boolean =
+    mode == Mode.HIDE || (mode == Mode.NEW && locked)
 
   data class Decision(
-    /** Ainda na barra e já desbloqueado: troca pela completa. */
+    /** Neutras ainda na barra, com o aparelho desbloqueado: viram completas. */
     val reveal: List<Int>,
-    /** Não está mais na barra (respondida, apagada, removida à meia-noite): esquece. */
+    /** Não estão mais na barra (respondidas, apagadas, removidas à meia-noite): esquece. */
     val forget: List<Int>,
   )
 
-  fun decide(held: Set<Int>, locked: Boolean, active: Set<Int>): Decision {
-    val forget = held.filter { it !in active }.sorted()
-    val reveal = if (locked) emptyList() else held.filter { it in active }.sorted()
+  /** `posted`: id da notificação e se ela está neutra agora. */
+  fun decide(posted: Map<Int, Boolean>, locked: Boolean, active: Set<Int>): Decision {
+    val forget = posted.keys.filter { it !in active }.sorted()
+    val reveal = if (locked) {
+      emptyList()
+    } else {
+      posted.filter { (id, held) -> held && id in active }.keys.sorted()
+    }
     return Decision(reveal, forget)
   }
 
-  /** Como refazer a completa: o tipo, o que muda de uma para outra e quando saiu. */
+  /** A tela apagou: as completas que ainda estão na barra viram neutras. */
+  fun toHide(posted: Map<Int, Boolean>, active: Set<Int>): List<Int> =
+    posted.filter { (id, held) -> !held && id in active }.keys.sorted()
+
+  /** Como refazer a notificação: o tipo, o que muda de uma para outra e quando saiu. */
   data class Spec(
     val kind: String,
     val postedAt: Long,
@@ -57,18 +79,21 @@ object NotificationHold {
 }
 
 /**
- * As notificações publicadas neutras, à espera do desbloqueio. Em disco: o
- * processo pode morrer entre a publicação e o desbloqueio. Nada aqui escreve
- * no `logcat` (spec 03, 5.11).
+ * As notificações publicadas pelo app (menos a permanente), com o modo de
+ * refazê-las e se estão neutras agora. Em disco: o processo pode morrer entre a
+ * publicação e o desbloqueio. Nada aqui escreve no `logcat` (spec 03, 5.11).
  */
-object HeldNotifications {
+object PostedNotifications {
   private const val PREFS = "quedo-monitoring-held"
+
+  data class Entry(val spec: NotificationHold.Spec, val held: Boolean)
 
   private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
   @Synchronized
-  fun save(context: Context, id: Int, spec: NotificationHold.Spec) {
-    prefs(context).edit().putString(id.toString(), spec.toJson().toString()).apply()
+  fun save(context: Context, id: Int, spec: NotificationHold.Spec, held: Boolean) {
+    val json = spec.toJson().put("held", held)
+    prefs(context).edit().putString(id.toString(), json.toString()).apply()
   }
 
   @Synchronized
@@ -77,12 +102,12 @@ object HeldNotifications {
   }
 
   @Synchronized
-  fun all(context: Context): Map<Int, NotificationHold.Spec> =
+  fun all(context: Context): Map<Int, Entry> =
     prefs(context).all.mapNotNull { (key, value) ->
       val id = key.toIntOrNull() ?: return@mapNotNull null
-      val spec = runCatching { NotificationHold.Spec.fromJson(JSONObject(value as String)) }.getOrNull()
-        ?: return@mapNotNull null
-      id to spec
+      val json = runCatching { JSONObject(value as String) }.getOrNull() ?: return@mapNotNull null
+      val spec = runCatching { NotificationHold.Spec.fromJson(json) }.getOrNull() ?: return@mapNotNull null
+      id to Entry(spec, json.optBoolean("held"))
     }.toMap()
 
   @Synchronized
