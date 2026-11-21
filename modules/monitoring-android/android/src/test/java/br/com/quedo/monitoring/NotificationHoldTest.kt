@@ -29,6 +29,16 @@ class NotificationHoldTest {
   }
 
   @Test
+  fun `a versão completa nunca aparece na tela bloqueada`() {
+    assertEquals(NotificationHold.LockScreen.HIDDEN, NotificationHold.lockScreen(neutral = false))
+  }
+
+  @Test
+  fun `a versão neutra aparece na tela bloqueada`() {
+    assertEquals(NotificationHold.LockScreen.SHOWN, NotificationHold.lockScreen(neutral = true))
+  }
+
+  @Test
   fun `bloqueado nada é trocado pela completa`() {
     val decision = NotificationHold.decide(mapOf(1010 to true, 1011 to true), locked = true, active = setOf(1010, 1011))
     assertEquals(emptyList<Int>(), decision.reveal)

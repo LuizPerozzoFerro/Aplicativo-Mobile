@@ -15,8 +15,8 @@ import org.json.JSONObject
  *
  * Textos: os da configuração, vindos do i18n do JS (4.2). Os de `strings.xml`
  * são o mínimo neutro da notificação permanente, para quando ainda não há
- * configuração. Nenhum revela o tema (CLAUDE.md, seção 9): toda notificação tem
- * uma **versão pública** neutra para a tela bloqueada.
+ * configuração. Nenhum revela o tema (CLAUDE.md, seção 9): a versão completa é
+ * secreta (nunca aparece na tela bloqueada) e tem uma **versão pública** neutra.
  *
  * A versão pública só vale com "ocultar conteúdo" na tela bloqueada. Para valer
  * em qualquer ajuste, a notificação fica neutra com o aparelho bloqueado e vira a
@@ -90,6 +90,11 @@ object Notifier {
     PostedNotifications.clear(context)
   }
 
+  private fun visibility(neutral: Boolean): Int = when (NotificationHold.lockScreen(neutral)) {
+    NotificationHold.LockScreen.SHOWN -> Notification.VISIBILITY_PUBLIC
+    NotificationHold.LockScreen.HIDDEN -> Notification.VISIBILITY_SECRET
+  }
+
   private fun isLocked(context: Context): Boolean =
     (context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager).isKeyguardLocked
 
@@ -108,7 +113,7 @@ object Notifier {
       .setSmallIcon(R.drawable.quedo_ic_notification)
       .setAutoCancel(true)
       .setWhen(postedAt)
-      .setVisibility(Notification.VISIBILITY_PUBLIC)
+      .setVisibility(visibility(neutral = true))
     contentIntent?.let { builder.setContentIntent(it) }
     return builder
   }
@@ -219,7 +224,7 @@ object Notifier {
       .setStyle(Notification.BigTextStyle().bigText(text))
       .setSmallIcon(R.drawable.quedo_ic_notification)
       .setAutoCancel(autoCancel)
-      .setVisibility(Notification.VISIBILITY_PRIVATE)
+      .setVisibility(visibility(neutral = false))
       .setPublicVersion(
         Notification.Builder(context, channel)
           .setContentTitle(public.getString("title"))

@@ -60,6 +60,27 @@ publicada e se está neutra (`PostedNotifications`). JUnit 78; 9 mutações derr
 - Na primeira tentativa a faixa das 14:40 não foi gravada (faltou "Salvar" nos Gatilhos);
   repetido com a das 15:10.
 
+**Bloco 5 (21/11):**
+
+- **M15: ok.** Acesso ao uso desligado nos Ajustes: notificação "Proteção pausada", aviso
+  "Proteção pausada" no Início e "Parado: falta permitir o acesso a dados de uso" na tela de
+  permissões; serviço parado.
+- **Notificação que chega bloqueada, sem o serviço: comportamento aceito, como o responsável
+  esperava.** Preventiva das 15:45 com o S22 bloqueado e sem o acesso ao uso: neutra na tela
+  bloqueada, **continuou neutra depois do desbloqueio** (nada percebe o desbloqueio sem o
+  serviço; lido no S22: `held=true`) e virou a completa ao abrir o app.
+- **Diferença encontrada:** sem o serviço, as notificações que chegam com o celular em uso
+  (a "Proteção pausada", o aviso de limite, o check-in respondido depois) ficam completas e
+  aparecem completas na tela bloqueada, porque nada as troca quando a tela apaga. Opções
+  levadas ao responsável.
+- **Decisão do responsável (21/11, opção 1 de 3): a versão completa de toda notificação do
+  Quedo é secreta (`VISIBILITY_SECRET`); na tela bloqueada só aparece a neutra
+  (`VISIBILITY_PUBLIC`).** Com o serviço, a completa vira neutra ao apagar a tela; sem ele, a
+  completa só some da tela bloqueada e continua na barra depois do desbloqueio. A regra está
+  em `NotificationHold.lockScreen`, com JUnit (80 testes) e mutação. **O planejamento
+  atualiza a spec 03 (5.4, "versão pública neutra") no fechamento da fase.** As opções
+  recusadas: neutra sempre sem o serviço (perde texto e botões até abrir o app) e aceitar.
+
 ### Retomada (atualizada em 20/11/2026, 20:30): próximo passo, em 21/11
 
 **Feito em 20/11 (detalhes em "Sessão de 20/11/2026", abaixo):** Blocos 2 e 3 completos;

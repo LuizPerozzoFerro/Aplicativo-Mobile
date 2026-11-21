@@ -29,6 +29,21 @@ object NotificationHold {
   fun shouldHold(locked: Boolean, mode: Mode): Boolean =
     mode == Mode.HIDE || (mode == Mode.NEW && locked)
 
+  enum class LockScreen {
+    /** Aparece na tela bloqueada. */
+    SHOWN,
+
+    /** Não aparece na tela bloqueada, mesmo com "mostrar conteúdo" ligado. */
+    HIDDEN,
+  }
+
+  /**
+   * Decisão de 21/11/2026: a versão completa nunca aparece na tela bloqueada
+   * (secreta); só a neutra aparece. Cobre o serviço parado, quando nada troca a
+   * completa ao apagar a tela, e o instante entre apagar e trocar.
+   */
+  fun lockScreen(neutral: Boolean): LockScreen = if (neutral) LockScreen.SHOWN else LockScreen.HIDDEN
+
   data class Decision(
     /** Neutras ainda na barra, com o aparelho desbloqueado: viram completas. */
     val reveal: List<Int>,
