@@ -43,6 +43,23 @@ do protótipo continua em `prototype/NOTAS.md`.
   cenário no aparelho exige uma quebra com streak, um dia, economia profunda e o desbloqueio
   depois das 9h; fica para observar no uso.
 
+**Lacuna achada no M12 e corrigida:** um aviso que chega com o celular em uso (o de limite)
+saía completo e continuava completo depois de bloquear. Agora, quando a tela apaga
+(`ACTION_SCREEN_OFF`), o serviço troca pela neutra, em silêncio, as completas que estão na
+barra (`Notifier.hideVisible`). O guardado em disco passou a registrar toda notificação
+publicada e se está neutra (`PostedNotifications`). JUnit 78; 9 mutações derrubam testes.
+
+**M12 no S22 (21/11): ok.**
+
+- Aviso de limite publicado com o celular em uso; ao apagar a tela, virou "Quedo / Você tem um
+  lembrete.", sem botões (lido no S22: `held=true`).
+- Check-in (14:40:53) e preventiva da faixa das 15:10 (15:15:39, com a motivação) chegaram
+  com o S22 bloqueado e apareceram neutros, sem botões.
+- No desbloqueio, os três viraram os completos, com os botões e o horário original, sem tocar
+  de novo (confirmado pelo responsável).
+- Na primeira tentativa a faixa das 14:40 não foi gravada (faltou "Salvar" nos Gatilhos);
+  repetido com a das 15:10.
+
 ### Retomada (atualizada em 20/11/2026, 20:30): próximo passo, em 21/11
 
 **Feito em 20/11 (detalhes em "Sessão de 20/11/2026", abaixo):** Blocos 2 e 3 completos;
