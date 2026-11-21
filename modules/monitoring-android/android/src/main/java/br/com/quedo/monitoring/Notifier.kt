@@ -1,5 +1,6 @@
 package br.com.quedo.monitoring
 
+import android.app.KeyguardManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -16,6 +17,10 @@ import org.json.JSONObject
  * são o mínimo neutro da notificação permanente, para quando ainda não há
  * configuração. Nenhum revela o tema (CLAUDE.md, seção 9): toda notificação tem
  * uma **versão pública** neutra para a tela bloqueada.
+ *
+ * A versão pública só vale com "ocultar conteúdo" na tela bloqueada. Para valer
+ * em qualquer ajuste, com o aparelho bloqueado a notificação sai neutra e vira a
+ * completa depois do desbloqueio (`NotificationHold`, M12).
  */
 object Notifier {
   const val ONGOING_CHANNEL_ID = "monitoring"
@@ -72,11 +77,87 @@ object Notifier {
     if (MonitoringService.isRunning) {
       manager(context).notify(ONGOING_NOTIFICATION_ID, ongoingNotification(context))
     }
+    revealHeld(context)
   }
 
-  fun cancel(context: Context, id: Int) = manager(context).cancel(id)
+  fun cancel(context: Context, id: Int) {
+    manager(context).cancel(id)
+    HeldNotifications.remove(context, id)
+  }
 
-  fun cancelAll(context: Context) = manager(context).cancelAll()
+  fun cancelAll(context: Context) {
+    manager(context).cancelAll()
+    HeldNotifications.clear(context)
+  }
+
+  private fun isLocked(context: Context): Boolean =
+    (context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager).isKeyguardLocked
+
+  /** O mesmo que a versão pública, como conteúdo principal e sem ações. */
+  private fun neutral(
+    context: Context,
+    channel: String,
+    texts: JSONObject,
+    contentIntent: PendingIntent?,
+    postedAt: Long,
+  ): Notification.Builder {
+    val public = texts.getJSONObject("public")
+    val builder = Notification.Builder(context, channel)
+      .setContentTitle(public.getString("title"))
+      .setContentText(public.getString("text"))
+      .setSmallIcon(R.drawable.quedo_ic_notification)
+      .setAutoCancel(true)
+      .setWhen(postedAt)
+      .setVisibility(Notification.VISIBILITY_PUBLIC)
+    contentIntent?.let { builder.setContentIntent(it) }
+    return builder
+  }
+
+  /** Bloqueado: a neutra, e guarda como refazer. Senão, a completa (sem tocar de novo, se for a troca). */
+  private fun publish(
+    context: Context,
+    id: Int,
+    channel: String,
+    texts: JSONObject,
+    full: Notification.Builder,
+    contentIntent: PendingIntent?,
+    spec: NotificationHold.Spec,
+    revealing: Boolean,
+  ) {
+    if (NotificationHold.shouldHold(isLocked(context), revealing)) {
+      manager(context).notify(id, neutral(context, channel, texts, contentIntent, spec.postedAt).build())
+      HeldNotifications.save(context, id, spec)
+      return
+    }
+    full.setWhen(spec.postedAt)
+    if (revealing) full.setOnlyAlertOnce(true)
+    manager(context).notify(id, full.build())
+    HeldNotifications.remove(context, id)
+  }
+
+  /** Depois do desbloqueio: as neutras que ainda estão na barra viram as completas. */
+  @Synchronized
+  fun revealHeld(context: Context) {
+    val held = HeldNotifications.all(context)
+    if (held.isEmpty()) return
+    val active = manager(context).activeNotifications.map { it.id }.toSet()
+    val decision = NotificationHold.decide(held.keys, isLocked(context), active)
+    decision.forget.forEach { HeldNotifications.remove(context, it) }
+    if (decision.reveal.isEmpty()) return
+    val config = ConfigStore.get(context) ?: return
+    for (id in decision.reveal) {
+      val spec = held.getValue(id)
+      when (spec.kind) {
+        "limit" -> sendLimit(context, config, null, spec.postedAt, revealing = true)
+        "riskApp" -> sendLimit(context, config, spec.target, spec.postedAt, revealing = true)
+        "checkIn" -> spec.compulsionId?.let { sendCheckIn(context, config, it, spec.postedAt, revealing = true) }
+        "preventive" -> spec.body?.let { sendPreventive(context, config, it, id, spec.postedAt, revealing = true) }
+        "restart" -> sendRestart(context, config, spec.postedAt, revealing = true)
+        "protectionPaused" -> sendProtectionPaused(context, config, spec.postedAt, revealing = true)
+        else -> HeldNotifications.remove(context, id)
+      }
+    }
+  }
 
   fun canPost(context: Context): Boolean = Permissions.notificationsEnabled(context)
 
@@ -136,7 +217,13 @@ object Notifier {
   private fun notifications(config: JSONObject) =
     config.getJSONObject("texts").getJSONObject("notifications")
 
-  fun sendLimit(context: Context, config: JSONObject, target: String?) {
+  fun sendLimit(
+    context: Context,
+    config: JSONObject,
+    target: String?,
+    postedAt: Long = System.currentTimeMillis(),
+    revealing: Boolean = false,
+  ) {
     val texts = notifications(config)
     val copy = texts.getJSONObject(if (target == null) "limit" else "riskApp")
     val id = if (target == null) {
@@ -144,17 +231,26 @@ object Notifier {
     } else {
       RISK_NOTIFICATION_BASE + target.hashCode().mod(RISK_NOTIFICATION_RANGE)
     }
+    val open = openApp(context)
     val builder = base(context, ALERTS_CHANNEL_ID, texts, copy.getString("title"), copy.getString("text"))
       .withEmergency(context, config, id)
-    openApp(context)?.let { builder.setContentIntent(it) }
-    manager(context).notify(id, builder.build())
+    open?.let { builder.setContentIntent(it) }
+    val spec = NotificationHold.Spec(if (target == null) "limit" else "riskApp", postedAt, target = target)
+    publish(context, id, ALERTS_CHANNEL_ID, texts, builder, open, spec, revealing)
   }
 
-  fun sendCheckIn(context: Context, config: JSONObject, compulsionId: Int) {
+  fun sendCheckIn(
+    context: Context,
+    config: JSONObject,
+    compulsionId: Int,
+    postedAt: Long = System.currentTimeMillis(),
+    revealing: Boolean = false,
+  ) {
     val texts = notifications(config)
     val copy = texts.getJSONObject("checkIn")
+    val open = openApp(context)
     val builder = base(context, REMINDERS_CHANNEL_ID, texts, copy.getString("title"), copy.getString("text"))
-    openApp(context)?.let { builder.setContentIntent(it) }
+    open?.let { builder.setContentIntent(it) }
     fun action(label: String, answer: String, requestCode: Int) = Notification.Action.Builder(
       null,
       label,
@@ -170,32 +266,54 @@ object Notifier {
     ).build()
     builder.addAction(action(copy.getString("noRelapse"), "no_relapse", 11))
     builder.addAction(action(copy.getString("relapse"), "relapse", 12))
-    manager(context).notify(CHECK_IN_NOTIFICATION_ID, builder.build())
+    val spec = NotificationHold.Spec("checkIn", postedAt, compulsionId = compulsionId)
+    publish(context, CHECK_IN_NOTIFICATION_ID, REMINDERS_CHANNEL_ID, texts, builder, open, spec, revealing)
   }
 
-  fun sendPreventive(context: Context, config: JSONObject, body: String, id: Int = PREVENTIVE_NOTIFICATION_ID) {
+  fun sendPreventive(
+    context: Context,
+    config: JSONObject,
+    body: String,
+    id: Int = PREVENTIVE_NOTIFICATION_ID,
+    postedAt: Long = System.currentTimeMillis(),
+    revealing: Boolean = false,
+  ) {
     val texts = notifications(config)
     val title = texts.getJSONObject("preventive").getString("title")
+    val open = openApp(context)
     val builder = base(context, REMINDERS_CHANNEL_ID, texts, title, body).withEmergency(context, config, id)
-    openApp(context)?.let { builder.setContentIntent(it) }
-    manager(context).notify(id, builder.build())
+    open?.let { builder.setContentIntent(it) }
+    val spec = NotificationHold.Spec("preventive", postedAt, body = body)
+    publish(context, id, REMINDERS_CHANNEL_ID, texts, builder, open, spec, revealing)
   }
 
-  fun sendRestart(context: Context, config: JSONObject) {
+  fun sendRestart(
+    context: Context,
+    config: JSONObject,
+    postedAt: Long = System.currentTimeMillis(),
+    revealing: Boolean = false,
+  ) {
     val texts = notifications(config)
     val copy = texts.getJSONObject("restart")
+    val open = openApp(context)
     val builder = base(context, REMINDERS_CHANNEL_ID, texts, copy.getString("title"), copy.getString("text"))
-    openApp(context)?.let { builder.setContentIntent(it) }
-    manager(context).notify(RESTART_NOTIFICATION_ID, builder.build())
+    open?.let { builder.setContentIntent(it) }
+    val spec = NotificationHold.Spec("restart", postedAt)
+    publish(context, RESTART_NOTIFICATION_ID, REMINDERS_CHANNEL_ID, texts, builder, open, spec, revealing)
   }
 
-  fun sendProtectionPaused(context: Context, config: JSONObject) {
+  fun sendProtectionPaused(
+    context: Context,
+    config: JSONObject,
+    postedAt: Long = System.currentTimeMillis(),
+    revealing: Boolean = false,
+  ) {
     val texts = notifications(config)
     val copy = texts.getJSONObject("protectionPaused")
+    val open = openLink(context, config.getJSONObject("links").getString("permissions"), PROTECTION_NOTIFICATION_ID)
     val builder = base(context, ALERTS_CHANNEL_ID, texts, copy.getString("title"), copy.getString("text"))
-      .setContentIntent(
-        openLink(context, config.getJSONObject("links").getString("permissions"), PROTECTION_NOTIFICATION_ID),
-      )
-    manager(context).notify(PROTECTION_NOTIFICATION_ID, builder.build())
+      .setContentIntent(open)
+    val spec = NotificationHold.Spec("protectionPaused", postedAt)
+    publish(context, PROTECTION_NOTIFICATION_ID, ALERTS_CHANNEL_ID, texts, builder, open, spec, revealing)
   }
 }

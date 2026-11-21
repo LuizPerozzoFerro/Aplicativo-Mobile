@@ -157,10 +157,14 @@ object NotificationCenter {
     scheduleAlarms(context, next)
   }
 
-  /** A cada verificação do serviço: o recomeço esperando o desbloqueio. */
+  /**
+   * A cada verificação do serviço e no desbloqueio: o recomeço esperando o
+   * desbloqueio e as notificações publicadas neutras (M12).
+   */
   @Synchronized
   fun onServiceCheck(context: Context) {
     if (load(context).restartWaiting && inUse(context)) run(context)
+    Notifier.revealHeld(context)
   }
 
   private fun scheduleRestartIfHadStreak(context: Context, config: JSONObject, compulsionId: Int) {
