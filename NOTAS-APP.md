@@ -92,6 +92,20 @@ publicada e se está neutra (`PostedNotifications`). JUnit 78; 9 mutações derr
     desbloqueio estavam na barra, completas e com os botões (`vis=SECRET`).
   Nenhuma versão completa apareceu na tela bloqueada nos dois casos (responsável).
 
+**Bloco 6 (21/11): M20 no emulador `lab_android16` (API 36, x86_64): ok.**
+
+- O mesmo APK de desenvolvimento (tem as bibliotecas x86_64) instalado no emulador; onboarding
+  pelo Maestro (só vídeos curtos, com o YouTube) e a sobreposição concedida pelo responsável.
+- Tela de interrupção aberta por "Mostrar a tela de interrupção"; `adb emu gsm call 5551234`
+  às 17:42:29. Em 5 s, com o áudio em `MODE_RINGTONE`, a janela da tela de pausa sumiu (4
+  janelas do Quedo fora da atividade antes, 0 depois) e o aviso de chamada ficou por cima,
+  sem nada cobrindo.
+- **Chamada pela internet (Teams no S22): não testada**, por falta de uma segunda pessoa
+  para ligar. O código usa o mesmo sinal (`MODE_IN_COMMUNICATION` no modo de áudio).
+- Cuidados para o emulador: o Maestro precisou de uma segunda tentativa (erro de
+  comunicação), e o menu do dev client fica aberto por cima do app na primeira abertura
+  (fechar com "Close").
+
 ### Retomada (atualizada em 20/11/2026, 20:30): próximo passo, em 21/11
 
 **Feito em 20/11 (detalhes em "Sessão de 20/11/2026", abaixo):** Blocos 2 e 3 completos;
