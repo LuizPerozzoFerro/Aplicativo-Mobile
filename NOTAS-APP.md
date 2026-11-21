@@ -24,6 +24,188 @@ do protótipo continua em `prototype/NOTAS.md`.
   `fase4/roteiro`), com CI verde, **aguardando o merge do responsável**. Seção "Fase 4 ·
   Passo 8", com as decisões e o resultado.
 
+### Retomada (atualizada em 21/11/2026, 18:50): falta só ler a bateria
+
+**Roteiro concluído, menos a leitura da bateria e a chamada pelo Teams.** PR da parte 2 aberto.
+Na retomada: S22 no cabo, ler a bateria (como em "Bateria (Bloco 7, último item)", abaixo),
+registrar e avisar o responsável que a fase está pronta para o fechamento no chat de
+planejamento (CLAUDE.md, seção 11), com a lista "Fechamento da Fase 4", abaixo.
+
+### Sessão de 21/11/2026 (parte 2 do roteiro, branch `fase4/roteiro-parte2`)
+
+**Fila do nativo lida às 14:06, antes de abrir o app:**
+
+- Check-in de 20/11 às 21:59:17, removido à meia-noite; preventiva de 21/11 às 05:15:40.
+- A preventiva saiu com o aparelho bloqueado e, às 14:06, estava na barra **completa**, com
+  "Emergência" e o horário original (05:15): a troca no desbloqueio funcionou. A aparência
+  dela bloqueada só foi vista no teste do M12, abaixo.
+- **Recomeço natural (dia de vídeos reprovado em 20/11): saiu às 14:02:52, no segundo
+  desbloqueio, não no primeiro.** O `batterystats` mostra o Quedo marcado como inativo
+  (`pkginactive`) às 09:38 e o aparelho em economia profunda; o alarme das 9h ficou adiado.
+  No primeiro desbloqueio (14:01:34), `restartWaiting` ainda era falso, porque o alarme não
+  tinha rodado, e a tela apagou 9 s depois. No segundo (14:02:45), o recomeço saiu em 7 s.
+- **Correção:** no desbloqueio (`ACTION_USER_PRESENT`), o serviço agora roda
+  `NotificationCenter.onUnlock`, que confere na hora tudo o que já venceu (o mesmo `run`
+  do alarme) e troca as neutras. Sem regra nova: o `run` já é testado em JUnit. Repetir o
+  cenário no aparelho exige uma quebra com streak, um dia, economia profunda e o desbloqueio
+  depois das 9h; fica para observar no uso.
+
+**Lacuna achada no M12 e corrigida:** um aviso que chega com o celular em uso (o de limite)
+saía completo e continuava completo depois de bloquear. Agora, quando a tela apaga
+(`ACTION_SCREEN_OFF`), o serviço troca pela neutra, em silêncio, as completas que estão na
+barra (`Notifier.hideVisible`). O guardado em disco passou a registrar toda notificação
+publicada e se está neutra (`PostedNotifications`). JUnit 78; 9 mutações derrubam testes.
+
+**M12 no S22 (21/11): ok.**
+
+- Aviso de limite publicado com o celular em uso; ao apagar a tela, virou "Quedo / Você tem um
+  lembrete.", sem botões (lido no S22: `held=true`).
+- Check-in (14:40:53) e preventiva da faixa das 15:10 (15:15:39, com a motivação) chegaram
+  com o S22 bloqueado e apareceram neutros, sem botões.
+- No desbloqueio, os três viraram os completos, com os botões e o horário original, sem tocar
+  de novo (confirmado pelo responsável).
+- Na primeira tentativa a faixa das 14:40 não foi gravada (faltou "Salvar" nos Gatilhos);
+  repetido com a das 15:10.
+
+**Bloco 5 (21/11):**
+
+- **M15: ok.** Acesso ao uso desligado nos Ajustes: notificação "Proteção pausada", aviso
+  "Proteção pausada" no Início e "Parado: falta permitir o acesso a dados de uso" na tela de
+  permissões; serviço parado.
+- **Notificação que chega bloqueada, sem o serviço: comportamento aceito, como o responsável
+  esperava.** Preventiva das 15:45 com o S22 bloqueado e sem o acesso ao uso: neutra na tela
+  bloqueada, **continuou neutra depois do desbloqueio** (nada percebe o desbloqueio sem o
+  serviço; lido no S22: `held=true`) e virou a completa ao abrir o app.
+- **Diferença encontrada:** sem o serviço, as notificações que chegam com o celular em uso
+  (a "Proteção pausada", o aviso de limite, o check-in respondido depois) ficam completas e
+  aparecem completas na tela bloqueada, porque nada as troca quando a tela apaga. Opções
+  levadas ao responsável.
+- **Serviço parado com o app fechado: ok.** "Parar só o serviço" com a faixa das 17:10 já
+  salva e o app fechado na hora (antes, o próprio app religava o serviço ao ficar na tela, e
+  a primeira tentativa não parou). No alarme, às 17:15:40, a vigilância mandou "Proteção
+  pausada" com o motivo `service_stopped`, junto com a preventiva.
+- **Decisão do responsável (21/11, opção 1 de 3): a versão completa de toda notificação do
+  Quedo é secreta (`VISIBILITY_SECRET`); na tela bloqueada só aparece a neutra
+  (`VISIBILITY_PUBLIC`).** Com o serviço, a completa vira neutra ao apagar a tela; sem ele, a
+  completa só some da tela bloqueada e continua na barra depois do desbloqueio. A regra está
+  em `NotificationHold.lockScreen`, com JUnit (80 testes) e mutação. **O planejamento
+  atualiza a spec 03 (5.4, "versão pública neutra") no fechamento da fase.** As opções
+  recusadas: neutra sempre sem o serviço (perde texto e botões até abrir o app) e aceitar.
+- **Marcação secreta no S22 (21/11): ok.** Aviso de limite, check-in e preventiva disparados
+  pela ferramenta com o celular em uso, depois o S22 bloqueado:
+  - **com o serviço:** na tela bloqueada só as neutras; no desbloqueio, as completas, com os
+    botões, sem tocar de novo; lido no S22: as completas com `vis=SECRET`;
+  - **sem o serviço** (acesso ao uso desligado): na tela bloqueada as três não apareceram; no
+    desbloqueio estavam na barra, completas e com os botões (`vis=SECRET`).
+  Nenhuma versão completa apareceu na tela bloqueada nos dois casos (responsável).
+
+**Bloco 6 (21/11): M20 no emulador `lab_android16` (API 36, x86_64): ok.**
+
+- O mesmo APK de desenvolvimento (tem as bibliotecas x86_64) instalado no emulador; onboarding
+  pelo Maestro (só vídeos curtos, com o YouTube) e a sobreposição concedida pelo responsável.
+- Tela de interrupção aberta por "Mostrar a tela de interrupção"; `adb emu gsm call 5551234`
+  às 17:42:29. Em 5 s, com o áudio em `MODE_RINGTONE`, a janela da tela de pausa sumiu (4
+  janelas do Quedo fora da atividade antes, 0 depois) e o aviso de chamada ficou por cima,
+  sem nada cobrindo.
+- **Chamada pela internet (Teams no S22): não testada**, por falta de uma segunda pessoa
+  para ligar. O código usa o mesmo sinal (`MODE_IN_COMMUNICATION` no modo de áudio).
+- Cuidados para o emulador: o Maestro precisou de uma segunda tentativa (erro de
+  comunicação), e o menu do dev client fica aberto por cima do app na primeira abertura
+  (fechar com "Close").
+
+**Bloco 8 (21/11): prévia ok; produção em andamento.**
+
+- **Build de prévia** (`APP_ENV=preview`, `prebuild --clean` e `assembleRelease`, 13 min):
+  pacote `br.com.quedo.app.preview`, não depurável. **`check:manifest` (lista de proibidas e
+  de permitidas) passou nos três manifestos mesclados do release.**
+- **Ferramentas ausentes:** o Perfil da prévia não tem "Monitoramento (base)" nem
+  "Componentes" (responsável). As funções `debug*` do nativo também não fazem nada, porque o
+  build não é depurável (`FLAG_DEBUGGABLE`).
+- **Tela acesa:** com o tempo de tela do S22 em 30 s, a tela não apagou no minuto da
+  respiração nem em mais 1 minuto do cronômetro (responsável).
+- **Abertura a frio:** com o processo encerrado, `quedo-preview:///emergency?source=notification`
+  abriu direto na emergência (`LaunchState: COLD`, 171 ms).
+- O app de prévia foi desinstalado depois do teste, com aviso ao responsável, para não
+  pesar na medição de bateria.
+- O `adb` travou de novo na instalação do APK da prévia (AP3); reiniciado.
+
+**Bloco 8 (21/11): produção ok.** `APP_ENV=production`, `assembleRelease` (14 min), pacote
+`br.com.quedo.app`; `check:manifest` passou nos três manifestos mesclados do release. Não
+instalado. Depois, `prebuild --clean` de desenvolvimento: a pasta `android/` voltou a
+`br.com.quedo.app.dev`. As ferramentas de teste ausentes foram vistas só na prévia; a
+produção usa o mesmo caminho (não depurável e `variant.environment` diferente de
+`development`).
+
+**Bateria (Bloco 7, último item): medição começada.** Em 21/11 às 18:43, com o S22 no
+cabo, em 81% e o serviço ligado: `dumpsys batterystats --reset`. Antes, com o responsável:
+limite de teste desligado, limite de vídeos em 60 a partir de 22/11 (30 em 21/11), só a faixa
+das 05:00, check-in às 21:00 e o app de prévia desinstalado. O responsável usa o S22
+normalmente no fim de semana, sem abrir o Quedo Dev.
+
+**Para ler a bateria na retomada:** S22 no cabo; `adb shell dumpsys batterystats
+br.com.quedo.app.dev` (consumo estimado do app, alarmes, wakelocks e tempo do serviço) e o
+resumo geral de `dumpsys batterystats` desde 18:43 de 21/11. Comparar com o protótipo
+(0,16% do consumo num dia de uso leve, T6). A medição oficial é da Fase 8.
+
+## Fechamento da Fase 4: critérios de aceite e roteiro (21/11/2026)
+
+O pedido citou a "seção 7"; na spec 03, a seção 7 é o roteiro M1 a M20 e a seção 8 são os
+critérios de aceite. Seguem os dois.
+
+### Critérios de aceite (spec 03, seção 8)
+
+| Critério | Situação | Evidência |
+|---|---|---|
+| Módulo `monitoring-android` sem VPN, com as correções do doc 02 (4.1), substituindo o falso | ok | Passos 1 e 7 (PRs #22 e #28); `check:manifest` sem as permissões da VPN; `getMonitoring()` nativo no Android |
+| Regras 5.2 no Kotlin, vetores em JUnit e Jest, mutação | ok | Passo 3 (PR #24); `moment-rules.json` nos dois lados; mutações registradas no passo 3 |
+| Tela de interrupção: visibilidade, recuo, reserva, voltar preditivo | ok | Passo 4 (PR #25): reserva I-25 com o `labtarget`; M17 em 08/11; M2, M3 e M20 no roteiro |
+| Notificações: check-in com ações, preventivas, recomeço, proteção pausada, limite de 6, sem alarme exato | ok | Passo 5 (PR #26); roteiro M10 a M13 e Bloco 7; `check:manifest` sem `SCHEDULE_EXACT_ALARM`/`USE_EXACT_ALARM`; tela bloqueada corrigida (M12, secreta) |
+| Emergência completa, com sessões no banco | ok | Passo 6 (PR #27); M9 em 20/11 com as sessões no banco |
+| Eventos idempotentes; migração 005 em Jest e no aparelho | ok | Passo 2 (PR #23): Jest e, no S22, as 5 migrações sobre o banco com dados |
+| Permissões reais, vigilância, tela de estado, modo degradado | ok | Passo 7 (PR #28); M1 (11/11), M15 (08/11 e 21/11), serviço parado com o app fechado (21/11) |
+| Sobrevive a fechar o app, à morte do processo e ao reinício (M14) | ok | `kill -9` no passo 2; serviço recriado pelo Android em 14/11; M14 em 15 e 16/11 |
+| Manifesto só com as permissões da lista | ok | `check:manifest` em desenvolvimento, prévia e produção (21/11) |
+| Ferramentas de teste ausentes em prévia e produção | ok, com ressalva | Prévia vista no S22 (21/11); produção pelo mesmo caminho de código, sem instalar |
+| Pendências herdadas (5.12) e AP4 registrado | ok | Voltar preditivo (M17), borda do dia (vetores), limites e app nas duas listas (passo 3 e M8), `fontScale` (M16), AP4 (seção "AP4: resultado da investigação") |
+| Roteiro M1 a M20 com o responsável | ok, com uma exceção | Tabela abaixo; chamada pelo Teams não testada |
+| `lint`, `typecheck` e `test` no CI; `NOTAS-APP.md` atualizado | ok | CI verde nos PRs #22 a #31; este registro |
+
+**Também da spec (5.13):** bateria (sanidade), medição em andamento desde 21/11.
+
+### Roteiro M1 a M20 (spec 03, seção 7)
+
+| Item | Resultado | Quando |
+|---|---|---|
+| M1 permissões pelo onboarding | ok | 11/11 |
+| M2 limite somado | ok | 20/11 |
+| M3 "Ir para a tela inicial" | ok | 20/11 |
+| M4 "Continuar" três vezes | ok | 20/11 |
+| M5 "Ignorar o limite por hoje" | ok | 20/11 |
+| M6 app de risco declarado | ok | 20/11 |
+| M7 app de risco não declarado | ok | 20/11 |
+| M8 app nas duas listas (e completo, depois do M4) | ok | 20/11 |
+| M9 emergência pela tela | ok | 20/11 (e passo 6) |
+| M10 "Tive uma recaída" pela notificação | ok depois da correção do Início | 12/11 (falhou na tela), 15/11 (ok) |
+| M11 check-in respondido antes | ok | 15/11 |
+| M12 tela bloqueada | ok depois de duas correções | 20/11 (falhou), 21/11 (ok, com e sem o serviço) |
+| M13 recomeço | ok pela ferramenta; a regra de streak 0 só em Jest | 20/11 |
+| M14 reinício | ok | 15 e 16/11 |
+| M15 acesso ao uso revogado | ok | 08/11 e 21/11 |
+| M16 fonte com o app aberto | ok | 07/11 |
+| M17 voltar preditivo | ok | 08/11 (build temporário) |
+| M18 tema escuro e fonte máxima | ok | 08/11 (tela de pausa) e 20/11 (emergência) |
+| M19 textos | ok | Aprovados nos PRs; tela de pausa em 20/11 |
+| M20 chamada | ok no emulador; Teams não testado | 21/11 |
+
+### Para o planejamento atualizar na spec 03
+
+- **5.4, versão pública:** a completa é secreta (nunca aparece na tela bloqueada) e a neutra
+  aparece no lugar, também quando a tela apaga com o serviço ligado (decisões de 20 e 21/11).
+- **5.4, recomeço:** se o celular não for desbloqueado no dia seguinte inteiro, o recomeço
+  expira à meia-noite (decisão de 14/11).
+- **5.4, recomeço no desbloqueio:** o desbloqueio confere na hora o que venceu, porque em
+  economia profunda o alarme das 9h pode estar adiado (21/11).
+
 ### Retomada (atualizada em 20/11/2026, 20:30): próximo passo, em 21/11
 
 **Feito em 20/11 (detalhes em "Sessão de 20/11/2026", abaixo):** Blocos 2 e 3 completos;
