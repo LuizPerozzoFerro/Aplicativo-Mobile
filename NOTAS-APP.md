@@ -73,6 +73,10 @@ publicada e se está neutra (`PostedNotifications`). JUnit 78; 9 mutações derr
   (a "Proteção pausada", o aviso de limite, o check-in respondido depois) ficam completas e
   aparecem completas na tela bloqueada, porque nada as troca quando a tela apaga. Opções
   levadas ao responsável.
+- **Serviço parado com o app fechado: ok.** "Parar só o serviço" com a faixa das 17:10 já
+  salva e o app fechado na hora (antes, o próprio app religava o serviço ao ficar na tela, e
+  a primeira tentativa não parou). No alarme, às 17:15:40, a vigilância mandou "Proteção
+  pausada" com o motivo `service_stopped`, junto com a preventiva.
 - **Decisão do responsável (21/11, opção 1 de 3): a versão completa de toda notificação do
   Quedo é secreta (`VISIBILITY_SECRET`); na tela bloqueada só aparece a neutra
   (`VISIBILITY_PUBLIC`).** Com o serviço, a completa vira neutra ao apagar a tela; sem ele, a
