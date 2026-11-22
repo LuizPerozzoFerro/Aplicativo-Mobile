@@ -79,6 +79,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     extra: {
       environment,
+      // Conteúdo remoto (spec 04, 4.1). Por enquanto vem de CONTENT_BASE_URL (ex.: o
+      // servidor falso de `npm run content:serve`); o endereço do R2 entra no passo 2.
+      // O app confere o formato em src/config/variant.ts.
+      contentBaseUrl: process.env.CONTENT_BASE_URL || null,
       eas: { projectId: EAS_PROJECT_ID },
     },
   };

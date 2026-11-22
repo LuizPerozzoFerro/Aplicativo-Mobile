@@ -22,6 +22,7 @@ import type { MonitoringEvent } from '@/monitoring/types';
 import type { AppDatabase } from './database';
 import {
   checkIns,
+  contentCatalog,
   dayStates,
   emergencySessions,
   importedEvents,
@@ -49,6 +50,7 @@ export type Relapse = typeof relapses.$inferSelect;
 export type DayState = typeof dayStates.$inferSelect;
 export type InterruptionEvent = typeof interruptionEvents.$inferSelect;
 export type EmergencySession = typeof emergencySessions.$inferSelect;
+export type ContentCatalogRow = typeof contentCatalog.$inferSelect;
 
 const GRANTED_ONCE_COLUMN = {
   usageAccess: 'usageAccessGrantedOnce',
@@ -184,6 +186,24 @@ export type EmergencySessionRepository = {
   list(): EmergencySession[];
 };
 
+/**
+ * Último catálogo de conteúdo baixado (spec 04, 4.1). Conteúdo público, fora
+ * de "Apagar meus dados". O repositório só guarda: quem decide o que guardar
+ * é `src/domain/catalog.ts`.
+ */
+export type ContentCatalogRepository = {
+  get(locale: string): ContentCatalogRow | null;
+  /** Guarda o catálogo do idioma (substitui o anterior), com a hora da consulta. */
+  save(catalog: {
+    locale: string;
+    formatVersion: number;
+    contentVersion: number;
+    json: string;
+  }): void;
+  /** Consulta válida sem catálogo novo: só a hora da consulta muda. */
+  touch(locale: string): void;
+};
+
 export type Repositories = {
   settings: SettingsRepository;
   compulsions: CompulsionRepository;
@@ -195,7 +215,11 @@ export type Repositories = {
   dayStates: DayStateRepository;
   monitoringEvents: MonitoringEventRepository;
   emergencySessions: EmergencySessionRepository;
-  /** Apaga todos os dados do usuário; as configurações voltam ao padrão. */
+  contentCatalog: ContentCatalogRepository;
+  /**
+   * Apaga todos os dados do usuário; as configurações voltam ao padrão. O
+   * catálogo de conteúdo fica: é público (spec 04, 5.9).
+   */
   deleteAllData(): void;
 };
 
@@ -780,6 +804,24 @@ export function createRepositories(
       },
       abandonOpen: () => abandonOpenEmergencySessions(db),
       list: () => db.select().from(emergencySessions).orderBy(asc(emergencySessions.id)).all(),
+    },
+
+    contentCatalog: {
+      get: (locale) =>
+        db.select().from(contentCatalog).where(eq(contentCatalog.locale, locale)).get() ?? null,
+      save: (catalog) => {
+        const row = { ...catalog, fetchedAt: now() };
+        db.insert(contentCatalog)
+          .values(row)
+          .onConflictDoUpdate({ target: contentCatalog.locale, set: row })
+          .run();
+      },
+      touch: (locale) => {
+        db.update(contentCatalog)
+          .set({ fetchedAt: now() })
+          .where(eq(contentCatalog.locale, locale))
+          .run();
+      },
     },
 
     deleteAllData() {

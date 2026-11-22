@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { useDatabase } from '@/data/bootstrap';
+import { useCatalogRefresh } from '@/features/content/useCatalog';
 import { useMonitoringSync } from '@/features/monitoring/useMonitoringSync';
 import { useOnboardingCompleted } from '@/features/onboarding/onboardingStatus';
 import { EmptyState, Screen, useTheme } from '@/ui';
@@ -42,6 +43,8 @@ function AppNavigator() {
   const onboardingCompleted = useOnboardingCompleted();
   // Configuração e eventos do monitoramento (spec 03, 4.2 e 4.3).
   useMonitoringSync();
+  // Catálogo de conteúdo: atualização remota (spec 04, 4.1).
+  useCatalogRefresh();
 
   return (
     <Stack

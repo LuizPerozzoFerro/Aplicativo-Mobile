@@ -581,6 +581,40 @@ describe('sessões de emergência', () => {
   });
 });
 
+describe('catálogo de conteúdo', () => {
+  const catalog = (contentVersion: number) => ({
+    locale: 'pt-BR',
+    formatVersion: 1,
+    contentVersion,
+    json: `{"contentVersion":${contentVersion}}`,
+  });
+
+  it('sem nada guardado, devolve nulo', () => {
+    expect(repositories.contentCatalog.get('pt-BR')).toBeNull();
+  });
+
+  it('guarda um por idioma, com a hora da consulta; guardar de novo substitui', () => {
+    repositories.contentCatalog.save(catalog(1));
+    clock = LATER;
+    repositories.contentCatalog.save(catalog(2));
+    expect(count('content_catalog')).toBe(1);
+    expect(repositories.contentCatalog.get('pt-BR')).toEqual({ ...catalog(2), fetchedAt: LATER });
+  });
+
+  it('touch muda só a hora da consulta; sem nada guardado, não cria nada', () => {
+    repositories.contentCatalog.touch('pt-BR');
+    expect(count('content_catalog')).toBe(0);
+    repositories.contentCatalog.save(catalog(3));
+    clock = LATER;
+    repositories.contentCatalog.touch('pt-BR');
+    expect(repositories.contentCatalog.get('pt-BR')).toEqual({ ...catalog(3), fetchedAt: LATER });
+  });
+
+  it('o banco recusa versões menores que 1', () => {
+    expect(() => repositories.contentCatalog.save(catalog(0))).toThrow();
+  });
+});
+
 describe('deleteAllData', () => {
   it('apaga tudo, inclusive as tabelas da Fase 3, e as configurações voltam ao padrão', () => {
     const videos = repositories.compulsions.add({ type: 'short_videos', startedAt: NOW });
@@ -624,6 +658,16 @@ describe('deleteAllData', () => {
       onboardingStep: null,
       checkInMinutes: 1260,
     });
+  });
+  it('mantém o catálogo de conteúdo, que é público (spec 04, 5.9)', () => {
+    repositories.contentCatalog.save({
+      locale: 'pt-BR',
+      formatVersion: 1,
+      contentVersion: 1,
+      json: '{}',
+    });
+    repositories.deleteAllData();
+    expect(count('content_catalog')).toBe(1);
   });
 });
 

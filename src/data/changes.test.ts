@@ -15,6 +15,8 @@ const WRITES = [
   'settings.setProtectionNoticeDismissedAt',
   'compulsions.add',
   'compulsions.setStatus',
+  'contentCatalog.save',
+  'contentCatalog.touch',
   'compulsions.setStartedAt',
   'compulsions.setDailyLimit',
   'compulsions.changeDailyLimit',

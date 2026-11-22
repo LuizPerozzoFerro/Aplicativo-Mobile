@@ -1,0 +1,299 @@
+{
+  "formatVersion": 1,
+  "contentVersion": 1,
+  "updatedAt": "2026-11-22",
+  "compulsions": {
+    "pornography": {
+      "milestones": [
+        {
+          "day": 1,
+          "title": "Marco de teste A: 1 dia",
+          "summary": "Resumo de teste do marco de 1 dia (conteúdo A).",
+          "body": "Texto de teste do marco de 1 dia. Este conteúdo é só para conferir o app; o texto real, com pesquisa e referências revisadas, entra na Fase 7.",
+          "references": [
+            {
+              "label": "Referência de exemplo",
+              "url": "https://example.com/referencia"
+            }
+          ],
+          "free": true,
+          "video": {
+            "id": "87e844d442",
+            "durationSeconds": 12,
+            "aiGenerated": false
+          }
+        },
+        {
+          "day": 3,
+          "title": "Marco de teste A: 3 dias",
+          "summary": "Resumo de teste do marco de 3 dias (conteúdo A).",
+          "body": "Texto de teste do marco de 3 dias. Este conteúdo é só para conferir o app; o texto real, com pesquisa e referências revisadas, entra na Fase 7.",
+          "references": [
+            {
+              "label": "Referência de exemplo",
+              "url": "https://example.com/referencia"
+            }
+          ],
+          "free": true,
+          "video": {
+            "id": "ffd3727362",
+            "durationSeconds": 12,
+            "aiGenerated": false
+          }
+        },
+        {
+          "day": 7,
+          "title": "Marco de teste A: 7 dias",
+          "summary": "Resumo de teste do marco de 7 dias (conteúdo A).",
+          "body": "Texto de teste do marco de 7 dias. Este conteúdo é só para conferir o app; o texto real, com pesquisa e referências revisadas, entra na Fase 7.",
+          "references": [
+            {
+              "label": "Referência de exemplo",
+              "url": "https://example.com/referencia"
+            }
+          ],
+          "free": true,
+          "video": {
+            "id": "f7904033d4",
+            "durationSeconds": 12,
+            "aiGenerated": false
+          }
+        },
+        {
+          "day": 14,
+          "title": "Marco de teste A: 14 dias",
+          "summary": "Resumo de teste do marco de 14 dias (conteúdo A).",
+          "body": "Texto de teste do marco de 14 dias. Este conteúdo é só para conferir o app; o texto real, com pesquisa e referências revisadas, entra na Fase 7.",
+          "references": [
+            {
+              "label": "Referência de exemplo",
+              "url": "https://example.com/referencia"
+            }
+          ],
+          "free": false,
+          "video": {
+            "id": "f52cd4f3a2",
+            "durationSeconds": 12,
+            "aiGenerated": false
+          }
+        },
+        {
+          "day": 30,
+          "title": "Marco de teste A: 30 dias",
+          "summary": "Resumo de teste do marco de 30 dias (conteúdo A).",
+          "body": "Texto de teste do marco de 30 dias. Este conteúdo é só para conferir o app; o texto real, com pesquisa e referências revisadas, entra na Fase 7.",
+          "references": [
+            {
+              "label": "Referência de exemplo",
+              "url": "https://example.com/referencia"
+            }
+          ],
+          "free": false,
+          "video": {
+            "id": "009a78b4a3",
+            "durationSeconds": 12,
+            "aiGenerated": false
+          }
+        },
+        {
+          "day": 60,
+          "title": "Marco de teste A: 60 dias",
+          "summary": "Resumo de teste do marco de 60 dias (conteúdo A).",
+          "body": "Texto de teste do marco de 60 dias. Este conteúdo é só para conferir o app; o texto real, com pesquisa e referências revisadas, entra na Fase 7.",
+          "references": [
+            {
+              "label": "Referência de exemplo",
+              "url": "https://example.com/referencia"
+            }
+          ],
+          "free": false
+        },
+        {
+          "day": 90,
+          "title": "Marco de teste A: 90 dias",
+          "summary": "Resumo de teste do marco de 90 dias (conteúdo A).",
+          "body": "Texto de teste do marco de 90 dias. Este conteúdo é só para conferir o app; o texto real, com pesquisa e referências revisadas, entra na Fase 7.",
+          "references": [
+            {
+              "label": "Referência de exemplo",
+              "url": "https://example.com/referencia"
+            }
+          ],
+          "free": false
+        },
+        {
+          "day": 180,
+          "title": "Marco de teste A: 180 dias",
+          "summary": "Resumo de teste do marco de 180 dias (conteúdo A).",
+          "body": "Texto de teste do marco de 180 dias. Este conteúdo é só para conferir o app; o texto real, com pesquisa e referências revisadas, entra na Fase 7.",
+          "references": [
+            {
+              "label": "Referência de exemplo",
+              "url": "https://example.com/referencia"
+            }
+          ],
+          "free": false
+        },
+        {
+          "day": 365,
+          "title": "Marco de teste A: 365 dias",
+          "summary": "Resumo de teste do marco de 365 dias (conteúdo A).",
+          "body": "Texto de teste do marco de 365 dias. Este conteúdo é só para conferir o app; o texto real, com pesquisa e referências revisadas, entra na Fase 7.",
+          "references": [
+            {
+              "label": "Referência de exemplo",
+              "url": "https://example.com/referencia"
+            }
+          ],
+          "free": false
+        }
+      ]
+    },
+    "short_videos": {
+      "milestones": [
+        {
+          "day": 1,
+          "title": "Marco de teste B: 1 dia",
+          "summary": "Resumo de teste do marco de 1 dia (conteúdo B).",
+          "body": "Texto de teste do marco de 1 dia. Este conteúdo é só para conferir o app; o texto real, com pesquisa e referências revisadas, entra na Fase 7.",
+          "references": [
+            {
+              "label": "Referência de exemplo",
+              "url": "https://example.com/referencia"
+            }
+          ],
+          "free": true,
+          "video": {
+            "id": "6a3a1a6b39",
+            "durationSeconds": 12,
+            "aiGenerated": false
+          }
+        },
+        {
+          "day": 3,
+          "title": "Marco de teste B: 3 dias",
+          "summary": "Resumo de teste do marco de 3 dias (conteúdo B).",
+          "body": "Texto de teste do marco de 3 dias. Este conteúdo é só para conferir o app; o texto real, com pesquisa e referências revisadas, entra na Fase 7.",
+          "references": [
+            {
+              "label": "Referência de exemplo",
+              "url": "https://example.com/referencia"
+            }
+          ],
+          "free": true,
+          "video": {
+            "id": "697857b80e",
+            "durationSeconds": 12,
+            "aiGenerated": true
+          }
+        },
+        {
+          "day": 7,
+          "title": "Marco de teste B: 7 dias",
+          "summary": "Resumo de teste do marco de 7 dias (conteúdo B).",
+          "body": "Texto de teste do marco de 7 dias. Este conteúdo é só para conferir o app; o texto real, com pesquisa e referências revisadas, entra na Fase 7.",
+          "references": [
+            {
+              "label": "Referência de exemplo",
+              "url": "https://example.com/referencia"
+            }
+          ],
+          "free": true,
+          "video": {
+            "id": "d20c7e536d",
+            "durationSeconds": 12,
+            "aiGenerated": false
+          }
+        },
+        {
+          "day": 14,
+          "title": "Marco de teste B: 14 dias",
+          "summary": "Resumo de teste do marco de 14 dias (conteúdo B).",
+          "body": "Texto de teste do marco de 14 dias. Este conteúdo é só para conferir o app; o texto real, com pesquisa e referências revisadas, entra na Fase 7.",
+          "references": [
+            {
+              "label": "Referência de exemplo",
+              "url": "https://example.com/referencia"
+            }
+          ],
+          "free": false,
+          "video": {
+            "id": "cc5661fe99",
+            "durationSeconds": 12,
+            "aiGenerated": false
+          }
+        },
+        {
+          "day": 30,
+          "title": "Marco de teste B: 30 dias",
+          "summary": "Resumo de teste do marco de 30 dias (conteúdo B).",
+          "body": "Texto de teste do marco de 30 dias. Este conteúdo é só para conferir o app; o texto real, com pesquisa e referências revisadas, entra na Fase 7.",
+          "references": [
+            {
+              "label": "Referência de exemplo",
+              "url": "https://example.com/referencia"
+            }
+          ],
+          "free": false,
+          "video": {
+            "id": "c864a25b5f",
+            "durationSeconds": 12,
+            "aiGenerated": false
+          }
+        },
+        {
+          "day": 60,
+          "title": "Marco de teste B: 60 dias",
+          "summary": "Resumo de teste do marco de 60 dias (conteúdo B).",
+          "body": "Texto de teste do marco de 60 dias. Este conteúdo é só para conferir o app; o texto real, com pesquisa e referências revisadas, entra na Fase 7.",
+          "references": [
+            {
+              "label": "Referência de exemplo",
+              "url": "https://example.com/referencia"
+            }
+          ],
+          "free": false
+        },
+        {
+          "day": 90,
+          "title": "Marco de teste B: 90 dias",
+          "summary": "Resumo de teste do marco de 90 dias (conteúdo B).",
+          "body": "Texto de teste do marco de 90 dias. Este conteúdo é só para conferir o app; o texto real, com pesquisa e referências revisadas, entra na Fase 7.",
+          "references": [
+            {
+              "label": "Referência de exemplo",
+              "url": "https://example.com/referencia"
+            }
+          ],
+          "free": false
+        },
+        {
+          "day": 180,
+          "title": "Marco de teste B: 180 dias",
+          "summary": "Resumo de teste do marco de 180 dias (conteúdo B).",
+          "body": "Texto de teste do marco de 180 dias. Este conteúdo é só para conferir o app; o texto real, com pesquisa e referências revisadas, entra na Fase 7.",
+          "references": [
+            {
+              "label": "Referência de exemplo",
+              "url": "https://example.com/referencia"
+            }
+          ],
+          "free": false
+        },
+        {
+          "day": 365,
+          "title": "Marco de teste B: 365 dias",
+          "summary": "Resumo de teste do marco de 365 dias (conteúdo B).",
+          "body": "Texto de teste do marco de 365 dias. Este conteúdo é só para conferir o app; o texto real, com pesquisa e referências revisadas, entra na Fase 7.",
+          "references": [
+            {
+              "label": "Referência de exemplo",
+              "url": "https://example.com/referencia"
+            }
+          ],
+          "free": false
+        }
+      ]
+    }
+  }
+}
