@@ -11,8 +11,8 @@ do protótipo continua em `prototype/NOTAS.md`.
   (PR #34: doc 01 v0.11, doc 02 v0.9, spec 03 v0.3, relatório 01 v0.5).
 - **Fase 5 (spec 04 v0.2):** leitura e decisões integradas (PR #35). Seção "Fase 5 ·
   Leitura da spec 04".
-- **Passo 1 (catálogo)** na branch `fase5/catalogo`, com PR aberto para revisão. Seção
-  "Fase 5 · Passo 1 · Catálogo", com sete interpretações a confirmar. Próximo: passo 2
+- **Passo 1 (catálogo)** integrado (PR #36). Seção
+  "Fase 5 · Passo 1 · Catálogo" (migração: uma por passo, decidido em 22/11). Próximo: passo 2
   (hospedagem no Cloudflare R2), que precisa do responsável para criar a conta.
 - **Pendências para a Fase 8 (teste fechado):** chamada pela internet (Teams) com a tela de
   interrupção aberta e a medição oficial de bateria num build de loja.
@@ -3656,8 +3656,9 @@ a consultar neste passo; o R2 e o `expo-video` ficam para os passos 2 e 4.
 3. **A `0007` só cria a `content_catalog`.** As outras tabelas da seção 5.9
    (`milestone_reaches`, `app_usage_hourly`, `monitoring_alerts` e os campos novos de
    `user_compulsions`) entram nos passos que as usam, como migrações `0008` em diante, como
-   aconteceu na Fase 4 (a `0004` e depois a `0005` e a `0006`). A spec diz "a 0007": se o
-   responsável preferir tudo numa migração só, junto antes de integrar o passo 3.
+   aconteceu na Fase 4 (a `0004` e depois a `0005` e a `0006`). **Decisão do responsável
+   (22/11/2026): uma migração por passo.** A spec diz "a 0007"; o planejamento ajusta a
+   seção 5.9 no fechamento da fase.
 4. **Endereço por enquanto vem de `CONTENT_BASE_URL`** (vazio = só o embutido). O app aceita
    https em qualquer variante e `http://localhost` ou `127.0.0.1` só no desenvolvimento, para
    o servidor falso; um endereço fora disso derruba o app na abertura, para o erro não passar
