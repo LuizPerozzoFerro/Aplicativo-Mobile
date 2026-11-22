@@ -147,6 +147,7 @@ Preencher e manter atualizado na Fase 2.
 | Testes JUnit do módulo nativo | `cd android && gradlew.bat :monitoring-android:testDebugUnitTest` (depois do prebuild); resultado em `modules/monitoring-android/android/build/test-results/` |
 | Tela de conferência do monitoramento (só development) | Perfil → "Monitoramento (base)" (tem o limite de teste de 1 minuto) |
 | Estado das regras do dia no nativo | `adb shell run-as br.com.quedo.app.dev cat shared_prefs/quedo-monitoring-moment.xml` |
+| Servidor falso do conteúdo (Fase 5) | `npm run content:serve` (serve `content/` na porta 8090; ou `-- <pasta> <porta>`), depois `adb reverse tcp:8090 tcp:8090` e o Metro iniciado com `CONTENT_BASE_URL=http://localhost:8090`. Na tela de conferência, seção "Conteúdo": "Atualizar o catálogo agora" |
 | Bateria do app (sanidade) | no cabo, `adb shell dumpsys batterystats --reset`; uso normal fora do cabo; depois, `adb shell dumpsys batterystats` (linha `UID u0a<n>` em "Estimated power use") e `adb shell dumpsys batterystats br.com.quedo.app.dev`. O número do UID sai de `adb shell pm list packages -U br.com.quedo` (`NOTAS-APP.md`, "Bateria: resultado") |
 | Fila de eventos e configuração do nativo | `adb shell run-as br.com.quedo.app.dev cat files/quedo-monitoring-events.jsonl` · `... cat shared_prefs/quedo-monitoring-config.xml` |
 

@@ -14,7 +14,11 @@ import type {
 const mockVariant = { environment: 'development' as Environment };
 jest.mock('@/config/variant', () => ({
   get variant() {
-    return { environment: mockVariant.environment, features: { domainMonitoring: false } };
+    return {
+      environment: mockVariant.environment,
+      features: { domainMonitoring: false },
+      contentBaseUrl: null,
+    };
   },
 }));
 
@@ -111,7 +115,10 @@ const notifications: NativeNotificationStatus = {
 
 const mockClearDay = jest.fn((_dayKey: string) => undefined);
 jest.mock('@/data/bootstrap', () => ({
-  getRepositories: () => ({ dayStates: { clearDay: mockClearDay } }),
+  getRepositories: () => ({
+    dayStates: { clearDay: mockClearDay },
+    contentCatalog: { get: () => null },
+  }),
 }));
 
 const mockSync = jest.fn(async () => undefined);
@@ -348,5 +355,24 @@ describe('ferramentas de teste (spec 03, 5.10)', () => {
     await renderScreen();
     expect(await screen.findByText('limit_reached: 2')).toBeOnTheScreen();
     expect(screen.getByText('day_failed: 1')).toBeOnTheScreen();
+  });
+});
+
+describe('ferramenta do catálogo (spec 04, 5.12)', () => {
+  const press = (name: string) =>
+    act(async () => fireEvent.press(screen.getByRole('button', { name })));
+
+  it('mostra o catálogo embutido em uso e a consulta forçada sem endereço', async () => {
+    await renderScreen();
+    expect(
+      await screen.findByText('Catálogo em uso: embutido no app, versão 1 (2026-11-22)'),
+    ).toBeOnTheScreen();
+    expect(screen.getByText('Última consulta válida: nunca')).toBeOnTheScreen();
+    expect(
+      screen.getByText('Endereço do conteúdo: não configurado (só o embutido)'),
+    ).toBeOnTheScreen();
+
+    await press('Atualizar o catálogo agora');
+    expect(await screen.findByText('Sem endereço do conteúdo nesta variante.')).toBeOnTheScreen();
   });
 });

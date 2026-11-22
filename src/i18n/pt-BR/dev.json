@@ -105,5 +105,26 @@
       "fireRestart": "Disparar recomeço",
       "fireProtection": "Disparar proteção pausada"
     }
+  },
+  "content": {
+    "title": "Conteúdo",
+    "current": "Catálogo em uso: {{source}}, versão {{version}} ({{date}})",
+    "sources": {
+      "embedded": "embutido no app",
+      "cache": "guardado da última consulta"
+    },
+    "fetchedAt": "Última consulta válida: {{time}}",
+    "never": "nunca",
+    "configured": "Endereço do conteúdo: configurado",
+    "notConfigured": "Endereço do conteúdo: não configurado (só o embutido)",
+    "refresh": "Atualizar o catálogo agora",
+    "results": {
+      "not_configured": "Sem endereço do conteúdo nesta variante.",
+      "not_due": "Consulta recente: ainda não está na hora.",
+      "busy": "Já há uma consulta em andamento.",
+      "updated": "Catálogo atualizado.",
+      "unchanged": "Consulta feita, sem catálogo mais novo.",
+      "failed": "A consulta falhou (sem rede, erro do servidor ou catálogo inválido)."
+    }
   }
 }

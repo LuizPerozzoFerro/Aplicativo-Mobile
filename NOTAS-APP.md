@@ -9,8 +9,11 @@ do protótipo continua em `prototype/NOTAS.md`.
 
 - **Fase 4 concluída e revisada** (PRs #21 a #33); documentos fechados no planejamento
   (PR #34: doc 01 v0.11, doc 02 v0.9, spec 03 v0.3, relatório 01 v0.5).
-- **Fase 5 (spec 04 v0.2):** leitura e decisões na seção "Fase 5 · Leitura da spec 04",
-  abaixo (branch `fase5/leitura-spec`). Próximo: passo 1 (catálogo), depois do merge.
+- **Fase 5 (spec 04 v0.2):** leitura e decisões integradas (PR #35). Seção "Fase 5 ·
+  Leitura da spec 04".
+- **Passo 1 (catálogo)** na branch `fase5/catalogo`, com PR aberto para revisão. Seção
+  "Fase 5 · Passo 1 · Catálogo", com sete interpretações a confirmar. Próximo: passo 2
+  (hospedagem no Cloudflare R2), que precisa do responsável para criar a conta.
 - **Pendências para a Fase 8 (teste fechado):** chamada pela internet (Teams) com a tela de
   interrupção aberta e a medição oficial de bateria num build de loja.
 
@@ -3598,6 +3601,138 @@ lista fixa de marcos só em `src/domain/streak.ts` (`MILESTONE_DAYS`, usada por
 `getNextMilestone`).
 
 **Próximo:** passo 1 (catálogo) na branch `fase5/catalogo`, depois do merge deste PR.
+
+## Fase 5 · Passo 1 · Catálogo (22/11/2026)
+
+Spec 04 v0.2, seções 4.1, 4.2, 5.1 e 6 (passo 1). Branch `fase5/catalogo`. Sem biblioteca
+nova: o download usa o `fetch` do React Native com `AbortController`, e a cópia embutida é
+um `import` de JSON que o Metro já empacota (`resolveJsonModule` vem do
+`expo/tsconfig.base`). Nenhuma API do sistema nova, por isso não houve documentação oficial
+a consultar neste passo; o R2 e o `expo-video` ficam para os passos 2 e 4.
+
+### Como ficou
+
+| Peça | Onde |
+|---|---|
+| Formato, validação, escolha da versão, intervalo das consultas e endereços | `src/domain/catalog.ts` (puro) |
+| Conteúdo de teste (fonte da verdade) | `content/catalog.pt-BR.json` |
+| Cópia embutida | `src/features/content/embedded.ts` |
+| Catálogo em uso e atualização remota | `src/features/content/catalogService.ts` |
+| Atualização ao abrir e ao voltar do segundo plano | `useCatalogRefresh`, em `src/features/content/useCatalog.ts`, montado no `app/_layout.tsx` |
+| Cache no banco | tabela `content_catalog`, migração `drizzle/0007_fase5_content_catalog.sql`; repositório `contentCatalog` (`get`, `save`, `touch`) |
+| Endereço do conteúdo por variante | `variant.contentBaseUrl` (`src/config/variant.ts`), vindo de `extra.contentBaseUrl` no `app.config.ts` |
+| Servidor falso | `scripts/content-serve.js` (`npm run content:serve`) |
+| Ferramenta de teste | seção "Conteúdo" na tela "Monitoramento (base)": fonte e versão em uso, última consulta e "Atualizar o catálogo agora" |
+
+### Regras da validação
+
+- `formatVersion` maior que o suportado (1): o catálogo é ignorado (`unsupported_format`),
+  mesmo que o resto pareça válido.
+- Obrigatórios: `contentVersion` inteiro a partir de 1, `updatedAt` como dia válido, ao menos
+  uma compulsão conhecida, e em cada marco dia, título, resumo, texto, referências (a lista
+  pode ser vazia) e `free`. Dias inteiros de 1 a 3650, **únicos e crescentes**.
+- Referências **só com https** e um domínio com ponto (recusa `http:`, `javascript:` e
+  semelhantes, porque abrem no navegador).
+- Vídeo opcional; o identificador é só de letras minúsculas e números (4 a 32), para não haver
+  tema no nome nem como sair da pasta `videos/`.
+- Campos e compulsões desconhecidos são ignorados: um app antigo aceita um catálogo do mesmo
+  formato com campos ou compulsões a mais.
+- Arquivo acima de 2 milhões de caracteres é recusado sem ler o JSON.
+- O guardado no banco é validado de novo a cada leitura (uma vez por versão): se estiver
+  corrompido, o app volta ao embutido e a próxima consulta válida o substitui.
+
+### Interpretações (a confirmar na revisão)
+
+1. **`fetched_at` é a hora da última consulta que trouxe um catálogo válido**, mesmo que não
+   fosse mais novo. É ela que espaça as consultas em 24 horas entre aberturas do app, sem
+   coluna nova. Por isso, na primeira consulta válida o remoto é guardado mesmo quando tem a
+   mesma versão do embutido. O catálogo em uso é sempre o **mais novo entre o embutido e o
+   guardado**; empate fica com o embutido. Um remoto mais velho que o guardado (servidor que
+   voltou atrás) só atualiza a hora.
+2. **"Sem novas tentativas em sequência":** depois de uma falha (sem rede, erro do servidor,
+   catálogo inválido ou de formato maior), o app espera **1 hora** antes de tentar de novo no
+   mesmo processo, mesmo voltando do segundo plano. A falha não fica no banco: na próxima
+   abertura do app, tenta de novo. Espera de 15 s pela resposta.
+3. **A `0007` só cria a `content_catalog`.** As outras tabelas da seção 5.9
+   (`milestone_reaches`, `app_usage_hourly`, `monitoring_alerts` e os campos novos de
+   `user_compulsions`) entram nos passos que as usam, como migrações `0008` em diante, como
+   aconteceu na Fase 4 (a `0004` e depois a `0005` e a `0006`). A spec diz "a 0007": se o
+   responsável preferir tudo numa migração só, junto antes de integrar o passo 3.
+4. **Endereço por enquanto vem de `CONTENT_BASE_URL`** (vazio = só o embutido). O app aceita
+   https em qualquer variante e `http://localhost` ou `127.0.0.1` só no desenvolvimento, para
+   o servidor falso; um endereço fora disso derruba o app na abertura, para o erro não passar
+   em silêncio. O endereço do `r2.dev` e a verificação que impede o `r2.dev` na produção são
+   do passo 2.
+5. **Gravar o catálogo avisa que os dados mudaram** (`contentCatalog.save` e `touch`, em
+   `src/data/changes.ts`), e o app reenvia a configuração ao nativo. No passo 5 a
+   configuração passa a levar os dias dos marcos, então é o comportamento certo; até lá é
+   uma rodada a mais, uma vez por dia.
+6. **A ferramenta de teste do catálogo (5.12) entrou já neste passo**, porque é ela que permite
+   conferir a troca de versão no aparelho. "Versão remota" aparece como "guardado da última
+   consulta", que é o que veio do servidor.
+7. **"Apagar meus dados" mantém o catálogo** (conteúdo público, spec 04, 5.9), com teste.
+
+### Conteúdo de teste (`content/catalog.pt-BR.json`)
+
+Versão 1, gerado uma vez por um script descartável e formatado pelo Prettier. As duas
+compulsões com os marcos de 1, 3, 7, 14, 30, 60, 90, 180 e 365 dias; títulos "Marco de teste
+A" (abstinência) e "Marco de teste B" (moderação), para distinguir no aparelho sem citar o
+tema; uma referência de exemplo em `https://example.com/referencia`; `free` até 7 dias; um
+vídeo por marco até 30 dias (10 vídeos, identificadores aleatórios de 10 caracteres,
+`durationSeconds: 12`), com `aiGenerated: true` só no de 3 dias da moderação. **Os vídeos
+ainda não existem**: serão gerados com o `ffmpeg` no passo 2, com 12 s, para bater com o
+catálogo. Um teste (`embedded.test.ts`) confere tudo isso, além de o embutido ser válido.
+
+### Testes
+
+- Jest: 874 testes (784 na `main` ao fim da Fase 4). Novos: `src/domain/catalog.test.ts` (47:
+  validação, escolha, cache, intervalo e endereços), `src/features/content/embedded.test.ts`
+  (6), `src/features/content/catalogService.test.ts` (19, com o banco de teste e um servidor
+  falso: versão nova, mesma versão, mais velha, inválida, formato maior, JSON quebrado, erro
+  do servidor, sem rede, limite de tempo, uma consulta por vez, espera de 24 horas entre
+  aberturas, espera de 1 hora depois de falha, consulta forçada, guardado corrompido), mais
+  repositório, migração (`content_catalog` criada), variante (`resolveContentBaseUrl`), a regra
+  de nomes de `changes.ts` e a ferramenta na tela de conferência.
+- **Mutação de controle:** cinco mudanças em `src/domain/catalog.ts` derrubam testes (guardar
+  com a mesma versão, preferir o guardado no empate, tirar a espera depois de falha, aceitar
+  dia repetido, aceitar formato maior). O arquivo foi restaurado e conferido.
+- `lint` e `typecheck` ok.
+
+### No aparelho (S22, 22/11, servidor falso e Metro com `CONTENT_BASE_URL`)
+
+- **Migração sobre o banco existente: ok.** Lido do aparelho (cópia para o computador, só
+  leitura): 8 migrações aplicadas; compulsões, recaídas, check-ins e interrupções preservados.
+- **Consulta automática na abertura: ok.** O servidor registrou `GET /catalog.pt-BR.json 200`
+  na primeira abertura; no banco, o catálogo v1 guardado às 18:50:52.
+- **Troca de versão (P3, adiantado): ok.** Servidor com um catálogo v2 (um título mudado);
+  "Atualizar o catálogo agora" mostrou "Catálogo atualizado." e "guardado da última consulta,
+  versão 2" (Maestro).
+- **Catálogo inválido (P4, adiantado): ok.** Servidor com dias repetidos e versão 3: o servidor
+  entregou (200), o app mostrou "A consulta falhou" e continuou na versão 2.
+- **Sem servidor: ok.** Mesma mensagem, continuou na versão 2.
+- **Reabertura: ok pelo banco e pelo servidor.** Depois de fechar o app à força e reabrir, o
+  servidor não recebeu pedido (dentro das 24 horas), e o banco continuava com a versão 2 de
+  18:54:06 e o título novo. A tela depois da reabertura não foi vista: o Maestro não instalou
+  o app auxiliar três vezes seguidas (AP4, abaixo).
+
+### Problemas
+
+- **AP4 voltou, três vezes seguidas** (22/11, às 18:55): `INSTALL_FAILED_VERIFICATION_FAILURE`
+  ao instalar o `dev.mobile.maestro`. O `logcat` mostra o Play Protect terminando a verificação
+  com `ALLOW` depois de a sessão já ter falhado, como em 07/11. Antes, na mesma tarde, o
+  Maestro instalou normalmente. Fica para observar: se repetir, testar se esperar alguns
+  minutos resolve.
+- Rolagem do Maestro na tela de conferência: com o padrão (20 s, velocidade 40), ele para no
+  meio. Os fluxos que forem até a seção "Conteúdo" precisam de `timeout: 90000` e
+  `speed: 80` no `scrollUntilVisible` (para o passo 8).
+
+### Comandos úteis
+
+- Servidor falso: `npm run content:serve` (serve `content/` na porta 8090) ou
+  `npm run content:serve -- <pasta> <porta>`; no aparelho, `adb reverse tcp:8090 tcp:8090`, e o
+  Metro iniciado com `CONTENT_BASE_URL=http://localhost:8090`.
+- Ler o banco copiado do aparelho no computador: o `sql.js` do projeto, em Node
+  (`new SQL.Database(fs.readFileSync('app.db'))`), sem gravar nada.
 
 ## Problemas
 

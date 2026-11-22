@@ -11,6 +11,7 @@ import {
 const TABLES_001 = ['monitored_apps', 'motivation', 'settings', 'triggers', 'user_compulsions'];
 const TABLES_002 = ['check_ins', 'day_states', 'relapses'];
 const TABLES_005 = ['emergency_sessions', 'imported_events', 'interruption_events'];
+const TABLES_007 = ['content_catalog'];
 /** Migrações do app no índice (drizzle/meta/_journal.json). */
 const APP_MIGRATIONS = loadMigrationBundle().journal.entries.length;
 
@@ -77,10 +78,10 @@ describe('migrações', () => {
     );
   });
 
-  it('as migrações criam as tabelas da 001, da 002 e da 005, a coluna do início informado (003) e a resposta anterior do check-in (004)', async () => {
+  it('as migrações criam as tabelas da 001, da 002, da 005 e da 0007, a coluna do início informado (003) e a resposta anterior do check-in (004)', async () => {
     const { raw } = await createTestDatabase();
     expect(tableNames(raw)).toEqual(
-      expect.arrayContaining([...TABLES_001, ...TABLES_002, ...TABLES_005]),
+      expect.arrayContaining([...TABLES_001, ...TABLES_002, ...TABLES_005, ...TABLES_007]),
     );
     expect(columnNames(raw, 'user_compulsions')).toEqual(
       expect.arrayContaining([

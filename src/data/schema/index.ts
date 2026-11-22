@@ -342,3 +342,30 @@ export const importedEvents = sqliteTable('imported_events', {
   eventId: text('event_id').primaryKey(),
   importedAt: integer('imported_at', { mode: 'timestamp_ms' }).notNull(),
 });
+
+// Migração 0007 (spec 04, seção 5.9): só tabelas novas, sem recriar tabela-pai.
+
+/**
+ * Último catálogo de conteúdo baixado, um por idioma (spec 04, 4.1). Conteúdo
+ * público: fica fora de "Apagar meus dados". `fetched_at` é a hora da última
+ * consulta que trouxe um catálogo válido, mesmo que ele não fosse mais novo:
+ * é ela que espaça as consultas em 24 horas. Sem CHECK no idioma, para um
+ * idioma novo não exigir recriar a tabela.
+ */
+export const contentCatalog = sqliteTable(
+  'content_catalog',
+  {
+    locale: text('locale').primaryKey(),
+    formatVersion: integer('format_version').notNull(),
+    contentVersion: integer('content_version').notNull(),
+    fetchedAt: integer('fetched_at', { mode: 'timestamp_ms' }).notNull(),
+    /** O arquivo como veio do servidor; validado de novo a cada leitura. */
+    json: text('json').notNull(),
+  },
+  () => [
+    check(
+      'content_catalog_versions_valid',
+      sql`${column('format_version')} >= 1 and ${column('content_version')} >= 1`,
+    ),
+  ],
+);

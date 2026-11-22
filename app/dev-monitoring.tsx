@@ -7,6 +7,7 @@ import { variant } from '@/config/variant';
 import { getRepositories } from '@/data/bootstrap';
 import { toDayKey } from '@/domain/day';
 import { SUGGESTED_PACKAGES } from '@/domain/suggestedApps';
+import { ContentDevTools } from '@/features/content/ContentDevTools';
 import { getAppMonitoringSync } from '@/features/monitoring/useMonitoringSync';
 import { Button, Screen, Text } from '@/ui';
 
@@ -427,6 +428,9 @@ export default function DevMonitoringScreen() {
           />
         </>
       ) : null}
+
+      {/* Catálogo de conteúdo (spec 04, 5.12): não depende do módulo nativo. */}
+      <ContentDevTools />
 
       <Button label={t('common:actions.back')} variant="text" onPress={() => router.back()} />
     </Screen>
