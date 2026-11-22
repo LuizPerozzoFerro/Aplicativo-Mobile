@@ -1,6 +1,6 @@
 # Spec 03 — Monitoramento, Alertas e Emergência (Fase 4)
 
-> **Status:** rascunho v0.2 · **Última atualização:** 07/11/2026
+> **Status:** v0.3, **fase concluída em 22/11/2026** · **Última atualização:** 22/11/2026
 > **Documentos base:** `docs/01-visao-e-escopo-mvp.md` (v0.8, seções 3, 6.2, 6.5 a 6.7 e 6.10) · `docs/02-plano-tecnico.md` (v0.7, seções 3.4, 4 e 4.1) · `docs/relatorios/01-viabilidade-monitoramento.md` (v0.4, seções 6.2, 7 e 9.6) · `NOTAS-APP.md` (pendências herdadas)
 > **Tipo:** código definitivo. **Só Android.** Sem VPN (D6).
 
@@ -60,7 +60,7 @@ Todas no doc 01 v0.8. Resumo:
 | Check-in | Uma notificação por dia no horário escolhido, só se ainda não respondido; fica até ser respondida ou até a meia-noite; sem repetição |
 | Preventivas | No início de cada faixa marcada (faixas vizinhas unidas), só nos dias marcados (ou todos, se nenhum dia foi marcado) |
 | Limite diário | 6 proativas por dia; check-in e recomeço sempre têm vaga, então as preventivas ficam com no máximo 4 |
-| Recomeço | No dia seguinte a uma quebra, às 9h ou no primeiro desbloqueio depois das 9h; só se a streak era de 1 dia ou mais |
+| Recomeço | No dia seguinte a uma quebra, às 9h ou no primeiro desbloqueio depois das 9h; só se a streak era de 1 dia ou mais. Sem desbloqueio no dia seguinte, expira à meia-noite |
 | Emergência | Motivação, 1 min de respiração, 5 min de cronômetro com sugestões, "A vontade passou?". Pode pular etapas |
 
 ---
@@ -167,7 +167,12 @@ Todo estado do nativo que importa (configuração, contagens do dia, pausa, aler
 | Lembretes | Check-in, preventivas, recomeço | Padrão |
 
 **Regras gerais:**
-- Toda notificação com **versão pública neutra** na tela bloqueada (só "Quedo" e um texto genérico); o texto completo só desbloqueado.
+- **Tela bloqueada (decisões de 20 e 21/11/2026, M12):** na tela bloqueada só aparece a **versão neutra** (só "Quedo" e um texto genérico, sem ações); o texto completo só desbloqueado. A versão pública do Android não basta: com "mostrar conteúdo" ligado na tela bloqueada, o sistema ignora a versão pública. Por isso:
+  - a versão completa é **secreta** (nunca aparece na tela bloqueada, com qualquer ajuste do aparelho);
+  - o que chega com o aparelho bloqueado é publicado neutro;
+  - com o serviço ligado, quando a tela apaga, as completas que estão na barra viram neutras, em silêncio;
+  - no desbloqueio (ou a cada verificação do serviço), as neutras viram completas, em silêncio e com o horário original;
+  - sem o serviço (sem o acesso ao uso), nada percebe o desbloqueio: a que chegou bloqueada fica neutra até o usuário abrir o app. Comportamento aceito.
 - Ação "Emergência" nas notificações de aviso e nas preventivas; abre o app direto na emergência.
 - **Sem alarme exato:** não usar `SCHEDULE_EXACT_ALARM` nem `USE_EXACT_ALARM` (política do Google Play). Usar o `AlarmManager` em modo inexato **que dispara também em economia profunda** (ex.: `setAndAllowWhileIdle`), sem WorkManager. Tolerância de até 15 minutos aceita; em economia profunda, o atraso pode ser maior, e isso é aceito.
 - Agendamentos sobrevivem ao reinício e à morte do processo.
@@ -192,6 +197,8 @@ Todo estado do nativo que importa (configuração, contagens do dia, pausa, aler
 - Recaída registrada **hoje para ontem**: o "dia seguinte" seria hoje, mas o usuário acabou de ver a mensagem de apoio no app. **Nesse caso, não há notificação de recomeço.**
 - Quebra nas duas compulsões no mesmo dia: uma notificação só.
 - "Desfazer" a quebra cancela o recomeço agendado.
+- **Sem desbloqueio no dia seguinte inteiro:** o recomeço expira à meia-noite e não é reenviado (decisão de 14/11/2026). A mensagem é do dia seguinte à quebra e perde o sentido com atraso.
+- **No desbloqueio, o serviço confere na hora o que já venceu** (21/11/2026). Em economia profunda, o alarme das 9h pode ficar adiado, e sem essa conferência o recomeço perdia o primeiro desbloqueio.
 
 **Proteção pausada:**
 - Quando a vigilância (5.7) percebe uma permissão perdida ou o serviço parado sem querer, uma notificação neutra leva à tela de permissões. No máximo uma por dia por motivo.
@@ -318,19 +325,25 @@ Com as ferramentas de teste (5.10) para encurtar os tempos.
 
 ## 8. Critérios de aceite
 
-- [ ] Módulo `monitoring-android` sem VPN, com as correções do doc 02 (4.1), substituindo o falso no Android.
-- [ ] Regras da seção 5.2 no Kotlin, com vetores compartilhados passando em JUnit e Jest, e mutação de controle.
-- [ ] Tela de interrupção com visibilidade conferida, recuo, reserva e voltar preditivo.
-- [ ] Notificações de check-in (com ações), preventivas, recomeço e proteção pausada, dentro do limite de 6, sem alarme exato.
-- [ ] Emergência completa, com sessões no banco.
-- [ ] Eventos importados de forma idempotente; migração 005 testada em Jest e no aparelho sobre banco existente.
-- [ ] Permissões reais, vigilância, tela de estado e modo degradado.
-- [ ] Sobrevive a fechar o app, à morte do processo e ao reinício (M14).
-- [ ] Manifesto só com as permissões da lista permitida.
-- [ ] Ferramentas de teste ausentes em prévia e produção.
-- [ ] Pendências herdadas resolvidas (5.12), com o resultado do AP4 registrado.
-- [ ] Roteiro M1 a M20 executado com o responsável.
-- [ ] `lint`, `typecheck` e `test` no CI; `NOTAS-APP.md` atualizado.
+- [x] Módulo `monitoring-android` sem VPN, com as correções do doc 02 (4.1), substituindo o falso no Android.
+- [x] Regras da seção 5.2 no Kotlin, com vetores compartilhados passando em JUnit e Jest, e mutação de controle.
+- [x] Tela de interrupção com visibilidade conferida, recuo, reserva e voltar preditivo.
+- [x] Notificações de check-in (com ações), preventivas, recomeço e proteção pausada, dentro do limite de 6, sem alarme exato.
+- [x] Emergência completa, com sessões no banco.
+- [x] Eventos importados de forma idempotente; migração 005 testada em Jest e no aparelho sobre banco existente.
+- [x] Permissões reais, vigilância, tela de estado e modo degradado.
+- [x] Sobrevive a fechar o app, à morte do processo e ao reinício (M14).
+- [x] Manifesto só com as permissões da lista permitida.
+- [x] Ferramentas de teste ausentes em prévia e produção.
+- [x] Pendências herdadas resolvidas (5.12), com o resultado do AP4 registrado.
+- [x] Roteiro M1 a M20 executado com o responsável.
+- [x] `lint`, `typecheck` e `test` no CI; `NOTAS-APP.md` atualizado.
+
+**Resultado (22/11/2026):** todos cumpridos, com evidência em `NOTAS-APP.md` ("Fechamento da Fase 4"), PRs #21 a #33. Bateria (5.13): 1,73 mAh em 22h53 fora do cabo, 0,26% do consumo do aparelho, sem falhas. Ferramentas de teste ausentes: vistas na prévia; produção pelo mesmo caminho de código, com `check:manifest` ok.
+
+**Pendências para a Fase 8 (teste fechado):**
+- chamada pela internet (Teams ou similar) com a tela de interrupção aberta (o M20 passou no emulador, com chamada de celular simulada);
+- medição oficial de bateria num build de loja, num dia de uso pesado.
 
 ---
 
@@ -352,3 +365,4 @@ Com as ferramentas de teste (5.10) para encurtar os tempos.
 |---|---|---|
 | 0.1 | 07/11/2026 | Primeira versão |
 | 0.2 | 07/11/2026 | Doze pontos esclarecidos com o Claude Code: recomeço (bloqueado/desbloqueado, recaída para ontem sem notificação, uma só, desfazer cancela); pausa por compulsão; app nas duas listas depois que a primeira para; tela própria tentada uma vez antes do recuo; preventivas além de 4 e "dia todo"; fonte acompanha o novo tamanho; permissões do AndroidX e do dev client; `AlarmManager` que dispara em economia profunda; chamada recebida (M20); Kwai |
+| 0.3 | 22/11/2026 | Fase concluída. Tela bloqueada só com a versão neutra: completa secreta, neutra ao chegar bloqueado e ao apagar a tela, troca no desbloqueio (5.4, decisões de 20 e 21/11); recomeço expira à meia-noite sem desbloqueio no dia seguinte (14/11) e é conferido na hora no desbloqueio (21/11); critérios de aceite cumpridos e pendências para a Fase 8 (seção 8) |

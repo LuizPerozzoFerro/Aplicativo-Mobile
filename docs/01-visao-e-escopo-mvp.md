@@ -1,8 +1,8 @@
 # 01 — Visão do Produto e Escopo do MVP
 
-> **Status:** revisado v0.9 · **Última atualização:** 08/11/2026
+> **Status:** revisado v0.11 · **Última atualização:** 22/11/2026
 > **Nome do app:** **Quedo** (decidido em 01/11/2026, ver seção 7.4 e o documento de decisão do nome no Project)
-> **Documentos relacionados:** `02-plano-tecnico.md` (v0.7) · `relatorios/01-viabilidade-monitoramento.md` (v0.4, resultado da Fase 1 no Android)
+> **Documentos relacionados:** `02-plano-tecnico.md` (v0.9) · `relatorios/01-viabilidade-monitoramento.md` (v0.5, resultado da Fase 1 no Android e atualizações da Fase 4)
 > Este documento descreve **o que** o app faz e **por quê**. Decisões de arquitetura, stack e padrões de código ficam em documentos técnicos próprios e no `CLAUDE.md`.
 
 ---
@@ -180,21 +180,27 @@ A barra inferior é **igual para todos os usuários**, independentemente de quan
 - Sem permissão de monitoramento, a streak depende apenas do check-in.
 - Em pornografia, tocar em "continuar mesmo assim" num alerta **não é recaída automática**: é registrado como sinal, e o app faz um check-in gentil posteriormente para o usuário confirmar.
 - Recaída zera a streak atual, mas mantém histórico, marcos e vídeos já desbloqueados.
-- **Notificação de recomeço:** no dia seguinte a uma quebra de streak, o app envia uma notificação especial de motivação, com texto neutro, apenas quando havia streak a perder (streak de 1 dia ou mais antes da quebra). **Horário (decisão de 07/11/2026): às 9h, ou no primeiro desbloqueio depois das 9h**, uma vez só. O agendamento precisa sobreviver ao reinício do aparelho.
+- **Notificação de recomeço:** no dia seguinte a uma quebra de streak, o app envia uma notificação especial de motivação, com texto neutro, apenas quando havia streak a perder (streak de 1 dia ou mais antes da quebra). **Horário (decisão de 07/11/2026): às 9h, ou no primeiro desbloqueio depois das 9h**, uma vez só. O agendamento precisa sobreviver ao reinício do aparelho. **Se o celular não for desbloqueado no dia seguinte inteiro, o recomeço expira à meia-noite e não é reenviado** (decisão de 14/11/2026): a mensagem é do dia seguinte à quebra e perde o sentido com atraso.
 - O tempo diante da tela de interrupção **não conta** como uso do app monitorado, e o dia tem borda explícita (meia-noite no fuso do aparelho).
 
 ### 6.3 Calendário de benefícios (aba Progresso)
 - Linha do tempo de marcos por compulsão, mostrando marcos alcançados e próximos.
 - Cada marco possui: dia, título, descrição do benefício e **referência científica**.
-- Marcos iniciais próximos para reter o usuário na primeira semana. Proposta: **1, 3, 7, 14, 30, 60, 90** dias em diante (a validar com as fontes).
+- Marcos iniciais próximos para reter o usuário na primeira semana: **1, 3, 7, 14, 30, 60, 90, 180 e 365 dias** (decisão de 22/11/2026; os dias finais podem mudar com as fontes, sem mudar o código).
+- **Marco alcançado (decisão de 22/11/2026):** no dia em que a streak chega a um marco, o app envia uma **notificação neutra às 9h**, ou no primeiro desbloqueio depois das 9h (mesmo mecanismo do recomeço), e mostra uma **celebração no app**. Regras:
+  - uma notificação por dia, mesmo com marcos nas duas compulsões;
+  - no dia do recomeço (dia seguinte a uma quebra, que é também o dia 1 da nova sequência), sai só o recomeço; a celebração fica no app;
+  - conta no limite diário de notificações proativas (6.6), na vaga garantida do recomeço;
+  - marcos já cumpridos ao começar (abstinência com "há N dias") ficam desbloqueados sem notificação nem celebração.
+- **Marco alcançado de novo depois de uma quebra:** celebra de novo, sem novo desbloqueio (o vídeo continua disponível).
 - Conteúdo com aviso de que não substitui acompanhamento profissional.
-- **Conteúdo fora do código:** marcos, textos e referências vêm de uma fonte de conteúdo remota ou arquivo estruturado, editável sem publicar nova versão nas lojas e preparado para tradução.
+- **Conteúdo fora do código:** marcos, textos e referências vêm de um arquivo estruturado publicado na internet (doc 02), editável sem publicar nova versão nas lojas e preparado para tradução. O app traz uma cópia embutida e funciona sem internet. Para não revelar a compulsão do usuário, ele sempre baixa o conteúdo de todas as compulsões.
 - O conteúdo científico será pesquisado e fornecido pelo responsável do produto.
 
 ### 6.4 Vídeos por marco (aba Progresso)
 - Ao atingir um marco, o usuário desbloqueia um vídeo motivacional específico daquele marco.
 - Vídeos desbloqueados **permanecem disponíveis** mesmo após recaída.
-- Vídeos hospedados externamente e carregados sob demanda.
+- Vídeos hospedados externamente e carregados sob demanda, tocados só quando o usuário pede. Ver sem internet fica para depois do MVP.
 - Produção com IA, observando:
   - Ferramenta com licença de uso comercial;
   - Nenhum rosto ou voz de pessoa real sem autorização escrita;
@@ -245,7 +251,7 @@ Requisitos da tela:
 #### 6.5.5 Regras gerais
 - Uso dentro de uma **janela de gatilho declarada** justifica um alerta mais enfático.
 - O app nunca bloqueia definitivamente o acesso (P4).
-- Textos de notificação devem ser **discretos** (P7): nada que exponha o tema na tela bloqueada.
+- Textos de notificação devem ser **discretos** (P7): nada que exponha o tema na tela bloqueada. **Regra (decisões de 20 e 21/11/2026):** na tela bloqueada aparece só a versão neutra ("Quedo" e um texto genérico, sem botões), mesmo com "mostrar conteúdo" ligado no aparelho. O texto completo, com a motivação, a emoção e os botões, aparece depois do desbloqueio. Sem a permissão de monitoramento, a notificação que chegou com o celular bloqueado fica neutra até o usuário abrir o app.
 - A tela de interrupção **pode não aparecer**: qualquer app consegue esconder sobreposições (hoje nenhum dos apps-alvo do MVP faz isso). A notificação é a rede de segurança.
 
 #### 6.5.6 Pornografia (abstinência)
@@ -265,10 +271,10 @@ Regras:
 
 ### 6.6 Notificações por gatilho
 - Com base nos horários e dias declarados, o app envia notificações preventivas. **Regra (decisão de 07/11/2026):** uma notificação **no início de cada faixa de horário marcada**, com as faixas vizinhas e sobrepostas unidas (20h–22h e 22h–24h geram uma só, às 20h), **só nos dias marcados** ou em todos os dias, se nenhum dia foi marcado.
-- Estados emocionais declarados e a motivação personalizam o texto, sempre neutro na tela de bloqueio.
+- Estados emocionais declarados e a motivação personalizam o texto, que só aparece com o celular desbloqueado (6.5.5).
 - Notificações agendadas funcionam mesmo sem permissão de monitoramento.
-- **Coordenação de notificações:** usuários com mais de uma compulsão não devem receber o dobro de alertas. **Limite diário global: 6 notificações proativas** (gatilho, check-in, recomeço e lembrete), somadas todas as compulsões, com agrupamento de mensagens. O check-in e o recomeço sempre têm vaga: as preventivas por gatilho ficam com no máximo 4 por dia. Ficam fora desse limite a notificação permanente do monitoramento e os alertas de monitoramento (limite, app de risco, domínio), que respondem ao uso real e têm controle próprio de frequência (pausa e encerramento do dia).
-- Notificações devem incluir ação rápida para o botão de emergência e, quando aplicável, para o check-in. No One UI essa ação exige expandir a notificação (ver limites de P3).
+- **Coordenação de notificações:** usuários com mais de uma compulsão não devem receber o dobro de alertas. **Limite diário global: 6 notificações proativas** (gatilho, check-in, recomeço e lembrete), somadas todas as compulsões, com agrupamento de mensagens. O check-in e o recomeço (ou, em outro dia, a notificação de marco, 6.3) sempre têm vaga: as preventivas por gatilho ficam com no máximo 4 por dia. Ficam fora desse limite a notificação permanente do monitoramento e os alertas de monitoramento (limite, app de risco, domínio), que respondem ao uso real e têm controle próprio de frequência (pausa e encerramento do dia).
+- Notificações devem incluir ação rápida para o botão de emergência e, quando aplicável, para o check-in. No One UI essa ação exige expandir a notificação (ver limites de P3). Com o celular bloqueado, as ações não aparecem: elas surgem com o texto completo, depois do desbloqueio (6.5.5).
 
 ### 6.7 Botão de emergência
 Disponível na tela Início, na tela de interrupção e nas notificações de gatilho. **Sempre gratuito.** Não usa IA e não armazena conteúdo sensível.
@@ -283,14 +289,14 @@ O usuário pode pular a respiração ou o cronômetro a qualquer momento e ir di
 
 ### 6.8 Estatísticas
 - Tempo de uso por dia e semana (vídeos curtos), no total e detalhado por app, **somente dos apps**: minutos no navegador não são exibidos;
-- Horários de maior uso;
-- Alertas respeitados vs. ignorados ("Ir para a tela inicial" é respeitado; "Continuar mesmo assim" e "Ignorar o limite por hoje" são ignorados);
+- Horários de maior uso, com as faixas de gatilho declaradas destacadas (é a forma da "comparação entre gatilhos declarados e padrões observados", abaixo, decidida em 22/11/2026);
+- Alertas respeitados vs. ignorados ("Ir para a tela inicial" e "Emergência" são respeitados; "Continuar mesmo assim" e "Ignorar o limite por hoje" são ignorados);
 - Uso do botão de emergência e vitórias;
 - Histórico de streaks e recaídas;
-- Tempo recuperado em relação ao ponto de partida;
+- Tempo recuperado em relação ao ponto de partida. **Ponto de partida (decisão de 22/11/2026):** média diária de uso dos apps escolhidos nos 7 dias antes do início, lida do Android; com menos de 3 dias de dados, a média dos 7 primeiros dias completos de uso. Só dias abaixo do ponto de partida somam;
 - Comparação entre gatilhos declarados e padrões observados.
 
-Regras de cálculo: descontar o tempo diante da tela de interrupção, filtrar lançadores (tela inicial do aparelho) da lista de apps e usar borda de dia explícita.
+Regras de cálculo: descontar o tempo diante da tela de interrupção, filtrar lançadores (tela inicial do aparelho) da lista de apps e usar borda de dia explícita. O histórico de uso é guardado no aparelho a partir da Fase 5, mais o que o Android ainda tiver dos dias anteriores. Na pornografia não há minutos de uso: as estatísticas são de sequências, check-ins, alertas dos apps de risco e emergência.
 
 ### 6.9 Perfil
 - Compulsões ativas (adicionar/remover);
@@ -458,6 +464,12 @@ Situação atualizada com o relatório de viabilidade (Fase 1, Android).
 - [x] Notificações: check-in diário sem repetição; preventivas no início de cada faixa (no máximo 4 por dia); recomeço às 9h ou no primeiro desbloqueio depois (07/11/2026)
 - [x] Emergência: 1 min de respiração e 5 min de cronômetro, podendo pular (07/11/2026)
 - [x] Aumento do limite de vídeos curtos vale a partir do dia seguinte; redução vale na hora (08/11/2026)
+- [x] Recomeço sem desbloqueio no dia seguinte: expira à meia-noite (14/11/2026)
+- [x] Tela bloqueada: só a versão neutra das notificações, com qualquer ajuste do aparelho (20 e 21/11/2026)
+- [x] Conteúdo remoto: arquivos estáticos no Cloudflare R2, sem Supabase; vídeos em MP4 no mesmo serviço (22/11/2026, doc 02)
+- [x] Marcos: 1, 3, 7, 14, 30, 60, 90, 180 e 365 dias; notificação às 9h e celebração no app; celebra de novo depois de uma quebra (22/11/2026)
+- [x] Ponto de partida do tempo recuperado: 7 dias antes do início, ou a primeira semana (22/11/2026)
+- [x] Estatísticas: todos os itens de 6.8; gatilhos comparados pelas faixas destacadas no gráfico de horários (22/11/2026)
 - [x] VPN na primeira versão: **não** (D6, 25/10/2026, seção 3.2)
 
 **Ainda em aberto**
@@ -500,3 +512,5 @@ Situação atualizada com o relatório de viabilidade (Fase 1, Android).
 | 0.7 | 02/11/2026 | Decisões para a Fase 3: check-in diário da pornografia (padrão 21h, dia sem resposta não quebra a streak); apps pré-marcados e limite padrão de 60 min; faixas de horário de 2 horas e personalizadas; lista de emoções; progresso do onboarding salvo; bloqueio de menores de 18 |
 | 0.8 | 07/11/2026 | Decisões para a Fase 4: app nas duas listas com uma tela só; notificação diária de check-in sem repetição; preventivas no início de cada faixa, só nos dias marcados, no máximo 4 por dia; recomeço às 9h ou no primeiro desbloqueio; emergência com 1 min de respiração e 5 min de cronômetro |
 | 0.9 | 08/11/2026 | Aumento do limite de vídeos curtos só vale a partir do dia seguinte; redução vale na hora (6.5.4) |
+| 0.10 | 22/11/2026 | Fase 4 concluída: recomeço expira à meia-noite se o celular não for desbloqueado no dia seguinte (6.2); tela bloqueada só com a versão neutra das notificações, mesmo com "mostrar conteúdo" ligado, e ações só depois do desbloqueio (6.5.5 e 6.6) |
+| 0.11 | 22/11/2026 | Decisões para a Fase 5: marcos até 365 dias, notificação de marco às 9h e celebração no app, celebração de novo depois de uma quebra (6.3); conteúdo publicado na internet com cópia embutida, baixado inteiro (6.3); vídeos sob demanda (6.4); ponto de partida do tempo recuperado, "Emergência" como alerta respeitado e comparação com os gatilhos no gráfico de horários (6.8); vaga do marco no limite diário (6.6) |

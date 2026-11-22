@@ -14,9 +14,9 @@ Instruções permanentes para o Claude Code neste repositório. Leia este arquiv
 
 ## 2. Fase atual
 
-**Fase 4 — Monitoramento, alertas e emergência.** Spec: `docs/specs/spec-03-monitoramento-alertas-emergencia.md`.
+**Fase 5 — Progresso, estatísticas e conteúdo remoto.** Spec: `docs/specs/spec-04-progresso-estatisticas-conteudo.md`.
 
-A Fase 2 (fundação do app, spec 01) terminou em 02/11/2026 e a Fase 3 (onboarding e núcleo, spec 02) em 07/11/2026. **O código é definitivo**: qualidade, testes e i18n são obrigatórios. O protótipo em `prototype/` é **só referência**: não altere e não importe código dele sem a spec pedir. Nesta fase entra o módulo Kotlin (`modules/monitoring-android/`): do protótipo, aproveite só o que a spec 03 indicar.
+Fases concluídas: Fase 2 (fundação do app, spec 01) em 02/11/2026, Fase 3 (onboarding e núcleo, spec 02) em 07/11/2026 e Fase 4 (monitoramento, alertas e emergência, spec 03) em 22/11/2026. **O código é definitivo**: qualidade, testes e i18n são obrigatórios. O protótipo em `prototype/` é **só referência**: não altere e não importe código dele sem a spec pedir. As regras do módulo Kotlin (`modules/monitoring-android/`) e a troca neutra/completa das notificações na tela bloqueada (spec 03, 5.4) valem também para o que entrar nesta fase.
 
 ## 3. Documentos (leia antes de trabalhar)
 
@@ -57,7 +57,8 @@ Os documentos em `docs/` são a fonte da verdade. **Não altere `docs/01`, `docs
 - Módulos nativos: Kotlin (Android) via Expo Modules; Swift (iOS) na Fase 10
 - Jest + React Native Testing Library; Maestro para fluxos ponta a ponta
 - Sentry (com filtro de privacidade) antes do teste fechado (Fase 8). Não instalar antes
-- Supabase (Fase 5) e RevenueCat sobre o Google Play Billing (Fase 6). **Não adicionar antes da fase correspondente**
+- Conteúdo e vídeos: arquivos estáticos no **Cloudflare R2** (Fase 5), só por HTTP, sem SDK; vídeos com `expo-video`. **Sem Supabase** (decisão de 22/11/2026)
+- RevenueCat sobre o Google Play Billing (Fase 6). **Não adicionar antes da fase correspondente**
 - Proibido: analytics, qualquer SDK que envie dados do usuário, e bibliotecas não justificadas
 
 ## 7. Estrutura
@@ -81,6 +82,7 @@ docs/
   02-plano-tecnico.md
   relatorios/
   specs/
+content/                # catálogo de conteúdo (fonte da verdade, publicado no R2)
 NOTAS-APP.md            # diário técnico do app
 CLAUDE.md
 ```
@@ -113,7 +115,8 @@ CLAUDE.md
 ## 9. Privacidade e discrição (regras inegociáveis)
 
 - **Dados pessoais nunca saem do aparelho**: compulsões, gatilhos, motivação, check-ins, recaídas, uso de apps, domínios e estatísticas.
-- O servidor (quando existir) só fornece conteúdo público e não recebe identificação do usuário.
+- O servidor de conteúdo só fornece conteúdo público e não recebe identificação do usuário nem do aparelho. O app baixa sempre o catálogo inteiro, nunca só o da compulsão do usuário.
+- Credenciais do Cloudflare (e de qualquer serviço) só na máquina do responsável: nunca no repositório, no CI ou em logs.
 - Logs e relatórios de erro **nunca** contêm compulsões, gatilhos, motivação, nomes de apps monitorados, domínios ou URLs. Todo evento do Sentry passa pelo filtro de privacidade.
 - Banco local fora do backup automático do sistema.
 - Textos de notificação neutros: nada que exponha o tema na tela bloqueada.

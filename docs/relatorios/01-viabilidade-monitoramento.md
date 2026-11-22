@@ -1,7 +1,13 @@
 # Relatório de Viabilidade — Monitoramento
 
-> **Versão 0.4 · 31/10/2026 ·** entregável da Fase 1, na estrutura da seção 9 da
+> **Versão 0.5 · 22/11/2026 ·** entregável da Fase 1, na estrutura da seção 9 da
 > `docs/specs/spec-00-prototipo-monitoramento.md`.
+>
+> **Novo na 0.5:** o que a Fase 4 (app definitivo) confirmou ou corrigiu neste
+> relatório, na nova seção 9.8: bateria do app definitivo, notificações na tela
+> bloqueada, alarmes adiados em economia profunda, chamada recebida, voltar
+> preditivo e as recusas de instalação pelo `adb`. As seções 1 a 8 continuam
+> descrevendo o protótipo.
 >
 > **Novo na 0.4:** o I-25 passou de risco teórico a **fato medido em app real**
 > (o Nubank apaga a nossa sobreposição, seção 3.2); a decisão **D6** tira a VPN da
@@ -470,8 +476,10 @@ mudanças são decisão do responsável, fora do Claude Code.**
   a tela depois do login. Apps instalados no outro perfil do aparelho (usuário
   150) não foram varridos.
 - **Chamada recebida** com a sobreposição na tela: é hipótese, e é segurança.
+  **Fase 4:** ok no emulador com chamada de celular; falta chamada pela internet
+  (seção 9.8).
 - **Voltar preditivo** ligado: tudo o que medimos do gesto de voltar passou pelo
-  caminho antigo (I-14).
+  caminho antigo (I-14). **Fase 4:** medido e ok (seção 9.8).
 - **Força-parada pelo usuário**, que desligaria o religamento automático.
 - **Segundo aparelho físico, de outro fabricante**, e outra versão de Android.
 - **Troca de Wi-Fi para dados móveis** com a VPN ligada: o S22 de teste está sem
@@ -496,7 +504,10 @@ mudanças são decisão do responsável, fora do Claude Code.**
   identificador do app** para criar o app no Console.
 - **Verificação de desenvolvedor Android:** a partir de 30/09/2026, no Brasil, os
   apps precisam estar registrados por um desenvolvedor verificado para instalar
-  em aparelhos certificados. Instalação por adb não é afetada.
+  em aparelhos certificados. Instalação por adb não é afetada. **Visto na Fase 4
+  (07/11/2026):** o S22 recusou instalações pelo adb, mas a recusa veio do Play
+  Protect, por tempo esgotado na consulta de verificação, e não da verificação de
+  desenvolvedor; repetir a instalação resolve (seção 9.8).
 - **Vídeos:** para a **primeira versão (sem VPN, D6)**, um só, do serviço em
   primeiro plano. O roteiro está em `docs/rascunhos/roteiro-video-servico-primeiro-plano.md`
   e a gravação final é do build definitivo. Quando a VPN voltar, mais dois, de
@@ -593,11 +604,27 @@ resto (uso de apps, limite, interrupção), que não depende dela.
 
 ---
 
+### 9.8 O que a Fase 4 confirmou ou corrigiu (22/11/2026)
+
+A Fase 4 levou o monitoramento ao app definitivo (spec 03, sem VPN) e testou no
+S22 o que este relatório deixou por medir. Evidências em `NOTAS-APP.md`.
+
+| Tema | Resultado |
+|---|---|
+| Bateria | App definitivo, build de desenvolvimento, dia leve: **1,73 mAh em 22h53 fora do cabo (0,26% do consumo do aparelho, ~1,8 mAh por dia)**, sem falhas do serviço. Cerca de 0,5 mAh por dia a mais que o T6 do protótipo, já com notificações, alarmes e regras. A maior parte parece vir do cliente de desenvolvimento tentando reconectar ao Metro, como no protótipo. A medição oficial continua para a Fase 8, em build de loja |
+| Notificações na tela bloqueada | **Complementa o C2.** Com "mostrar conteúdo" ligado na tela bloqueada, o Android ignora a versão pública e mostra o texto completo, inclusive a motivação e os botões. O app definitivo marca a versão completa como secreta e troca o próprio conteúdo: neutra ao chegar bloqueado e ao apagar a tela, completa no desbloqueio |
+| Alarmes em economia profunda | Com o app marcado como inativo pelo sistema, o alarme das 9h do recomeço atrasou até depois do primeiro desbloqueio. O app passou a conferir no desbloqueio o que já venceu. A preventiva das 5h chegou com até 20 minutos de atraso, dentro do aceito |
+| Chamada recebida | Ok no emulador (Android 16) com chamada de celular simulada: a tela de interrupção sai em cerca de 5 s. Falta uma chamada pela internet (Teams ou similar), na Fase 8 |
+| Voltar preditivo | Ok: a tela de interrupção não fecha sem uma escolha (M17) |
+| Reinício e morte do processo | Ok: serviço e agendamentos voltam sozinhos (M14) |
+| Instalação pelo adb | As recusas de 07/11 (`INSTALL_FAILED_VERIFICATION_FAILURE`) vieram do Play Protect, por tempo esgotado na consulta, e não da verificação de desenvolvedor. A instalação pelo adb continua sem registro; repetir resolve. Travamentos do adb durante a instalação também ocorreram, e o script de instalação ganhou limite de tempo |
+
 ## Histórico de versões
 
 | Versão | Data | Alterações |
 |---|---|---|
 | 0.1 | 24/09/2026 | Primeira versão. Android completo; iOS não iniciado |
 | 0.2 | 24/09/2026 | Fecha o A9 com os três dias parados: a Samsung não suspendeu o app, e uma atualização do WebView matou o processo, com os serviços recriados em 2,5 s (I-31). Acrescenta a janela de bateria de 3d17h |
-| 0.4 | 31/10/2026 | I-25 medido em apps reais: o Nubank apaga a sobreposição (seções 1, 3.2, 8.5, 9.3). Decisão D6: a primeira versão publicada sai sem a VPN (seções 1, 5, 7.2, 9.5 e nova 9.7), que substitui a direção de 24/09. Conta do Google Play autenticada; rascunhos de loja em `docs/rascunhos/` |
 | 0.3 | 24/09/2026 | Seção 5: conta de organização recomendada para o `VpnService` e releitura da política de VPN; o tema sensível deixa de ser lacuna, com conteúdo sexual, saúde, cobrança, idade e classificação no Google Play. Seção 9: o critério de saída da Fase 1 passa a ser só Android, entra "A preparar para a submissão ao Google Play" e as decisões do responsável viram tabela |
+| 0.4 | 31/10/2026 | I-25 medido em apps reais: o Nubank apaga a sobreposição (seções 1, 3.2, 8.5, 9.3). Decisão D6: a primeira versão publicada sai sem a VPN (seções 1, 5, 7.2, 9.5 e nova 9.7), que substitui a direção de 24/09. Conta do Google Play autenticada; rascunhos de loja em `docs/rascunhos/` |
+| 0.5 | 22/11/2026 | Nova seção 9.8 com o que a Fase 4 confirmou ou corrigiu: bateria do app definitivo, notificações na tela bloqueada (complementa o C2), alarmes adiados em economia profunda, chamada recebida, voltar preditivo e recusas de instalação pelo adb (9.5). Notas em 9.3 e 9.5; histórico em ordem |
