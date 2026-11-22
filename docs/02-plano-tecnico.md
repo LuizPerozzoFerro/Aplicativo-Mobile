@@ -1,7 +1,7 @@
 # 02 — Plano Técnico e Plano de Ação
 
-> **Status:** rascunho v0.7 · **Última atualização:** 07/11/2026
-> **Documentos base:** `01-visao-e-escopo-mvp.md` (v0.8) · `relatorios/01-viabilidade-monitoramento.md` (v0.4, Fase 1 no Android)
+> **Status:** rascunho v0.9 · **Última atualização:** 22/11/2026
+> **Documentos base:** `01-visao-e-escopo-mvp.md` (v0.11) · `relatorios/01-viabilidade-monitoramento.md` (v0.5, Fase 1 no Android e atualizações da Fase 4)
 > **Decisão D6 (25/10/2026):** a primeira versão publicada sai **sem a VPN local**. Tudo o que depende dela neste documento vale para uma versão posterior.
 > Este documento define **como** o app será construído e **em que ordem**. Itens marcados como *proposta* ou *a decidir* ainda podem mudar. As decisões sobre o Android já se apoiam no protótipo; as do iOS continuam hipóteses até a fase iOS.
 
@@ -39,10 +39,10 @@
 | Banco local | SQLite (`expo-sqlite`) com **Drizzle ORM 0.45** estável (esquema em TypeScript e migrações geradas pelo drizzle-kit); testes com sql.js | **Em uso** (Fase 2). Reavaliar a 1.0 quando sair do pré-lançamento |
 | Estado da interface | Biblioteca leve de estado (ex.: Zustand) | A decidir |
 | Internacionalização | i18next + react-i18next + `expo-localization`; chaves tipadas, lint contra texto fixo e plural `_zero` obrigatório | **Em uso** (Fase 2) |
-| Notificações locais | `expo-notifications` para as agendadas; alertas de monitoramento disparados pelo Kotlin | Proposta |
+| Notificações locais | Todas pelo módulo Kotlin (`AlarmManager` inexato, canais próprios, troca neutra/completa na tela bloqueada), sem `expo-notifications` | **Em uso** (Fase 4) |
 | Assinaturas | **RevenueCat** (`react-native-purchases`) sobre o **Google Play Billing** (obrigatório) | Proposta |
-| Conteúdo remoto (calendários, marcos, metadados de vídeos) | **Supabase** | Proposta |
-| Hospedagem de vídeos | Serviço de streaming de vídeo (ex.: Cloudflare Stream, Mux ou Bunny Stream) | A decidir |
+| Conteúdo remoto (calendários, marcos, metadados de vídeos) | **Arquivos estáticos (JSON) no Cloudflare R2**, com a fonte versionada no repositório (`content/`), cópia embutida no app e cache local. Sem SDK, só HTTP. Supabase descartado: banco de dados desnecessário para conteúdo público e pequeno, e o plano gratuito pausa projetos com pouca atividade | **Decidido** (22/11/2026, Fase 5) |
+| Hospedagem e player de vídeos | **MP4 (720p) no mesmo R2**, sem serviço de streaming; player **`expo-video`** (Expo, com código nativo, confirmado) | **Decidido** (22/11/2026, Fase 5) |
 | Monitoramento de erros | Sentry, configurado **antes do teste fechado** (Fase 8), com filtro de privacidade | Proposta |
 | Analytics de produto | Ferramenta com foco em privacidade, **sem eventos contendo dados sensíveis** | A decidir |
 | Build Android | **Build local** no Windows durante o desenvolvimento (32 s incrementais no protótipo); EAS para builds de loja se convier | Validado no protótipo |
@@ -76,13 +76,13 @@
 └──────────────┬──────────────────────────────┬──────────────────────────────────┘
                │ somente leitura               │ status da assinatura
                ▼                               ▼
-     Supabase (conteúdo)               RevenueCat ⇄ Google Play (depois App Store)
-     Streaming de vídeo
+     Cloudflare R2 (conteúdo           RevenueCat ⇄ Google Play (depois App Store)
+     e vídeos, arquivos estáticos)
 ```
 
 ### 3.2 Regras de arquitetura
 - **Dados pessoais nunca saem do aparelho no MVP**: compulsões escolhidas, gatilhos, motivação, check-ins, recaídas, uso de apps, domínios detectados e estatísticas.
-- O servidor fornece apenas **conteúdo público** (calendários, marcos, vídeos) e não recebe identificação do usuário.
+- O servidor fornece apenas **conteúdo público** (calendários, marcos, vídeos) e não recebe identificação do usuário. O app baixa sempre o catálogo inteiro (todas as compulsões), para o servidor não saber qual é a do usuário; vídeos têm identificador opaco.
 - **Sem login no MVP.** Assinatura vinculada à conta da loja via RevenueCat (identificador anônimo).
 - Troca de aparelho perde o histórico no MVP; backup opcional fica para fase futura.
 - **Sem VPN na primeira versão (D6).** Quando voltar, a VPN será local e só observará consultas de DNS, salvo decisão futura de criar uma função de servidor real.
@@ -137,7 +137,7 @@ CLAUDE.md
 | Tela de interrupção | ⚠️ Sobreposição como principal; tela própria como reserva. Qualquer app pode esconder a sobreposição | Tela de proteção personalizada (`ManagedSettings` + extensões) |
 | Navegador | ⚠️ Acesso detectado e atribuído ao navegador; tempo só por estimativa (erro alto). Usado só como alerta | A validar |
 | Exibir minutos de uso no app | ✅ Livre | Restrito: só por extensão de relatório isolada |
-| Bateria | ✅ 1,1 a 1,6 mAh/dia medidos (0,15% a 0,3% do consumo), sem wakelock; dia leve e build de desenvolvimento | A validar |
+| Bateria | ✅ 1,1 a 1,6 mAh/dia medidos no protótipo (0,15% a 0,3% do consumo), sem wakelock. **App definitivo (Fase 4):** ~1,8 mAh/dia (0,26% do consumo), com notificações, alarmes e regras; dia leve e build de desenvolvimento | A validar |
 | Sobrevivência | ✅ Horas desconectado, dias parado, economia de energia ligada. ⚠️ Janela cega após reinício; VPN não volta após o boot | A validar (inclui T9: build de desenvolvimento desconectado) |
 | Autorização especial | Permissões de uso e sobreposição; **declaração do serviço em primeiro plano** no Google Play (VpnService só quando a VPN voltar) | **Entitlement Family Controls** para distribuição, por bundle ID e por extensão |
 
@@ -154,8 +154,8 @@ CLAUDE.md
 
 ### 4.2 Pendências de medição no Android
 - Um dia de **uso pesado**, com bateria medida num build **sem o cliente de desenvolvimento** (os números atuais são teto).
-- Chamada recebida com a sobreposição na tela.
-- Voltar preditivo ligado.
+- Chamada recebida com a sobreposição na tela: **ok no emulador** com chamada de celular (Fase 4, M20); falta uma chamada pela internet, na Fase 8.
+- Voltar preditivo ligado: **feito na Fase 4 (M17).**
 - Força-parada pelo usuário (desliga o religamento automático).
 - Troca de Wi-Fi para dados móveis com a VPN ligada (quando a VPN voltar).
 - Aparelho de outro fabricante e outra versão de Android.
@@ -165,13 +165,13 @@ CLAUDE.md
 
 ## 5. Modelo de dados (visão inicial)
 
-**Conteúdo remoto (Supabase, público, multilíngue)**
+**Conteúdo remoto (Cloudflare R2, público, um arquivo por idioma)**
 
 | Entidade | Descrição |
 |---|---|
 | `DefinicaoCompulsao` | Tipo de mecânica, apps/domínios sugeridos, textos padrão |
 | `Marco` | Compulsão, dia, título, descrição, referência científica, gratuito/premium |
-| `Video` | Marco relacionado, URL de streaming, duração, selo de IA |
+| `Video` | Marco relacionado, identificador opaco do arquivo MP4, duração, selo de IA |
 
 **Dados locais (SQLite, privados)**
 
@@ -190,7 +190,9 @@ CLAUDE.md
 | `CheckIn` | Data, resposta, origem (notificação, app, pós-alerta) |
 | `Recaida` | Data, compulsão |
 | `SessaoEmergencia` | Início, fim, "a vontade passou?" |
-| `MarcoDesbloqueado` | Marco, data (nunca apagado em recaída) |
+| `MarcoDesbloqueado` | Na Fase 5, `milestone_reaches`: um alcance por marco e por sequência, com a data e se já foi celebrado. Desbloqueado = alcançado ao menos uma vez; nunca apagado em recaída |
+| `UsoPorHora` | Na Fase 5, `app_usage_hourly`: segundos por dia, hora, compulsão e app, descontando a tela de interrupção. Base das estatísticas |
+| `CatalogoEmCache` | Na Fase 5, `content_catalog`: última versão válida do catálogo baixado (conteúdo público) |
 | `Configuracoes` | Onboarding concluído, idade confirmada (18+), notificações, limite global (6 proativas por dia), preferências |
 
 > A **streak** é calculada a partir de check-ins, recaídas, eventos de uso e `EstadoDia`, e não armazenada como número fixo. O estado do monitoramento (permissões, serviço, VPN) é lido em tempo real, não persistido como dado do usuário.
@@ -203,7 +205,7 @@ CLAUDE.md
 - Sentry (e analytics, se um dia houver) **não podem** registrar compulsões escolhidas, gatilhos, motivação, nomes de apps monitorados ou domínios acessados. Revisão obrigatória de cada evento.
 - Lista de domínios (Android) processada localmente; nenhum domínio acessado é enviado ao servidor.
 - **Segurança de dados do Google Play:** o app **tem coleta**, ainda que pequena (RevenueCat e Sentry). O que nunca sai do aparelho (uso de apps, lista de apps, limites, gatilhos, motivação) fica fora da declaração enquanto nenhuma ferramenta externa o receber. Rascunho em `docs/rascunhos/privacidade-e-seguranca-de-dados.md`.
-- Notificações com textos neutros na tela bloqueada (validado: o cartão mostra só título e texto, sem o nome do app monitorado).
+- Notificações com textos neutros na tela bloqueada. Na Fase 4 ficou provado que a versão pública não basta (com "mostrar conteúdo", o Android a ignora): a versão completa é secreta e o app troca o próprio conteúdo entre neutra e completa (spec 03, 5.4; risco T13).
 - Nome do app (Quedo), ícone e descrição de cobrança neutros. Nome do desenvolvedor: pessoal na fase de validação (doc 01, seção 7.4).
 - Política de privacidade e termos de uso antes do teste fechado.
 - **Divulgação destacada** dentro do app antes de pedir acesso a dados de uso (e antes da VPN, quando existir).
@@ -242,9 +244,9 @@ Itens:
 - [x] **Conta Google Play Console (pessoa física)** — verificação concluída (01/11/2026)
 - [x] **Package name** definitivo do Android: `br.com.quedo.app`; builds de desenvolvimento usam `br.com.quedo.app.dev` (01/11/2026)
 - [ ] Conta Apple Developer (pessoa física) — **adiada para perto da Fase 10** (01/11/2026). O nome "Quedo" é reservado no App Store Connect quando a conta for criada
-- [ ] Domínio quedo.com.br e depósito da marca no INPI (responsável, ver documento de decisão do nome)
+- [ ] Domínio quedo.com.br e depósito da marca no INPI (responsável, ver documento de decisão do nome). **O domínio é necessário antes da Fase 8**, para o conteúdo sair de um endereço próprio (ex.: `conteudo.quedo.com.br`), gerenciado no Cloudflare
 - [x] Conta Expo (já existia; projeto EAS novo para o app na Fase 2)
-- [ ] Contas: Supabase (Fase 5), RevenueCat (Fase 6), Sentry (antes da Fase 8)
+- [ ] Contas: Cloudflare (Fase 5, gratuita), RevenueCat (Fase 6), Sentry (antes da Fase 8)
 - [x] Virtualização ligada na BIOS (emulador Android) (01/11/2026)
 
 **Critério de saída:** conta do Google Play ativa e package name definido. **Cumprido em 01/11/2026.** Os itens restantes seguem em paralelo.
@@ -289,24 +291,39 @@ Também saiu da Fase 2: o manifesto de produção declara só `INTERNET`, `SYSTE
 Pendências herdadas da Fase 2 (detalhes em `NOTAS-APP.md`): salvar etapa e respostas do onboarding; esconder o "Voltar" da primeira tela; teclado na `Screen`; "Apagar meus dados" zerar o onboarding; validar o papel do app ao gravá-lo.
 
 ### Fase 4 — Monitoramento, alertas e emergência
-**Spec:** `docs/specs/spec-03-monitoramento-alertas-emergencia.md`.
-- [ ] Módulo nativo Android definitivo (a partir do protótipo) atrás da interface comum, com as correções da seção 4.1
-- [ ] Alertas em dois níveis, tela de interrupção com quatro botões, pausa de 5 min, reprovação do dia e janelas de gatilho
-- [ ] Notificação de recomeço no dia seguinte à quebra de streak
-- [ ] Notificações preventivas por gatilho e coordenação/limite global
-- [ ] Apps de risco da pornografia (alerta preventivo e, onde declarado, tela de interrupção)
-- [ ] Botão de emergência completo
-- [ ] Vigilância de permissões, tela de estado do monitoramento e modo degradado
+**Spec:** `docs/specs/spec-03-monitoramento-alertas-emergencia.md` (v0.3). **Concluída em 22/11/2026** (PRs #21 a #33; critérios de aceite e roteiro M1 a M20 com evidência em `NOTAS-APP.md`).
+- [x] Módulo nativo Android definitivo (`modules/monitoring-android/`, Kotlin) atrás da interface comum, com as correções da seção 4.1, sem VPN
+- [x] Regras do momento no Kotlin com vetores compartilhados (Jest e JUnit) e mutações de controle
+- [x] Alertas em dois níveis, tela de interrupção (sobreposição e tela própria de reserva) com quatro botões, pausa de 5 min, reprovação do dia, recuo quando escondida e chamada recebida
+- [x] Notificações: check-in com ações, preventivas por faixa, recomeço e proteção pausada, no limite de 6 por dia, sem alarme exato
+- [x] Apps de risco da pornografia (alerta preventivo e, onde declarado, tela de interrupção)
+- [x] Botão de emergência completo, com sessões no banco
+- [x] Eventos do nativo importados de forma idempotente (migração 005)
+- [x] Vigilância de permissões, tela de estado do monitoramento e modo degradado
+- [x] Ferramentas de teste só no build de desenvolvimento; seis fluxos Maestro no S22
 
-**Critério de saída:** fluxo proativo completo funcionando no S22, inclusive após reinício, e manifesto sem as permissões proibidas da seção 3.4.
+**Critério de saída:** fluxo proativo completo funcionando no S22, inclusive após reinício, e manifesto sem as permissões proibidas da seção 3.4. **Cumprido.**
 
-Pendências herdadas da Fase 3 (detalhes em `NOTAS-APP.md`): voltar preditivo ligado na tela de interrupção; borda do dia igual no Kotlin e no Hermes; regras de limite (somado nos vídeos curtos, uma por app de risco); app nas duas listas; incluir `fontScale` e `density` no `configChanges` da Activity (ela é recriada quando a fonte muda); instalações pelo `adb` recusadas pela verificação de desenvolvedor do Android (AP4).
+Também saiu da Fase 4:
+- **Tela bloqueada:** com "mostrar conteúdo" ligado, o Android ignora a versão pública. A versão completa passou a ser secreta, e o app troca o próprio conteúdo (neutra ao chegar bloqueado e ao apagar a tela, completa no desbloqueio). Ver doc 01, 6.5.5, e spec 03, 5.4.
+- **Recomeço:** expira à meia-noite sem desbloqueio no dia seguinte; o desbloqueio confere na hora o que venceu, porque o alarme pode atrasar em economia profunda.
+- **Lista de apps** no onboarding e no Perfil: sugeridos no topo, já marcados; os outros recolhidos, com busca.
+- **Bateria (sanidade):** 1,73 mAh em 22h53 fora do cabo (0,26% do consumo), sem falhas do serviço.
+- `npm run android:install` com limite de tempo e reinício do `adb` (travamentos da instalação).
+
+Pendências para a Fase 8: chamada pela internet com a tela de interrupção aberta; medição oficial de bateria num build de loja.
+
+Pendências herdadas da Fase 3 (voltar preditivo, borda do dia, regras de limite, app nas duas listas, `fontScale` na Activity, AP4): resolvidas (spec 03, 5.12).
 
 ### Fase 5 — Progresso, estatísticas e conteúdo remoto
-- [ ] Supabase com esquema de conteúdo e cache offline
-- [ ] Aba Progresso: calendário, marcos e desbloqueios
-- [ ] Player de vídeo com streaming
-- [ ] Aba Estatísticas (sem minutos de navegador; descontando interrupções)
+**Spec:** `docs/specs/spec-04-progresso-estatisticas-conteudo.md`.
+- [ ] Catálogo de conteúdo em arquivo estático: formato, validação, cópia embutida, cache e atualização do Cloudflare R2
+- [ ] Conta e bucket no Cloudflare; publicação sem credenciais no repositório; produção impedida de usar o endereço de teste `r2.dev`
+- [ ] Marcos: alcance, desbloqueio permanente, celebração no app (inclusive ao alcançar de novo) e notificação de marco no nativo
+- [ ] Aba Progresso, com o card do Início abrindo a aba filtrada
+- [ ] Player de vídeo (`expo-video`), MP4 no R2, com selo de IA
+- [ ] Histórico de uso por hora e app no aparelho, com os dias anteriores que o Android tiver, e ponto de partida do tempo recuperado
+- [ ] Aba Estatísticas (sem minutos de navegador; descontando interrupções; faixas de gatilho destacadas)
 
 **Critério de saída:** jornada completa com conteúdo de teste.
 
@@ -337,10 +354,12 @@ Pendências herdadas da Fase 3 (detalhes em `NOTAS-APP.md`): voltar preditivo li
 
 ### Fase 8 — Beta (teste fechado no Google Play)
 - [ ] Sentry configurado, com filtro de privacidade testado, antes de entrar o primeiro testador
+- [ ] Conteúdo servido pelo domínio próprio, sem o endereço de teste `r2.dev` (pendência da Fase 5)
 - [ ] Recrutar **14 a 15 testadores** (responsável, quando o desenvolvimento pedir) e rodar o teste fechado com no mínimo 12 ativos por 14 dias seguidos
 - [ ] Canal de feedback com os testadores
 - [ ] Teste em aparelho de outro fabricante
 - [ ] Um dia de uso pesado com medição de bateria em build de loja
+- [ ] Chamada pela internet (Teams ou similar) com a tela de interrupção aberta: a tela deve sair e não cobrir a chamada (pendência da Fase 4)
 - [ ] Reavaliar canal de notificação de importância mínima para o monitoramento
 - [ ] Corrigir problemas de estabilidade, bateria e experiência
 
@@ -386,8 +405,7 @@ Quando o responsável decidir iniciar a divulgação:
 | Comissão das lojas sobre assinaturas | 15% no Google Play (Brasil); conferir a da Apple | Sobre a receita (só após a cobrança real) |
 | Domínio quedo.com.br (e quedo.app, se registrado) | A orçar | Anual |
 | Depósito de marca no INPI | A orçar (por classe) | Único, mais manutenção |
-| Supabase | Plano gratuito inicialmente | Mensal conforme uso |
-| Streaming de vídeo | A orçar | Mensal conforme uso |
+| Cloudflare R2 (conteúdo e vídeos) | Gratuito até 10 GB armazenados; sem cobrança de tráfego de saída. Acima disso, US$ 0,015 por GB por mês | Mensal conforme uso |
 | RevenueCat | Gratuito até certo faturamento, depois percentual | Conforme receita |
 | Sentry / analytics | Planos gratuitos inicialmente | Mensal conforme uso |
 | Ferramenta de IA para vídeos (plano comercial) | A orçar | Mensal durante produção |
@@ -408,7 +426,7 @@ Complementam os riscos R1–R12 do doc 01.
 | T1 | Depuração nativa de iOS lenta sem Mac | Fase 10. EAS Build; contingência de Mac na nuvem |
 | T2 | Demora ou recusa do entitlement Family Controls (Distribution), por bundle ID e por extensão | Fase 10. Pedir assim que a conta Apple estiver ativa e a fase iOS se aproximar |
 | T3 | Limitações do iOS para exibir tempo de uso fora da extensão de relatório | Fase 10. A interface comum já prevê `'unsupported'` |
-| T4 | Monitoramento interrompido por economia de bateria no Android | **Rebaixado.** 0,16% do consumo num dia, sem falhas no S22. Falta dia pesado e outros fabricantes |
+| T4 | Monitoramento interrompido por economia de bateria no Android | **Rebaixado.** 0,16% do consumo num dia no protótipo e 0,26% no app definitivo (Fase 4), sem falhas no S22. Falta dia pesado e outros fabricantes |
 | T5 | Bibliotecas de terceiros para Screen Time com manutenção incerta | Android resolvido (módulo próprio). iOS avaliado na Fase 10 |
 | T6 | Vazamento acidental de dados sensíveis em logs ou analytics | Regra no `CLAUDE.md` e revisão de eventos |
 | T7 | Eventos do Screen Time limitados em builds de desenvolvimento fora do Xcode | Fase 10 (T9 da spec 00) |
@@ -417,6 +435,8 @@ Complementam os riscos R1–R12 do doc 01.
 | T10 | Falhas silenciosas: permissão revogada, serviço parado; com a VPN (versão posterior): VPN não volta após boot, outra VPN derruba a nossa, DNS privado estrito | Correções da seção 4.1 e tela de estado do monitoramento |
 | T11 | Números de bateria inflados pelo build de desenvolvimento | Medir de novo em build de loja na Fase 8 |
 | T12 | Testadores inativos no teste fechado levam o Google a pedir mais teste | Recrutar com folga e acompanhar o uso real |
+| T13 | Texto completo das notificações na tela bloqueada (com "mostrar conteúdo", o Android ignora a versão pública) | **Mitigado na Fase 4:** completa secreta e troca neutra/completa pelo próprio app. Rever em outros fabricantes na Fase 8 |
+| T14 | Alarmes adiados em economia profunda (app marcado como inativo) atrasam check-in, preventivas e recomeço | Tolerância aceita no doc 01; o desbloqueio confere na hora o que venceu (Fase 4). Observar no teste fechado |
 
 ---
 
@@ -424,14 +444,14 @@ Complementam os riscos R1–R12 do doc 01.
 
 **Técnicas (podem ser propostas pelo Claude Code com justificativa)**
 - [ ] Biblioteca de estado da interface
-- [ ] Serviço de streaming de vídeo
+- [x] Hospedagem de vídeos: MP4 no Cloudflare R2, sem streaming (22/11/2026)
 - [ ] Ferramenta de analytics (recomendação: nenhuma no MVP)
 
 **Do responsável, antes da Fase 2**
 - [x] Package name: `br.com.quedo.app` (01/11/2026)
 - [x] Conta Apple: só perto da Fase 10 (01/11/2026)
 - [x] Sincronizar protótipo e relatório no repositório (01/11/2026)
-- [ ] Banco: Drizzle ORM (recomendado) ou SQL tipado à mão
+- [x] Banco: Drizzle ORM (em uso desde a Fase 2)
 
 **Para depois da primeira versão**
 - [ ] Quando e como a detecção de domínios (VPN) volta
@@ -453,3 +473,5 @@ Complementam os riscos R1–R12 do doc 01.
 | 0.5 | 01/11/2026 | Decisão D6: build único sem VPN, flag `domainMonitoring` e verificação de permissões proibidas no manifesto (seção 3.4); VPN movida para a evolução pós-lançamento; I-25 no Nubank; segurança de dados com coleta (RevenueCat e Sentry); Sentry antes da Fase 8; Drizzle recomendado; emulador liberado; relatório v0.4 e rascunhos de loja referenciados |
 | 0.6 | 02/11/2026 | Fase 2 concluída: stack em uso (Expo SDK 58, RN 0.88.1, Drizzle 0.45, expo-symbols, Maestro 2.12, CI); manifesto de produção enxuto e permissão de origem da instalação bloqueada; pendências herdadas para as Fases 3 e 7 |
 | 0.7 | 07/11/2026 | Fase 3 concluída (PRs #11 a #20); pendências herdadas para a Fase 4 (fontScale na Activity, AP4 da verificação de desenvolvedor, voltar preditivo, borda do dia, regras de limite) |
+| 0.8 | 22/11/2026 | Fase 4 concluída (PRs #21 a #33): o que saiu dela (tela bloqueada, recomeço, lista de apps, bateria do app definitivo); pendências de medição atualizadas; chamada pela internet passa para a Fase 8; riscos T13 e T14; Drizzle registrado como decidido |
+| 0.9 | 22/11/2026 | Decisões para a Fase 5: conteúdo e vídeos em arquivos estáticos no Cloudflare R2, sem Supabase e sem serviço de streaming; player `expo-video`; catálogo baixado inteiro; modelo de dados com alcances de marco, uso por hora e catálogo em cache; Fase 5 aponta para a spec 04; domínio próprio antes da Fase 8; custos atualizados |
