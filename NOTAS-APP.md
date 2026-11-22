@@ -7,9 +7,10 @@ do protótipo continua em `prototype/NOTAS.md`.
 
 ## Onde paramos (22/11/2026)
 
-- **Fase 4 concluída, aguardando a revisão do responsável no chat de planejamento.** Roteiro
-  e critérios de aceite em "Fechamento da Fase 4", abaixo; PR #32 (parte 2 do roteiro)
-  integrado; o fechamento (bateria e ressalvas) está na branch `fase4/fechamento`.
+- **Fase 4 concluída e revisada** (PRs #21 a #33); documentos fechados no planejamento
+  (PR #34: doc 01 v0.11, doc 02 v0.9, spec 03 v0.3, relatório 01 v0.5).
+- **Fase 5 (spec 04 v0.2):** leitura e decisões na seção "Fase 5 · Leitura da spec 04",
+  abaixo (branch `fase5/leitura-spec`). Próximo: passo 1 (catálogo), depois do merge.
 - **Pendências para a Fase 8 (teste fechado):** chamada pela internet (Teams) com a tela de
   interrupção aberta e a medição oficial de bateria num build de loja.
 
@@ -3554,6 +3555,49 @@ Em 08/11 o `adb` travou (AP3) e o build ficou parado cerca de 20 minutos sem err
 
 `fireEvent.press` fora de `act` no fim de um teste fez todos os testes seguintes do mesmo
 arquivo não encontrarem a tela. O teste de notificações passava porque era o último.
+
+## Fase 5 · Leitura da spec 04 (22/11/2026)
+
+Spec: `docs/specs/spec-04-progresso-estatisticas-conteudo.md`. Documentos de partida (PR
+#34): spec 04 v0.1, doc 01 v0.11 e doc 02 v0.9. A spec foi conferida contra o código da
+`main` depois do PR #34 (banco, domínio, configuração do nativo, `NotificationPlan`,
+importação de eventos, rotas e Início).
+
+Dez pontos levantados na leitura da v0.1. O responsável aceitou as dez propostas e as
+incorporou na **spec 04 v0.2** (neste PR):
+
+| # | Ponto | Decisão | Onde na spec |
+|---|---|---|---|
+| 1 | Quebras vistas pelo nativo | O nativo só conhece a base da streak pelo `streakBaseDayKey` da configuração; o dia reprovado na tela de interrupção e "Tive uma recaída" na notificação só agendam o recomeço (`nativeRestartDays`). Com a base antiga, a notificação de marco sairia errada. **A base é a mais recente entre a do JS e a última quebra que o nativo viu**, nos vetores compartilhados | 4.3; P7b |
+| 2 | Avisos dos apps de risco | Só as telas de interrupção ficam no banco (`interruption_events`); os avisos por notificação (`limit_reached`) eram descartados na importação. **Nova tabela `monitoring_alerts`**; "respeitado ou ignorado" só para as telas. O histórico dos avisos começa na Fase 5 | 5.8; 5.9 |
+| 3 | Ponto de partida de quem já usa o app | Os 7 dias antes do início já saíram do que o Android guarda, e o histórico próprio só começa agora. **Quem começou antes da Fase 5: média dos 7 primeiros dias completos depois de instalar a Fase 5** (`first_week`). O tempo recuperado soma só os dias com histórico | 5.7 |
+| 4 | Tela de interrupção nos dias anteriores | Com a sobreposição aberta, o Android continua contando o app de baixo. **Descontar pelos `shown_at` e `responded_at` de `interruption_events`.** O P10 compara com o "Tempo de uso" do Android num dia sem telas | 4.4; P10 |
+| 5 | Marco de 1 dia | O dia da quebra é 0 e o seguinte é 1 (`getStreakBase`), então todo recomeço alcança o 1 dia. **Celebração "de novo" só a partir do marco de 3 dias**; o de 1 dia só na primeira vez. **Recaída registrada hoje para ontem conta como dia de recomeço:** sem notificação de marco e sem celebração do 1 dia | 5.3; 5.5; P9 |
+| 6 | Marco no dia da quebra | O alcance fica gravado e o marco desbloqueado; se ainda não foi celebrado, **é marcado como celebrado sem mostrar a tela** | 5.3 |
+| 7 | Recomeço e marco no mesmo dia | **A regra vale para o aparelho inteiro:** no dia de recomeço, nenhuma notificação de marco de nenhuma compulsão. Fecha com o limite de 6 (check-in, recomeço e 4 preventivas) | 5.5 |
+| 8 | "Dias dentro do limite" | O banco só guarda os dias reprovados, e um dia pode passar do limite sem ser reprovado. **Dias aprovados (já terminados e não reprovados) e dias reprovados, desde o início** | 5.8 |
+| 9 | Toque no card do Início | Os cards têm botões próprios (check-in, recaída, permissões). **Só a área da streak e do próximo marco abre o Progresso**, com rótulo para o leitor de tela | 5.4 |
+| 10 | Vídeos de teste e ferramenta de streak | **`ffmpeg` autorizado no computador** (fora do app e do repositório). **"Simular uma streak"** guarda os valores originais e tem "Desfazer a simulação", que apaga também os alcances criados nela | 5.1; 5.12 |
+
+**Também na v0.2, sem dúvida na leitura:** migração `0007` (já existem as `0000` a `0006`);
+`expo-video` sem reprodução em segundo plano nem imagem sobre imagem (5.6); "Apagar meus
+dados" com as tabelas novas, menos o catálogo, e com o histórico do nativo e a última quebra
+vista (5.13). Hoje `deleteAllData` (`src/data/repositories.ts`) e o `reset` do nativo
+(`MonitoringModule.kt`) listam o que apagam um a um, então as duas listas precisam crescer.
+
+**Interpretação a confirmar na revisão:** em `monitoring_alerts`, `app_package` fica **nulo**
+no aviso de limite da moderação, porque o limite é somado entre os apps
+(`MomentRules.Action.LimitReached` com `target` nulo). No aviso de app de risco ele vem
+preenchido.
+
+**Conferido e já de acordo com a spec:** tipos de compulsão usados como chave do catálogo
+(`pornography` e `short_videos`, `src/domain/compulsion.ts`); "dia seguinte à quebra = dia
+1"; vagas do limite de 6 (`NotificationPlan`: check-in e recomeço antes, preventivas até 4);
+canal "Lembretes" (`reminders`); origem e resultado da emergência (`emergency_sessions`);
+lista fixa de marcos só em `src/domain/streak.ts` (`MILESTONE_DAYS`, usada por
+`getNextMilestone`).
+
+**Próximo:** passo 1 (catálogo) na branch `fase5/catalogo`, depois do merge deste PR.
 
 ## Problemas
 
