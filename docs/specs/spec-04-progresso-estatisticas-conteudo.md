@@ -1,6 +1,6 @@
 # Spec 04: Progresso, estatísticas e conteúdo remoto (Fase 5)
 
-> **Status:** rascunho v0.1 · **Última atualização:** 22/11/2026
+> **Status:** rascunho v0.2 · **Última atualização:** 22/11/2026
 > **Documentos base:** `docs/01-visao-e-escopo-mvp.md` (v0.11, seções 6.1, 6.3, 6.4, 6.6 e 6.8) · `docs/02-plano-tecnico.md` (v0.9, seções 2, 3, 5 e 8) · `docs/specs/spec-03-monitoramento-alertas-emergencia.md` (v0.3) · `NOTAS-APP.md`
 > **Tipo:** código definitivo. **Só Android.** Sem VPN (D6).
 
@@ -105,14 +105,15 @@ app: embutida ──▶ cache no banco (a versão mais nova válida) ──▶ t
 | Camada | Responsabilidade |
 |---|---|
 | **JavaScript** | Calcula os alcances a partir do histórico (recaídas, dias reprovados, início), grava os alcances, mostra a celebração e a aba Progresso. Envia ao nativo, pela configuração, os dias dos marcos de cada compulsão |
-| **Nativo (Kotlin)** | Com o app fechado, percebe que hoje é dia de marco (a partir da base da streak que já recebe na configuração) e envia a notificação às 9h ou no primeiro desbloqueio depois das 9h, com as regras da seção 5.5 |
+| **Nativo (Kotlin)** | Com o app fechado, percebe que hoje é dia de marco e envia a notificação às 9h ou no primeiro desbloqueio depois das 9h, com as regras da seção 5.5. A base da streak é a **mais recente** entre a recebida do JS (`streakBaseDayKey`) e a **última quebra que o próprio nativo viu** (dia reprovado na tela de interrupção, "Tive uma recaída" na notificação), porque essas quebras acontecem com o app fechado |
 
-As regras de "hoje é dia de marco" entram nos **vetores compartilhados** (Jest e JUnit), como as regras do momento na Fase 4.
+As regras de "hoje é dia de marco", inclusive a base da streak com a quebra vista pelo nativo, entram nos **vetores compartilhados** (Jest e JUnit), como as regras do momento na Fase 4.
 
 ### 4.4 Histórico de uso
 - O nativo, que já mede o uso para as regras, passa a guardar em disco os totais **por dia, hora, compulsão e app**, descontando o tempo diante da tela de interrupção, por pelo menos 14 dias.
 - O JS consulta esse histórico ao abrir o app e ao voltar do segundo plano e grava no banco de forma **idempotente** (substitui o total da mesma hora; consultar duas vezes não duplica).
 - **Dias anteriores:** quando o acesso ao uso está concedido e o histórico ainda está vazio (primeira abertura da Fase 5 ou permissão concedida depois), o nativo lê do Android o que ele ainda tiver dos dias anteriores, só dos apps monitorados. Conferir na documentação oficial quanto tempo o Android guarda os eventos de uso e registrar no `NOTAS-APP.md`.
+- **Tela de interrupção nos dias anteriores:** com a sobreposição aberta, o Android continua contando o app que está por baixo. Ao gravar os dias anteriores, descontar o tempo das telas já registradas no banco (`shown_at` e `responded_at` de `interruption_events`).
 - Um app nas duas listas conta nas duas compulsões, como nas regras.
 
 ---
@@ -122,7 +123,7 @@ As regras de "hoje é dia de marco" entram nos **vetores compartilhados** (Jest 
 ### 5.1 Conteúdo de teste
 - Marcos nos dias 1, 3, 7, 14, 30, 60, 90, 180 e 365, para as duas compulsões, com título, resumo, texto e uma referência de exemplo em cada um, todos **claramente de teste** e neutros (nenhum termo explícito, nenhuma alegação de saúde).
 - `free: true` até 7 dias.
-- Vídeos de teste curtos (10 a 20 s), gerados localmente (ex.: cor de fundo e o número do marco), sem pessoas, vozes ou músicas, com `aiGenerated: false`, menos um, marcado como `true` só para conferir o selo. Um vídeo por marco até 30 dias basta; os outros marcos ficam sem vídeo, para testar esse caso.
+- Vídeos de teste curtos (10 a 20 s), gerados localmente (ex.: cor de fundo e o número do marco), sem pessoas, vozes ou músicas, com `aiGenerated: false`, menos um, marcado como `true` só para conferir o selo. Um vídeo por marco até 30 dias basta; os outros marcos ficam sem vídeo, para testar esse caso. Para gerá-los, o responsável autorizou instalar o `ffmpeg` no computador (ferramenta só da máquina, fora do app e do repositório); registrar o comando no `NOTAS-APP.md`.
 - Textos de interface no i18n; textos de conteúdo só no catálogo.
 
 ### 5.2 Hospedagem (Cloudflare R2)
@@ -135,14 +136,16 @@ As regras de "hoje é dia de marco" entram nos **vetores compartilhados** (Jest 
 ### 5.3 Marcos: alcance, desbloqueio e celebração
 - **Alcance:** a streak de uma compulsão chega ao dia de um marco. Cada sequência (desde a última quebra) alcança cada marco uma vez.
 - **Desbloqueio:** o primeiro alcance de um marco desbloqueia o marco e o vídeo **para sempre** (doc 01, 6.4). Quebras não desfazem; "Desfazer" uma recaída também não.
-- **Alcançado de novo** depois de uma quebra: nova celebração ("Você chegou de novo a 7 dias"), sem novo desbloqueio.
+- **Alcançado de novo** depois de uma quebra: nova celebração ("Você chegou de novo a 7 dias"), sem novo desbloqueio, **a partir do marco de 3 dias**. O de 1 dia é alcançado em todo recomeço (o dia da quebra é 0 e o seguinte é 1), então ele só é celebrado na primeira vez.
+- **Recaída registrada hoje para ontem:** hoje já é o dia 1 da nova sequência e conta como dia de recomeço para os marcos: sem notificação de marco e sem celebração do 1 dia.
+- **Marco alcançado no dia em que a sequência quebra** (moderação: dia reprovado depois da meia-noite em que o marco foi alcançado; abstinência: recaída registrada no próprio dia do marco): o alcance fica gravado e o marco desbloqueado. Se ainda não tiver sido celebrado, é marcado como celebrado **sem mostrar a tela**, para não aparecer uma celebração depois da quebra.
 - **Início com dias já cumpridos** (abstinência com "Estou sem recair há N dias"): os marcos até N ficam desbloqueados no início, **sem notificação nem celebração**.
 - **Primeira abertura depois de instalar a Fase 5** (quem já usava o app): os alcances do passado são gravados como já celebrados; só o de hoje, se houver, é celebrado.
 - **Celebração no app:** ao abrir o app (ou tocar na notificação), cada alcance ainda não celebrado aparece numa tela de celebração, um por vez (ou um resumo, se forem mais de dois): dias, título do marco e os botões "Ver o marco" (abre o detalhe na aba Progresso) e "Fechar". Com leitor de tela, foco inicial no título. Celebrar uma vez marca o alcance como celebrado.
 - Compulsão pausada (Fase 6) não alcança marcos enquanto pausada.
 
 ### 5.4 Aba Progresso
-- **Filtro por compulsão** no topo, quando houver mais de uma ativa. Tocar no card do Início abre a aba já filtrada na compulsão do card.
+- **Filtro por compulsão** no topo, quando houver mais de uma ativa. No card do Início, **a área da streak e do próximo marco** abre a aba já filtrada na compulsão do card, com rótulo claro para o leitor de tela. O resto do card não muda, porque tem botões próprios (check-in, recaída, permissões).
 - **Cabeçalho:** streak atual, próximo marco e quantos dias faltam.
 - **Linha do tempo** com todos os marcos do catálogo, em quatro estados: alcançado nesta sequência; desbloqueado antes (alcançado numa sequência anterior); próximo; futuro.
 - **Detalhe do marco:** dia, título, texto do benefício, referências, aviso de que o conteúdo não substitui acompanhamento profissional e o vídeo:
@@ -156,7 +159,7 @@ As regras de "hoje é dia de marco" entram nos **vetores compartilhados** (Jest 
 ### 5.5 Notificação de marco (nativo)
 - **Quando:** no dia em que a streak de uma compulsão chega a um marco, às 9h se o celular estiver em uso; se estiver bloqueado, no primeiro desbloqueio depois das 9h (o mesmo mecanismo do recomeço, inclusive a conferência no desbloqueio). Sem desbloqueio no dia, expira à meia-noite.
 - **Uma por dia:** duas compulsões com marco no mesmo dia geram uma notificação só.
-- **Não no dia do recomeço:** o dia seguinte a uma quebra é também o dia 1 da nova sequência. Nesse dia sai **só o recomeço**; a celebração do marco fica no app.
+- **Não no dia do recomeço:** o dia seguinte a uma quebra é também o dia 1 da nova sequência. Nesse dia sai **só o recomeço**, e a regra vale **para o aparelho inteiro**: nenhuma notificação de marco de nenhuma compulsão; as celebrações ficam no app. O dia de uma recaída registrada para ontem conta como dia de recomeço para esta regra (5.3).
 - **Início com dias já cumpridos:** os marcos até N não geram notificação (5.3).
 - **Limite de 6 por dia:** o marco usa a vaga garantida do recomeço, que nunca sai no mesmo dia. As preventivas continuam com no máximo 4.
 - **Textos:** neutros, sem o nome da compulsão, vindos do i18n pela configuração. Tela bloqueada só com a versão neutra, como todas as notificações (spec 03, 5.4).
@@ -171,7 +174,7 @@ As regras de "hoje é dia de marco" entram nos **vetores compartilhados** (Jest 
 - Sem internet ou erro: mensagem neutra e botão para tentar de novo. Carregando: indicador.
 - Cache do próprio player para não baixar de novo o que acabou de tocar. Sem download para ver sem internet nesta fase.
 - O vídeo para ao sair da tela e quando o app vai para o segundo plano.
-- Nenhuma permissão nova no manifesto (conferir com `check:manifest`).
+- Nenhuma permissão nova no manifesto (conferir com `check:manifest`). Sem reprodução em segundo plano nem imagem sobre imagem: se o `expo-video` acrescentar permissões ou serviços para isso, desligar pela configuração do plugin.
 
 ### 5.7 Histórico de uso e ponto de partida
 - **Histórico:** seção 4.4.
@@ -179,8 +182,9 @@ As regras de "hoje é dia de marco" entram nos **vetores compartilhados** (Jest 
   - quando o acesso ao uso estiver concedido e o ponto de partida ainda não existir, o app pede ao nativo o uso dos apps escolhidos nos **7 dias antes do dia de início**;
   - com **pelo menos 3 dias** com dados, o ponto de partida é a média diária desses dias (origem `before_start`);
   - com menos, o ponto de partida é a média dos **7 primeiros dias completos** depois do início, com o acesso ao uso concedido (origem `first_week`). Até lá, a estatística mostra "Disponível a partir de <data>";
+  - **quem começou antes da Fase 5** (os 7 dias antes do início já saíram do que o Android guarda, e o histórico próprio só começa agora): o ponto de partida é a média dos 7 primeiros dias completos depois de instalar a Fase 5 (origem `first_week`), com "Disponível a partir de <data>" até lá;
   - mudar os apps depois não recalcula o ponto de partida.
-- **Tempo recuperado:** soma, desde o início, de quanto cada dia ficou abaixo do ponto de partida (dias acima não descontam). Mostrado em horas e minutos, no total e na semana.
+- **Tempo recuperado:** soma, desde o início, de quanto cada dia **com histórico** ficou abaixo do ponto de partida (dias acima não descontam; dias sem histórico não entram). Mostrado em horas e minutos, no total e na semana.
 
 ### 5.8 Aba Estatísticas
 Filtro por compulsão, como no Progresso, mais uma seção geral.
@@ -189,14 +193,14 @@ Filtro por compulsão, como no Progresso, mais uma seção geral.
 - uso por dia (últimos 7 dias, barras com a linha do limite) e por semana (últimas 8 semanas), no total e por app;
 - horários de maior uso (média por hora nos últimos 30 dias), com as **faixas de gatilho declaradas destacadas**;
 - alertas respeitados e ignorados: respeitados são "Ir para a tela inicial" e "Emergência"; ignorados, "Continuar mesmo assim" e "Ignorar o limite por hoje";
-- dias dentro do limite e dias reprovados;
+- dias aprovados e dias reprovados desde o início (aprovado = dia já terminado e não reprovado; um dia pode passar do limite com um ou dois "Continuar" e ainda ser aprovado);
 - tempo recuperado (5.7);
 - histórico de sequências: atual, maior, e a lista com início, fim e duração.
 
 **Pornografia (abstinência):**
 - histórico de sequências e recaídas (atual, maior, lista);
 - check-ins respondidos;
-- alertas dos apps de risco (quantos, respeitados e ignorados) e em que horários aconteceram, com as faixas de gatilho declaradas destacadas. **Sem minutos de uso** (doc 01, 6.8).
+- alertas dos apps de risco: quantos avisos por notificação e quantas telas de interrupção, e em que horários aconteceram, com as faixas de gatilho declaradas destacadas. "Respeitado ou ignorado" vale só para as telas, porque a notificação não tem botões. **Sem minutos de uso** (doc 01, 6.8). O histórico dos avisos começa na Fase 5 (os da Fase 4 foram descartados na importação).
 
 **Geral:** uso do botão de emergência (quantas vezes, de onde) e vitórias ("A vontade passou?" respondido com sim).
 
@@ -211,13 +215,14 @@ Filtro por compulsão, como no Progresso, mais uma seção geral.
 - Cálculos em `src/domain/`, puros e testados.
 
 ### 5.9 Banco: migração da Fase 5
-A próxima na sequência. Só `CREATE TABLE` e `ALTER TABLE ... ADD`, sem recriar tabela-pai, passando no teste das tabelas filhas.
+A `0007` (já existem as `0000` a `0006`). Só `CREATE TABLE` e `ALTER TABLE ... ADD`, sem recriar tabela-pai, passando no teste das tabelas filhas.
 
 | Tabela | Campos |
 |---|---|
 | `content_catalog` (nova) | `locale` (único), `format_version`, `content_version`, `fetched_at`, `json`. Conteúdo público: pode ficar fora de "Apagar meus dados" |
 | `milestone_reaches` (nova) | `id`, `compulsion_id` (cascata), `milestone_day`, `streak_base_day` (início da sequência), `reached_on`, `celebrated_at` (nulo até celebrar). Único em (`compulsion_id`, `milestone_day`, `streak_base_day`). Desbloqueado = existe ao menos um alcance daquele marco |
 | `app_usage_hourly` (nova) | `day_key`, `hour` (0 a 23), `compulsion_id` (cascata), `app_package`, `seconds`. Único em (`day_key`, `hour`, `compulsion_id`, `app_package`) |
+| `monitoring_alerts` (nova) | `id` (identificador do evento nativo, único), `compulsion_id` (cascata), `day_key`, `sent_at`, `kind` (`limit` \| `risk_app`), `app_package` (fica só no aparelho). Os eventos de aviso (`limit_reached`) passam a ser gravados aqui, em vez de descartados |
 | `user_compulsions` (+ campos) | `baseline_minutes_per_day` (nulo até calcular), `baseline_source` (`before_start` \| `first_week`) |
 
 ### 5.10 Notificações e configuração
@@ -236,6 +241,8 @@ Na tela de conferência do monitoramento:
 - forçar a atualização do catálogo e mostrar a versão em uso (embutida, cache ou remota);
 - ver o histórico de uso guardado no nativo e o ponto de partida.
 
+**Simular uma streak** altera dados reais do app de desenvolvimento (início ou recaídas). A ferramenta guarda os valores originais e tem "Desfazer a simulação", que também apaga os alcances de marco criados durante a simulação.
+
 Nada disso em prévia ou produção.
 
 ### 5.13 Privacidade
@@ -243,6 +250,7 @@ Nada disso em prévia ou produção.
 - O app baixa o **catálogo inteiro** (todas as compulsões), nunca só o da compulsão do usuário, para o servidor não saber qual ela é.
 - Requisições sem identificador do usuário ou do aparelho. O pedido de um vídeo revela só um identificador opaco; isso é aceito.
 - Nada de nomes de apps, marcos alcançados ou estatísticas no `logcat`.
+- **"Apagar meus dados"** inclui as tabelas novas (menos o catálogo, que é público) e, no nativo, o histórico de uso e a última quebra vista; as duas listas de limpeza (JS e nativo) são atualizadas e testadas.
 
 ### 5.14 Pendência herdada da Fase 4
 - Falha intermitente de suítes do Jest na primeira execução com cache frio: se voltar, rodar `npm test -- --runInBand`, registrar quais suítes caem e corrigir.
@@ -281,9 +289,10 @@ Uma branch e um PR por passo. Se um passo ficar grande, dividir em partes.
 | P5 | Ferramenta: streak de 7 dias | Celebração ao abrir; marco desbloqueado; vídeo toca com o selo quando for o caso |
 | P6 | Tocar no card do Início | Abre a aba Progresso filtrada na compulsão do card |
 | P7 | Recaída e, depois, streak de 7 de novo | Celebração "de novo"; o vídeo continua disponível durante a quebra |
+| P7b | Quebra com o app fechado (dia reprovado na tela ou "Tive uma recaída" na notificação) e, no dia seguinte, a ferramenta de marco | O nativo usa a quebra que viu: nenhuma notificação de marco com a streak antiga |
 | P8 | Notificação de marco disparada pela ferramenta, com o S22 bloqueado | Só a versão neutra na tela bloqueada; completa no desbloqueio; tocar abre a celebração |
-| P9 | Dia seguinte a uma recaída com streak | Só o recomeço; nenhuma notificação de marco |
-| P10 | Estatísticas de vídeos curtos depois de alguns dias de uso | Totais por dia e por app batem com o "Tempo de uso" do Android no mesmo dia (tolerância de 1 min por app); faixas de gatilho destacadas |
+| P9 | Dia seguinte a uma recaída com streak; e uma recaída registrada para ontem | Só o recomeço (no primeiro caso); nenhuma notificação de marco nem celebração do 1 dia nos dois |
+| P10 | Estatísticas de vídeos curtos depois de alguns dias de uso | Num dia **sem telas de interrupção**, totais por dia e por app batem com o "Tempo de uso" do Android (tolerância de 1 min por app); num dia com telas, o nosso é menor pelo tempo delas. Faixas de gatilho destacadas |
 | P11 | Estatísticas sem o acesso ao uso | Minutos mostram o motivo e o botão; o resto continua |
 | P12 | Tempo recuperado | Ponto de partida com a origem certa; valor coerente com os dias mostrados |
 | P13 | Tema escuro, fonte no máximo e leitor de tela no Progresso, no detalhe e nas Estatísticas | Tudo legível, sem corte; gráficos lidos em texto |
@@ -299,10 +308,10 @@ Uma branch e um PR por passo. Se um passo ficar grande, dividir em partes.
 - [ ] Marcos com alcance, desbloqueio permanente, celebração (inclusive "de novo") e as regras de início com N dias e primeira abertura.
 - [ ] Aba Progresso completa, com o card do Início abrindo a aba filtrada.
 - [ ] Vídeos com `expo-video`, selo de IA e estados de erro, sem permissão nova.
-- [ ] Notificação de marco no nativo, com as regras da seção 5.5 e vetores compartilhados.
+- [ ] Notificação de marco no nativo, com as regras da seção 5.5, a quebra vista pelo nativo e vetores compartilhados.
 - [ ] Histórico de uso por hora e app, com os dias anteriores do sistema e importação idempotente.
 - [ ] Ponto de partida e tempo recuperado.
-- [ ] Aba Estatísticas completa, com cálculos em `src/domain/` testados.
+- [ ] Aba Estatísticas completa, com cálculos em `src/domain/` testados e os avisos de monitoramento gravados.
 - [ ] Migração testada em Jest e no aparelho sobre o banco existente.
 - [ ] Ferramentas de teste ausentes em prévia e produção.
 - [ ] Roteiro P1 a P15 executado com o responsável.
@@ -328,3 +337,4 @@ Uma branch e um PR por passo. Se um passo ficar grande, dividir em partes.
 | Versão | Data | Alterações |
 |---|---|---|
 | 0.1 | 22/11/2026 | Primeira versão, com as decisões de 22/11/2026 |
+| 0.2 | 22/11/2026 | Dez pontos da leitura do Claude Code: base da streak no nativo com a quebra que ele mesmo viu (4.3); avisos de monitoramento gravados em `monitoring_alerts` (5.8, 5.9); ponto de partida de quem começou antes da Fase 5 e tempo recuperado só com dias de histórico (5.7); desconto da tela de interrupção nos dias anteriores (4.4, P10); marco de 1 dia celebrado só na primeira vez e recaída para ontem como dia de recomeço (5.3); marco no dia da quebra sem celebração (5.3); regra do recomeço para o aparelho inteiro (5.5); dias aprovados e reprovados (5.8); só a área da streak abre o Progresso (5.4); `ffmpeg` autorizado e "Desfazer a simulação" (5.1, 5.12); migração 0007; `expo-video` sem segundo plano; "Apagar meus dados" com as tabelas novas |
