@@ -5,7 +5,15 @@ do protótipo continua em `prototype/NOTAS.md`.
 
 ---
 
-## Onde paramos (09/11/2026)
+## Onde paramos (22/11/2026)
+
+- **Fase 4 concluída, aguardando a revisão do responsável no chat de planejamento.** Roteiro
+  e critérios de aceite em "Fechamento da Fase 4", abaixo; PR #32 (parte 2 do roteiro)
+  integrado; o fechamento (bateria e ressalvas) está na branch `fase4/fechamento`.
+- **Pendências para a Fase 8 (teste fechado):** chamada pela internet (Teams) com a tela de
+  interrupção aberta e a medição oficial de bateria num build de loja.
+
+### Histórico até 09/11/2026
 
 - **Fase 3 encerrada:** passos 1 a 7 integrados na `main` (PRs #12 a #20).
 - **Fase 4 (spec 03 v0.2):** documentos e decisões da leitura da spec
@@ -24,12 +32,15 @@ do protótipo continua em `prototype/NOTAS.md`.
   `fase4/roteiro`), com CI verde, **aguardando o merge do responsável**. Seção "Fase 4 ·
   Passo 8", com as decisões e o resultado.
 
-### Retomada (atualizada em 21/11/2026, 18:50): falta só ler a bateria
+### Retomada (atualizada em 22/11/2026): fase pronta para revisão
+
+**Bateria lida em 22/11 às 17:44: ok** (resultado em "Bateria (Bloco 7, último item)",
+abaixo). As duas ressalvas foram decididas pelo responsável em 22/11 (tabela de critérios,
+abaixo). Próximo passo: revisão da Fase 4 no chat de planejamento (CLAUDE.md, seção 11).
+
+### Retomada anterior (21/11/2026, 18:50): faltava só ler a bateria
 
 **Roteiro concluído, menos a leitura da bateria e a chamada pelo Teams.** PR da parte 2 aberto.
-Na retomada: S22 no cabo, ler a bateria (como em "Bateria (Bloco 7, último item)", abaixo),
-registrar e avisar o responsável que a fase está pronta para o fechamento no chat de
-planejamento (CLAUDE.md, seção 11), com a lista "Fechamento da Fase 4", abaixo.
 
 ### Sessão de 21/11/2026 (parte 2 do roteiro, branch `fase4/roteiro-parte2`)
 
@@ -147,7 +158,43 @@ br.com.quedo.app.dev` (consumo estimado do app, alarmes, wakelocks e tempo do se
 resumo geral de `dumpsys batterystats` desde 18:43 de 21/11. Comparar com o protótipo
 (0,16% do consumo num dia de uso leve, T6). A medição oficial é da Fase 8.
 
-## Fechamento da Fase 4: critérios de aceite e roteiro (21/11/2026)
+**Bateria: resultado (lido em 22/11 às 17:44, com o S22 de volta ao cabo).**
+
+- **Janela:** 22h53 fora do cabo (de 21/11, ~18:50, a 22/11, 17:44), economia de energia
+  ligada o tempo todo, 35 min de tela (13 vezes), 96,9% em Doze profundo. O aparelho gastou
+  673 mAh (81% para 61%). Dia leve, como o T6 do protótipo (29 min de tela).
+- **Quedo Dev (UID 10516): 1,73 mAh, 0,26% do consumo do aparelho.** Por dia, ~1,8 mAh, ou
+  0,05% da bateria de 3700 mAh. Fora a tela (0,07 mAh, de 1,5 s com o app à frente), 1,66 mAh.
+  - Com a tela acesa: 1,09 mAh (a hora em que a verificação importa); com ela apagada:
+    0,52 mAh em 22h18.
+  - CPU: 47 s na janela (31 s de usuário e 16 s de sistema), ciclo de trabalho de ~0,06%.
+  - Wakelocks próprios: só o do alarme (16 ms, duas vezes). Os 667 ms de
+    `NotificationManagerService:post` são do sistema publicando as notificações (7 vezes),
+    cobrados do app. Sensor: 0,8 s (só com o app aberto); nada do acelerômetro do A9.
+- **Comparação com o protótipo (relatório 01, seção 6.1, T6):** 1,09 mAh fora a tela em
+  21h59 (0,15% do consumo, 1,2 mAh por dia), com o serviço e a VPN. Agora, sem a VPN e com
+  as notificações, os alarmes e as regras do momento, 1,66 mAh fora a tela em 22h53: **cerca
+  de 0,5 mAh por dia a mais**, ainda desprezível. **Não piorou de forma relevante.**
+- **De onde vem a maior parte, provavelmente:** o build de desenvolvimento, sem o Metro, fica
+  tentando reconectar (P8 do protótipo). Contadores por thread do processo (vivo desde 21/11
+  às 17:31, então incluem 1h12 antes da medição, com o app em uso): a thread da verificação
+  (`quedo-monitoring`) gastou 8,5 s de CPU no total; as duas do `OkHttp Dispatcher`, usadas
+  na conexão com o Metro, 39,7 s. A conta só dá teto, porque não separa o antes e o depois
+  do reset, mas indica que a verificação em si é a parte menor. Um número limpo exige o build
+  de loja (Fase 8).
+- **Nenhuma falha:** o serviço em primeiro plano rodou a janela inteira sem recomeçar (uma
+  entrada, ainda `running`; `serviceStartedAt` em 21/11 às 17:32); o processo não morreu
+  (24h13 de vida). Os dois alarmes rodaram (21h e 5h); a preventiva da faixa das 05:00 saiu
+  às 05:15:40, dentro da janela inexata. O check-in de 21/11 já tinha saído às 14:40 (teste
+  do M12), por isso o alarme das 21h não mandou outro.
+- **Conclusão: aceitável para a sanidade da spec (5.13).**
+
+**Jest no fechamento (22/11):** a primeira execução, logo depois de atualizar a `main` e com o
+cache frio, terminou em 64 s com 5 suítes falhando; as duas seguintes, sem mudar nada,
+passaram inteiras (784 testes, 17 s). Esta branch só muda documentação. As falhas não foram
+capturadas; se voltarem, rodar `npm test -- --runInBand` e registrar quais suítes caem.
+
+## Fechamento da Fase 4: critérios de aceite e roteiro (21 e 22/11/2026)
 
 O pedido citou a "seção 7"; na spec 03, a seção 7 é o roteiro M1 a M20 e a seção 8 são os
 critérios de aceite. Seguem os dois.
@@ -165,12 +212,19 @@ critérios de aceite. Seguem os dois.
 | Permissões reais, vigilância, tela de estado, modo degradado | ok | Passo 7 (PR #28); M1 (11/11), M15 (08/11 e 21/11), serviço parado com o app fechado (21/11) |
 | Sobrevive a fechar o app, à morte do processo e ao reinício (M14) | ok | `kill -9` no passo 2; serviço recriado pelo Android em 14/11; M14 em 15 e 16/11 |
 | Manifesto só com as permissões da lista | ok | `check:manifest` em desenvolvimento, prévia e produção (21/11) |
-| Ferramentas de teste ausentes em prévia e produção | ok, com ressalva | Prévia vista no S22 (21/11); produção pelo mesmo caminho de código, sem instalar |
+| Ferramentas de teste ausentes em prévia e produção | ok (decisão do responsável, 22/11) | Prévia instalada e vista no S22 (21/11): sem as ferramentas no Perfil e `debug*` inertes (não depurável); produção: build de release com `check:manifest` ok (21/11), mesmo caminho de código da prévia, sem instalar. O responsável aceitou essa evidência como suficiente |
 | Pendências herdadas (5.12) e AP4 registrado | ok | Voltar preditivo (M17), borda do dia (vetores), limites e app nas duas listas (passo 3 e M8), `fontScale` (M16), AP4 (seção "AP4: resultado da investigação") |
-| Roteiro M1 a M20 com o responsável | ok, com uma exceção | Tabela abaixo; chamada pelo Teams não testada |
-| `lint`, `typecheck` e `test` no CI; `NOTAS-APP.md` atualizado | ok | CI verde nos PRs #22 a #31; este registro |
+| Roteiro M1 a M20 com o responsável | ok, com uma pendência para a Fase 8 | Tabela abaixo; chamada pela internet (Teams) fica para o teste fechado (decisão do responsável, 22/11) |
+| `lint`, `typecheck` e `test` no CI; `NOTAS-APP.md` atualizado | ok | CI verde nos PRs #22 a #32; este registro |
+| Bateria, sanidade (5.13) | ok | 22h53 fora do cabo (21 e 22/11): 1,73 mAh, 0,26% do consumo do aparelho, ~1,8 mAh por dia, sem falhas; ~0,5 mAh por dia a mais que o T6 do protótipo, ainda desprezível. Detalhes em "Bateria: resultado", acima. A medição oficial é da Fase 8 |
 
-**Também da spec (5.13):** bateria (sanidade), medição em andamento desde 21/11.
+**Pendências para a Fase 8 (teste fechado), decididas pelo responsável em 22/11:**
+
+- **Chamada pela internet (Teams)** com a tela de interrupção aberta: a tela deve sumir e
+  deixar a chamada por cima, como no M20 do emulador. O código usa o mesmo sinal
+  (`MODE_IN_COMMUNICATION`), mas isso não foi visto no aparelho.
+- **Medição oficial de bateria** num build de loja, sem o cliente de desenvolvimento, e num
+  dia de uso pesado (relatório 01, seção 6.1).
 
 ### Roteiro M1 a M20 (spec 03, seção 7)
 
@@ -195,7 +249,7 @@ critérios de aceite. Seguem os dois.
 | M17 voltar preditivo | ok | 08/11 (build temporário) |
 | M18 tema escuro e fonte máxima | ok | 08/11 (tela de pausa) e 20/11 (emergência) |
 | M19 textos | ok | Aprovados nos PRs; tela de pausa em 20/11 |
-| M20 chamada | ok no emulador; Teams não testado | 21/11 |
+| M20 chamada | ok no emulador; Teams fica para a Fase 8 | 21/11 |
 
 ### Para o planejamento atualizar na spec 03
 
