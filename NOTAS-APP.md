@@ -3735,6 +3735,45 @@ catálogo. Um teste (`embedded.test.ts`) confere tudo isso, além de o embutido 
 - Ler o banco copiado do aparelho no computador: o `sql.js` do projeto, em Node
   (`new SQL.Database(fs.readFileSync('app.db'))`), sem gravar nada.
 
+## Fase 5 · Passo 2 · Hospedagem no Cloudflare R2 (22/11/2026, em andamento)
+
+Branch `fase5/hospedagem`. Aguardando o responsável criar a conta e o bucket.
+
+### Documentação oficial conferida (22/11/2026)
+
+Páginas de developers.cloudflare.com: R2 pricing, get-started, buckets/public-buckets,
+buckets/create-buckets, objects/upload-objects, api/tokens, local-development, Wrangler
+(commands/r2 e commands/general) e billing. A página de perguntas frequentes do R2
+(`r2/reference/faq/`) respondeu 404.
+
+- **Plano gratuito, por mês:** 10 GB armazenados, 1 milhão de operações de classe A (gravar,
+  listar) e 10 milhões de classe B (ler); **tráfego de saída sem cobrança**. Acima disso:
+  US$ 0,015 por GB por mês, US$ 4,50 por milhão (A) e US$ 0,36 por milhão (B). O uso acima do
+  gratuito é cobrado por mês; as páginas lidas **não citam teto de gasto para o R2**.
+- **Cartão: não confirmado.** O R2 é ativado por uma "assinatura" ("Complete the checkout flow
+  to add an R2 subscription"), e a página de tokens diz que é preciso "comprar" o R2 antes. A
+  de cobrança diz para adicionar um meio de pagamento ao perfil, mas nenhuma página lida diz
+  com todas as letras que o cartão é exigido para ficar no gratuito. Há "alertas de orçamento"
+  por e-mail na cobrança, mas a página lida não diz se cobrem o R2.
+- **Nome do bucket:** letras minúsculas, números e hífen; de 3 a 63 caracteres; sem hífen no
+  começo ou no fim. A dica de localização só vale na criação; jurisdições (UE, FedRAMP)
+  exigem endereços próprios e não são necessárias aqui.
+- **`r2.dev`:** ligado em Settings > "Public Development URL" > Enable (digitar `allow`). Tem
+  limite de taxa, é "para tráfego que não é de produção" e não tem cache nem regras de
+  segurança. O formato exato do endereço não aparece na página.
+- **Domínio próprio (antes da Fase 8):** o domínio precisa estar como zona na mesma conta;
+  dá acesso ao cache da Cloudflare (por padrão só alguns tipos de arquivo; cache de tudo exige
+  uma regra).
+- **Envio:** pelo painel (Upload, arrastar os arquivos) ou pelo Wrangler,
+  `wrangler r2 object put <bucket>/<chave> --file <arquivo> --content-type <tipo>
+  --cache-control <valor>` (um arquivo por vez, até 315 MB; sem `--local`, grava no bucket
+  real). `Content-Type` e `Cache-Control` ficam gravados por objeto.
+- **Autenticação do Wrangler:** `wrangler login` (OAuth pelo navegador, com todas as permissões
+  por padrão; `--scopes` limita). A credencial fica em texto num arquivo da configuração do
+  Wrangler na pasta do usuário, ou cifrada no Gerenciador de Credenciais do Windows com
+  `--use-keyring`; `wrangler logout` invalida e apaga. Os tokens do R2 com permissão só de
+  objetos de um bucket valem só pela API compatível com S3, não pela API que o Wrangler usa.
+
 ## Problemas
 
 ### AP1 · Build Android falha no C++ do `react-native-worklets` (caminho longo)
