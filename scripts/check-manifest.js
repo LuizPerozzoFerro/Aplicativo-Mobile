@@ -28,6 +28,9 @@ const FORBIDDEN_PERMISSIONS = [
   'android.permission.SCHEDULE_EXACT_ALARM',
   'android.permission.USE_EXACT_ALARM',
   'android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS',
+  // Spec 04, 5.6: o vídeo não traz permissão nova. A de manter o processo
+  // acordado vem com o ExoPlayer e é bloqueada em android.blockedPermissions.
+  'android.permission.WAKE_LOCK',
 ];
 
 // Spec 03, seção 5.8. Além destas, a permissão própria do app que o AndroidX

@@ -77,3 +77,27 @@ describe('app.config.ts', () => {
     expect(buildConfig(context).extra?.contentBaseUrl).toMatch(/\.r2\.dev$/);
   });
 });
+
+describe('permissões bloqueadas (spec 04, 5.6: o vídeo não traz permissão nova)', () => {
+  const saved = process.env.APP_ENV;
+  afterEach(() => {
+    if (saved === undefined) delete process.env.APP_ENV;
+    else process.env.APP_ENV = saved;
+  });
+  const blocked = (environment: string) => {
+    process.env.APP_ENV = environment;
+    return buildConfig({ config: {} } as ConfigContext).android?.blockedPermissions ?? [];
+  };
+
+  it('a de manter o processo acordado, do ExoPlayer, fica fora em todas as variantes', () => {
+    for (const environment of ['development', 'preview', 'production']) {
+      expect(blocked(environment)).toContain('android.permission.WAKE_LOCK');
+    }
+  });
+
+  it('a do tipo de conexão fica fora na prévia e na produção; no desenvolvimento, o dev client usa', () => {
+    expect(blocked('preview')).toContain('android.permission.ACCESS_NETWORK_STATE');
+    expect(blocked('production')).toContain('android.permission.ACCESS_NETWORK_STATE');
+    expect(blocked('development')).not.toContain('android.permission.ACCESS_NETWORK_STATE');
+  });
+});

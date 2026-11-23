@@ -105,6 +105,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         // Origem da instalação: vem com o expo-application, e o app não a usa.
         // Também proibida no scripts/check-manifest.js.
         'com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE',
+        // Manter o processo acordado: vem com o ExoPlayer (media3-exoplayer), que o
+        // expo-video usa, mas só seria usada com setWakeMode, que o expo-video não
+        // chama (a tela acesa durante o vídeo usa keepScreenOn, sem permissão).
+        // Spec 04, 5.6: nenhuma permissão nova. Também proibida no check-manifest.js.
+        'android.permission.WAKE_LOCK',
+        // Tipo de conexão: também vem com o ExoPlayer, que trata a falta dela como
+        // rede desconhecida (catch de SecurityException no NetworkTypeObserver do
+        // media3-common 1.9.1). No desenvolvimento fica: o dev client precisa dela
+        // para achar o Metro (DEVELOPMENT_ONLY_PERMISSIONS no check-manifest.js).
+        ...(environment === 'development' ? [] : ['android.permission.ACCESS_NETWORK_STATE']),
       ],
       predictiveBackGestureEnabled: false,
     },
