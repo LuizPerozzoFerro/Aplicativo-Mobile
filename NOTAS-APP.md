@@ -4193,6 +4193,13 @@ plugin.
     desenvolvimento). É uma permissão comum, sem pedido ao usuário, e o S22 deve testar o
     mesmo app que os testadores vão receber.
 - Testes no `appConfig.test.ts` e no `check-manifest.test.ts` conferem as duas.
+- **`check:manifest` depois da decisão (23/11), nas três variantes:**
+  - prévia e produção: `prebuild --clean` e `gradlew :app:processReleaseManifest`, que gera
+    o manifesto de release, o que vai no APK. **OK** nos três manifestos mesclados de
+    `br.com.quedo.app.preview` e de `br.com.quedo.app`;
+  - desenvolvimento: build completo instalado no S22 (12m01s), **OK** nos três manifestos;
+    entre as permissões, `ACCESS_NETWORK_STATE` sim, `WAKE_LOCK` não.
+  - Depois, a pasta `android/` voltou ao desenvolvimento (`br.com.quedo.app.dev`).
 
 ### Interpretações (a confirmar na revisão)
 
