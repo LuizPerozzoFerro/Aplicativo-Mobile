@@ -19,6 +19,7 @@ import {
 import { CHECK_IN_ANSWERS, CHECK_IN_SOURCES, DEFAULT_CHECK_IN_MINUTES } from '@/domain/checkIn';
 import { EMERGENCY_OUTCOMES, EMERGENCY_SOURCES, INTERRUPTION_RESPONSES } from '@/domain/monitoring';
 import { ONBOARDING_STEPS } from '@/domain/onboarding';
+import { MAX_MILESTONE_DAY } from '@/domain/catalog';
 import { DAY_FAILURE_REASONS } from '@/domain/streak';
 import { EMOTIONS, WEEKDAYS } from '@/domain/triggers';
 
@@ -91,6 +92,13 @@ export const settings = sqliteTable(
     protectionNoticeDismissedAt: integer('protection_notice_dismissed_at', {
       mode: 'timestamp_ms',
     }),
+    /**
+     * Último dia (AAAA-MM-DD) em que os alcances de marco foram conferidos
+     * (spec 04, 5.3; src/domain/milestones.ts). Nulo antes da primeira vez:
+     * marca a primeira abertura da Fase 5. Sem CHECK: só `ALTER TABLE ADD`;
+     * a validação fica no repositório.
+     */
+    milestonesCheckedOn: text('milestones_checked_on'),
   },
   () => [
     // A tabela é recriada na 002: o CHECK da 001 passa a citar a coluna sem a tabela.
@@ -367,5 +375,43 @@ export const contentCatalog = sqliteTable(
       'content_catalog_versions_valid',
       sql`${column('format_version')} >= 1 and ${column('content_version')} >= 1`,
     ),
+  ],
+);
+
+// Migração 0008 (spec 04, 5.9; uma migração por passo): só tabela nova e coluna
+// nova em `settings`, sem recriar tabela-pai.
+
+/**
+ * Alcances de marco (spec 04, 5.3): um por compulsão, marco e sequência (a base
+ * da streak). Nunca apagados por quebras nem por "Desfazer": desbloqueado = há
+ * ao menos um alcance daquele marco. `celebrated_at` fica nulo até a tela de
+ * celebração (ou até o alcance ser marcado como celebrado sem a tela).
+ */
+export const milestoneReaches = sqliteTable(
+  'milestone_reaches',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    compulsionId: integer('compulsion_id')
+      .notNull()
+      .references(() => userCompulsions.id, { onDelete: 'cascade' }),
+    milestoneDay: integer('milestone_day').notNull(),
+    /** Base da streak (AAAA-MM-DD): o início ou o dia de uma quebra. */
+    streakBaseDay: text('streak_base_day').notNull(),
+    /** Dia em que a sequência chegou ao marco (AAAA-MM-DD). */
+    reachedOn: text('reached_on').notNull(),
+    celebratedAt: integer('celebrated_at', { mode: 'timestamp_ms' }),
+  },
+  (table) => [
+    uniqueIndex('milestone_reaches_sequence_unique').on(
+      table.compulsionId,
+      table.milestoneDay,
+      table.streakBaseDay,
+    ),
+    check(
+      'milestone_reaches_day_valid',
+      sql`${column('milestone_day')} between 1 and ${sql.raw(String(MAX_MILESTONE_DAY))}`,
+    ),
+    check('milestone_reaches_base_valid', isDayKey('streak_base_day')),
+    check('milestone_reaches_reached_on_valid', isDayKey('reached_on')),
   ],
 );

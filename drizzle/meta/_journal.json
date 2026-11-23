@@ -57,6 +57,13 @@
       "when": 1795383560269,
       "tag": "0007_fase5_content_catalog",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1795398324217,
+      "tag": "0008_fase5_milestone_reaches",
+      "breakpoints": true
     }
   ]
 }

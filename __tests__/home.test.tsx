@@ -19,6 +19,11 @@ jest.mock('@/data/bootstrap', () => ({
   useDatabase: () => mockDatabaseState(),
   getRepositories: () => mockRepositories,
 }));
+// A celebração de marco abre por cima das abas quando a streak de teste cai num
+// dia de marco; ela tem o próprio teste (milestones.test.tsx).
+jest.mock('@/features/milestones/useMilestoneCelebrations', () => ({
+  useMilestoneCelebrations: () => undefined,
+}));
 let mockMonitoring: FakeMonitoringModule;
 jest.mock('@/monitoring', () => ({
   ...jest.requireActual('@/monitoring'),

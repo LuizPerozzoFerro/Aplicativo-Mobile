@@ -1,0 +1,46 @@
+{
+  "filterLabel": "Mostrar o progresso de",
+  "days_zero": "0 dias",
+  "days_one": "{{count}} dia",
+  "days_other": "{{count}} dias",
+  "next_one": "Próximo marco: {{count}} dia",
+  "next_other": "Próximo marco: {{count}} dias",
+  "remaining_one": "Falta {{count}} dia",
+  "remaining_other": "Faltam {{count}} dias",
+  "allDone": "Você já passou por todos os marcos.",
+  "timeline": "Marcos",
+  "status": {
+    "reached": "Alcançado",
+    "unlockedBefore": "Desbloqueado antes",
+    "next": "Próximo",
+    "nextUnlockedBefore": "Próximo · desbloqueado antes",
+    "future": "Ainda não alcançado"
+  },
+  "itemSubtitle": "{{title}} · {{status}}",
+  "noContent": {
+    "title": "Conteúdo indisponível",
+    "description": "Os marcos ainda não estão disponíveis. Tente de novo mais tarde."
+  },
+  "detail": {
+    "references": "Referências",
+    "openLink": "Abre no navegador",
+    "disclaimer": "Este conteúdo é informativo e não substitui o acompanhamento de um profissional.",
+    "video": "Vídeo",
+    "videoLocked_one": "Disponível ao chegar a {{count}} dia",
+    "videoLocked_other": "Disponível ao chegar a {{count}} dias",
+    "notFound": {
+      "title": "Marco indisponível",
+      "description": "Este marco não está mais disponível."
+    }
+  },
+  "celebration": {
+    "reached_one": "Você chegou a {{count}} dia",
+    "reached_other": "Você chegou a {{count}} dias",
+    "again_one": "Você chegou de novo a {{count}} dia",
+    "again_other": "Você chegou de novo a {{count}} dias",
+    "summary": "Você alcançou {{count}} marcos",
+    "summaryItem": "{{compulsion}}: {{days}}",
+    "view": "Ver o marco",
+    "close": "Fechar"
+  }
+}

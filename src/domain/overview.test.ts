@@ -1,4 +1,5 @@
 import { getAbstinenceOverview, getModerationOverview, sumUsageMinutes } from './overview';
+import { MILESTONE_DAYS } from './streak';
 
 // Fuso fixado em America/Sao_Paulo pelo jest.global-setup.js.
 const local = (year: number, month: number, day: number, hour = 12, minute = 0) =>
@@ -12,6 +13,7 @@ const abstinence = (input: Partial<Parameters<typeof getAbstinenceOverview>[0]> 
     startedAt: STARTED_LONG_AGO,
     checkIns: [],
     relapses: [],
+    milestoneDays: MILESTONE_DAYS,
     now: NOW,
     ...input,
   });
@@ -100,12 +102,22 @@ describe('resumo da abstinência', () => {
   it('depois do último marco, nenhum', () => {
     expect(abstinence({ startedAt: local(2025, 1, 1) }).nextMilestone).toBeNull();
   });
+
+  it('o próximo marco sai dos dias do catálogo, não da lista de reserva', () => {
+    expect(abstinence({ milestoneDays: [2, 20, 40] }).nextMilestone).toBe(20);
+    expect(abstinence({ milestoneDays: [40, 2, 20] }).nextMilestone).toBe(20);
+  });
 });
 
 describe('resumo da moderação', () => {
   it('streak desde o início e próximo marco', () => {
     expect(
-      getModerationOverview({ startedAt: local(2026, 3, 12), failedDayKeys: [], now: NOW }),
+      getModerationOverview({
+        startedAt: local(2026, 3, 12),
+        failedDayKeys: [],
+        milestoneDays: MILESTONE_DAYS,
+        now: NOW,
+      }),
     ).toEqual({ streakDays: 3, nextMilestone: 7 });
   });
 
@@ -114,6 +126,7 @@ describe('resumo da moderação', () => {
       getModerationOverview({
         startedAt: STARTED_LONG_AGO,
         failedDayKeys: ['2026-03-15'],
+        milestoneDays: MILESTONE_DAYS,
         now: NOW,
       }).streakDays,
     ).toBe(0);

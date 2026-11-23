@@ -50,5 +50,6 @@
     "title": "Nada para acompanhar ainda",
     "description": "Escolha o que você quer mudar para ver o seu dia aqui.",
     "action": "Escolher no Perfil"
-  }
+  },
+  "openProgress": "Abre o progresso e os marcos"
 }

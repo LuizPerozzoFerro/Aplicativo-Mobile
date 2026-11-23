@@ -12,6 +12,7 @@ const TABLES_001 = ['monitored_apps', 'motivation', 'settings', 'triggers', 'use
 const TABLES_002 = ['check_ins', 'day_states', 'relapses'];
 const TABLES_005 = ['emergency_sessions', 'imported_events', 'interruption_events'];
 const TABLES_007 = ['content_catalog'];
+const TABLES_008 = ['milestone_reaches'];
 /** Migrações do app no índice (drizzle/meta/_journal.json). */
 const APP_MIGRATIONS = loadMigrationBundle().journal.entries.length;
 
@@ -78,10 +79,16 @@ describe('migrações', () => {
     );
   });
 
-  it('as migrações criam as tabelas da 001, da 002, da 005 e da 0007, a coluna do início informado (003) e a resposta anterior do check-in (004)', async () => {
+  it('as migrações criam as tabelas da 001, da 002, da 005, da 0007 e da 0008, a coluna do início informado (003), a resposta anterior do check-in (004) e a conferência dos marcos (0008)', async () => {
     const { raw } = await createTestDatabase();
     expect(tableNames(raw)).toEqual(
-      expect.arrayContaining([...TABLES_001, ...TABLES_002, ...TABLES_005, ...TABLES_007]),
+      expect.arrayContaining([
+        ...TABLES_001,
+        ...TABLES_002,
+        ...TABLES_005,
+        ...TABLES_007,
+        ...TABLES_008,
+      ]),
     );
     expect(columnNames(raw, 'user_compulsions')).toEqual(
       expect.arrayContaining([
@@ -93,6 +100,7 @@ describe('migrações', () => {
     expect(columnNames(raw, 'check_ins')).toEqual(
       expect.arrayContaining(['previous_answer', 'previous_source', 'previous_answered_at']),
     );
+    expect(columnNames(raw, 'settings')).toContain('milestones_checked_on');
     expect(appliedCount(raw)).toBe(APP_MIGRATIONS);
   });
 
@@ -140,6 +148,7 @@ describe('migrações', () => {
       notificationsGrantedOnce: false,
       overlayGrantedOnce: false,
       protectionNoticeDismissedAt: null,
+      milestonesCheckedOn: null,
     });
     expect(repositories.compulsions.list()).toEqual([
       {
@@ -401,6 +410,9 @@ const FIXTURE_ROWS: Record<string, readonly string[]> = {
   ],
   interruption_events: [
     "INSERT INTO interruption_events (id, compulsion_id, day_key, shown_at, response, responded_at, app_package) VALUES ('event-1', 2, '2026-11-01', 0, 'home', 1, 'com.example.clips')",
+  ],
+  milestone_reaches: [
+    "INSERT INTO milestone_reaches (compulsion_id, milestone_day, streak_base_day, reached_on, celebrated_at) VALUES (1, 7, '2026-11-01', '2026-11-08', 1)",
   ],
 };
 
