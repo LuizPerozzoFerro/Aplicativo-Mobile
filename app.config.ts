@@ -118,6 +118,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       'expo-system-ui',
       './plugins/with-local-cmake',
       './plugins/with-font-scale-config-changes',
+      // Player dos vídeos dos marcos (spec 04, 5.6): sem reprodução em segundo plano
+      // (que acrescentaria um serviço e as permissões FOREGROUND_SERVICE*) e sem
+      // imagem sobre imagem. Desligados de propósito, não só por omissão.
+      ['expo-video', { supportsBackgroundPlayback: false, supportsPictureInPicture: false }],
     ],
     experiments: {
       typedRoutes: true,

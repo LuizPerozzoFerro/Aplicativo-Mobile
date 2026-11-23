@@ -66,6 +66,7 @@ function AppNavigator() {
         <Stack.Screen name="edit" />
         {/* Marcos (spec 04, 5.3 e 5.4). */}
         <Stack.Screen name="milestone" />
+        <Stack.Screen name="video" />
         <Stack.Screen name="celebration" dangerouslySingular={() => 'celebration'} />
         <Stack.Screen name="dev-components" />
         <Stack.Screen name="dev-monitoring" />

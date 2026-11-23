@@ -119,11 +119,11 @@ describe('aba Progresso', () => {
     expect(openURL).toHaveBeenCalledWith('https://example.com/referencia');
   });
 
-  it('marco alcançado: sem a espera do vídeo (o player entra no passo 4)', async () => {
+  it('marco alcançado: botão para assistir, sem a espera do vídeo', async () => {
     addAdult(10);
     await renderRouter(APP_DIR, { initialUrl: '/milestone?compulsion=pornography&day=7' });
-    expect(await screen.findByText('Marco de teste A: 7 dias')).toBeOnTheScreen();
-    expect(screen.queryByTestId('milestone-video')).toBeNull();
+    expect(await screen.findByTestId('milestone-watch')).toBeOnTheScreen();
+    expect(screen.queryByText(/Disponível ao chegar/)).toBeNull();
   });
 
   it('marco sem vídeo no catálogo: nenhum espaço para o vídeo', async () => {
