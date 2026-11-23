@@ -5,7 +5,18 @@ do protótipo continua em `prototype/NOTAS.md`.
 
 ---
 
-## Onde paramos (22/11/2026)
+## Onde paramos (23/11/2026)
+
+**Ponto de parada:** o PR #39 (passo 4, vídeos) está **aguardando o merge do responsável**. O
+código foi conferido no S22, e o `check:manifest` deu OK nas três variantes (seção "Fase 5 ·
+Passo 4"). **Próximo: passo 5 (notificação de marco no nativo), ainda não começado**; só houve
+leitura de `NotificationPlan.kt` e `NotificationCenter.kt`. Ao retomar:
+1. Atualizar a `main` local depois do merge do #39.
+2. Criar a branch do passo 5 a partir dela.
+3. Conferir o `adb` com limite de tempo antes de usar o aparelho, porque ele travou várias vezes
+   em 22 e 23/11 (AP3).
+
+A pasta `android/` está no desenvolvimento (`br.com.quedo.app.dev`), com o build instalado no S22.
 
 - **Fase 4 concluída e revisada** (PRs #21 a #33); documentos fechados no planejamento
   (PR #34: doc 01 v0.11, doc 02 v0.9, spec 03 v0.3, relatório 01 v0.5).
@@ -16,8 +27,7 @@ do protótipo continua em `prototype/NOTAS.md`.
 - **Passo 2 (hospedagem no Cloudflare R2)** integrado (PR #37). Seção "Fase 5 · Passo 2".
 - **Passo 3 (marcos e aba Progresso)** integrado (PR #38). Seção "Fase 5 · Passo 3".
 - **Passo 4 (vídeos)** pronto na branch `fase5/videos`, atualizada a partir da `main` depois do
-  merge do #38 (PR #39).
-  Seção "Fase 5 · Passo 4". Próximo: passo 5 (notificação de marco no nativo).
+  merge do #38 (PR #39, aguardando o merge). Seção "Fase 5 · Passo 4".
 - **Pendências para a Fase 8 (teste fechado):** chamada pela internet (Teams) com a tela de
   interrupção aberta e a medição oficial de bateria num build de loja.
 
