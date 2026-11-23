@@ -13,9 +13,9 @@ do protótipo continua em `prototype/NOTAS.md`.
   Leitura da spec 04".
 - **Passo 1 (catálogo)** integrado (PR #36). Seção
   "Fase 5 · Passo 1 · Catálogo" (migração: uma por passo, decidido em 22/11). Passo 2
-  (hospedagem no Cloudflare R2) em andamento na branch `fase5/hospedagem`: vídeos de teste,
-  verificação da produção e script de publicação prontos; falta o token do responsável e a
-  primeira publicação.
+  (hospedagem no Cloudflare R2) pronto na branch `fase5/hospedagem`, para revisão: catálogo e
+  vídeos de teste publicados no R2, desenvolvimento e prévia no `r2.dev`, produção impedida de
+  usar o `r2.dev`. Próximo: passo 3.
 - **Pendências para a Fase 8 (teste fechado):** chamada pela internet (Teams) com a tela de
   interrupção aberta e a medição oficial de bateria num build de loja.
 
@@ -3737,10 +3737,11 @@ catálogo. Um teste (`embedded.test.ts`) confere tudo isso, além de o embutido 
 - Ler o banco copiado do aparelho no computador: o `sql.js` do projeto, em Node
   (`new SQL.Database(fs.readFileSync('app.db'))`), sem gravar nada.
 
-## Fase 5 · Passo 2 · Hospedagem no Cloudflare R2 (22/11/2026, em andamento)
+## Fase 5 · Passo 2 · Hospedagem no Cloudflare R2 (22/11/2026)
 
-Branch `fase5/hospedagem`. Conta, bucket e endereço `r2.dev` criados pelo responsável em
-22/11/2026. **Aguardando a credencial** (token) para a primeira publicação.
+Branch `fase5/hospedagem`. Conta, bucket (`quedo-conteudo`) e endereço `r2.dev` criados pelo
+responsável em 22/11/2026, assim como o token e a credencial. Primeira publicação feita no
+mesmo dia (seção "Primeira publicação", abaixo).
 
 ### Documentação oficial conferida (22/11/2026)
 
@@ -3921,6 +3922,38 @@ precisar da credencial.
   configurado, e os testes simulam o `expo-constants`.
 - **Correção:** sem endereço, a chave fica `undefined` e sai do JSON, com teste. Conferido no
   `expo config` da produção: o `extra` vem sem `contentBaseUrl`.
+
+### Primeira publicação (22/11/2026, 22:30)
+
+- **Token:** criado pelo responsável no painel novo ("Create token" > "Start from scratch" >
+  "Start with an Account policy"). O painel mudou em relação à documentação: a política
+  mostra a conta ("Include" e a conta do responsável) e uma busca de permissões, em que só
+  "Workers R2 Storage" ficou marcada (Read e Edit; o Read vem junto). Validade de 90 dias,
+  **até cerca de 20/02/2027**; depois disso, criar outro igual e trocar a senha da credencial.
+  O token nunca passou pelo chat.
+- **`npm run content:publish`:** catálogo validado, 10 vídeos e o catálogo enviados, e os 11
+  conferidos pelo endereço público, todos com status 200, conteúdo igual ao do repositório e
+  tipo e cache certos.
+- **Leitura por partes** (como o player baixa o vídeo): `Range: bytes=0-99` num vídeo responde
+  206, `bytes 0-99/35868`. A raiz do bucket e um vídeo que não existe respondem 404, ou seja,
+  o bucket não lista os arquivos.
+- **Rastro no computador:**
+  - O Wrangler grava logs em `%APPDATA%\xdg.config\.wrangler\logs`. Neles não aparece
+    `cfut_` (o começo dos tokens novos), `Bearer` nem `Authorization`.
+  - O log confirma a telemetria desligada: "Dispatching disabled".
+  - Nada foi criado no repositório: nem `.wrangler/` nem `.env`.
+- **No S22** (Metro sem `CONTENT_BASE_URL`): o manifesto do Metro entrega
+  `contentBaseUrl` = o `r2.dev`. Na tela de conferência, "Atualizar o catálogo agora"
+  respondeu "Consulta feita, sem catálogo mais novo", e a última consulta válida passou de
+  18:54:06 para 22:34:25.
+  - O catálogo em uso continua o **guardado na versão 2**, que veio do servidor falso no teste
+    do passo 1. O publicado é a versão 1 (mais velha): só a hora da consulta muda, como
+    previsto (interpretação 1 do passo 1).
+  - O aparelho de desenvolvimento fica com essa versão 2 até publicarmos uma versão maior.
+- **`adb` travado de novo** antes do teste (`adb devices` sem resposta). Resolvido como no
+  AP3: encerrar o `adb.exe` e `adb start-server`.
+- **Prévia:** o `expo config` da prévia leva o `r2.dev`. O build de prévia no aparelho fica
+  para o roteiro P15, no fim da fase.
 
 ### Testes
 
