@@ -11,9 +11,11 @@ do protótipo continua em `prototype/NOTAS.md`.
   (PR #34: doc 01 v0.11, doc 02 v0.9, spec 03 v0.3, relatório 01 v0.5).
 - **Fase 5 (spec 04 v0.2):** leitura e decisões integradas (PR #35). Seção "Fase 5 ·
   Leitura da spec 04".
-- **Passo 1 (catálogo)** na branch `fase5/catalogo`, com PR aberto para revisão. Seção
-  "Fase 5 · Passo 1 · Catálogo", com sete interpretações a confirmar. Próximo: passo 2
-  (hospedagem no Cloudflare R2), que precisa do responsável para criar a conta.
+- **Passo 1 (catálogo)** integrado (PR #36). Seção
+  "Fase 5 · Passo 1 · Catálogo" (migração: uma por passo, decidido em 22/11). Passo 2
+  (hospedagem no Cloudflare R2) pronto na branch `fase5/hospedagem`, para revisão: catálogo e
+  vídeos de teste publicados no R2, desenvolvimento e prévia no `r2.dev`, produção impedida de
+  usar o `r2.dev`. Próximo: passo 3.
 - **Pendências para a Fase 8 (teste fechado):** chamada pela internet (Teams) com a tela de
   interrupção aberta e a medição oficial de bateria num build de loja.
 
@@ -3656,8 +3658,9 @@ a consultar neste passo; o R2 e o `expo-video` ficam para os passos 2 e 4.
 3. **A `0007` só cria a `content_catalog`.** As outras tabelas da seção 5.9
    (`milestone_reaches`, `app_usage_hourly`, `monitoring_alerts` e os campos novos de
    `user_compulsions`) entram nos passos que as usam, como migrações `0008` em diante, como
-   aconteceu na Fase 4 (a `0004` e depois a `0005` e a `0006`). A spec diz "a 0007": se o
-   responsável preferir tudo numa migração só, junto antes de integrar o passo 3.
+   aconteceu na Fase 4 (a `0004` e depois a `0005` e a `0006`). **Decisão do responsável
+   (22/11/2026): uma migração por passo.** A spec diz "a 0007"; o planejamento ajusta a
+   seção 5.9 no fechamento da fase.
 4. **Endereço por enquanto vem de `CONTENT_BASE_URL`** (vazio = só o embutido). O app aceita
    https em qualquer variante e `http://localhost` ou `127.0.0.1` só no desenvolvimento, para
    o servidor falso; um endereço fora disso derruba o app na abertura, para o erro não passar
@@ -3733,6 +3736,233 @@ catálogo. Um teste (`embedded.test.ts`) confere tudo isso, além de o embutido 
   Metro iniciado com `CONTENT_BASE_URL=http://localhost:8090`.
 - Ler o banco copiado do aparelho no computador: o `sql.js` do projeto, em Node
   (`new SQL.Database(fs.readFileSync('app.db'))`), sem gravar nada.
+
+## Fase 5 · Passo 2 · Hospedagem no Cloudflare R2 (22/11/2026)
+
+Branch `fase5/hospedagem`. Conta, bucket (`quedo-conteudo`) e endereço `r2.dev` criados pelo
+responsável em 22/11/2026, assim como o token e a credencial. Primeira publicação feita no
+mesmo dia (seção "Primeira publicação", abaixo).
+
+### Documentação oficial conferida (22/11/2026)
+
+Páginas de developers.cloudflare.com: R2 pricing, get-started, buckets/public-buckets,
+buckets/create-buckets, objects/upload-objects, api/tokens, local-development, Wrangler
+(commands/r2 e commands/general) e billing. A página de perguntas frequentes do R2
+(`r2/reference/faq/`) respondeu 404.
+
+- **Plano gratuito, por mês:** 10 GB armazenados, 1 milhão de operações de classe A (gravar,
+  listar) e 10 milhões de classe B (ler); **tráfego de saída sem cobrança**. Acima disso:
+  US$ 0,015 por GB por mês, US$ 4,50 por milhão (A) e US$ 0,36 por milhão (B). O uso acima do
+  gratuito é cobrado por mês; as páginas lidas **não citam teto de gasto para o R2**.
+- **Cartão: não confirmado.** O R2 é ativado por uma "assinatura" ("Complete the checkout flow
+  to add an R2 subscription"), e a página de tokens diz que é preciso "comprar" o R2 antes. A
+  de cobrança diz para adicionar um meio de pagamento ao perfil, mas nenhuma página lida diz
+  com todas as letras que o cartão é exigido para ficar no gratuito. Há "alertas de orçamento"
+  por e-mail na cobrança, mas a página lida não diz se cobrem o R2.
+- **Nome do bucket:** letras minúsculas, números e hífen; de 3 a 63 caracteres; sem hífen no
+  começo ou no fim. A dica de localização só vale na criação; jurisdições (UE, FedRAMP)
+  exigem endereços próprios e não são necessárias aqui.
+- **`r2.dev`:** ligado em Settings > "Public Development URL" > Enable (digitar `allow`). Tem
+  limite de taxa, é "para tráfego que não é de produção" e não tem cache nem regras de
+  segurança. O formato exato do endereço não aparece na página.
+- **Domínio próprio (antes da Fase 8):** o domínio precisa estar como zona na mesma conta;
+  dá acesso ao cache da Cloudflare (por padrão só alguns tipos de arquivo; cache de tudo exige
+  uma regra).
+- **Envio:** pelo painel (Upload, arrastar os arquivos) ou pelo Wrangler,
+  `wrangler r2 object put <bucket>/<chave> --file <arquivo> --content-type <tipo>
+  --cache-control <valor>` (um arquivo por vez, até 315 MB; sem `--local`, grava no bucket
+  real). `Content-Type` e `Cache-Control` ficam gravados por objeto.
+- **Autenticação do Wrangler:** `wrangler login` (OAuth pelo navegador, com todas as permissões
+  por padrão; `--scopes` limita). A credencial fica em texto num arquivo da configuração do
+  Wrangler na pasta do usuário, ou cifrada no Gerenciador de Credenciais do Windows com
+  `--use-keyring`; `wrangler logout` invalida e apaga. Os tokens do R2 com permissão só de
+  objetos de um bucket valem só pela API compatível com S3, não pela API que o Wrangler usa.
+
+### Escolhas do responsável (22/11/2026)
+
+- **Publicação por script com o Wrangler**, sem o `wrangler login`, que dá acesso amplo à
+  conta. No lugar dele, um **token de API só com a permissão do R2** ("Workers R2 Storage",
+  Edit), criado no painel pelo responsável e guardado **fora do repositório**, no Gerenciador
+  de Credenciais do Windows. O token nunca é colado no chat.
+- Endereço público (não é segredo): `https://pub-5b56e05161b54d61b106e425fbeeb0df.r2.dev`.
+
+### Documentação conferida para o token (22/11/2026)
+
+Páginas: create-token (fundamentals), variáveis de ambiente do Wrangler, r2/api/tokens,
+comandos do Wrangler para o R2, budget-alerts e r2/pricing (atualizada em 30/10/2026).
+
+- **Token:** "My Profile" > "API Tokens" > "Create Token". Para token da conta, o caminho é
+  "Manage Account" > "API Tokens". Permissões, recursos da conta, filtro de IP e validade
+  podem ser escolhidos. **O valor aparece uma vez só.**
+- **Ambiente:** o Wrangler lê `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID`. Com o ID da
+  conta, ele não precisa consultar a lista de contas.
+- **Permissões do R2 para tokens da conta:**
+  - "Workers R2 Storage Write/Read" vale para a conta toda.
+  - "Workers R2 Storage Bucket Item Write/Read" vale para um bucket só, mas a página **não
+    confirma** que o Wrangler funciona com ela. Por isso usei a da conta.
+  - Os "R2 API tokens" (chave de acesso e segredo) servem à API compatível com S3, não ao
+    Wrangler.
+- **`wrangler r2 object put`** (conferido no `--help` da 4.157.0): aceita `--file`,
+  `--content-type`, `--cache-control` e `--remote` / `--local`. O script passa `--remote`
+  sempre.
+- **Alertas de orçamento:**
+  - Caminho: "Manage Account" > "Billing" > "Billable Usage" > "Create budget alert" (nome,
+    limite em US$ e e-mails).
+  - Valem para o gasto de uso da conta toda e **só em contas com pagamento por uso**.
+  - Só avisam, não param nada. O limite de gasto que para o uso vale para Workers e Durable
+    Objects; a página não cita o R2.
+- **Preços** (iguais aos já anotados): gratuito até 10 GB por mês, 1 milhão de operações A e
+  10 milhões de B; saída sem cobrança; 100 mil buckets incluídos.
+
+### Wrangler (dependência de desenvolvimento)
+
+- **Versão:** `wrangler` **4.157.0**, exata (`npm install --save-dev --save-exact`). É a
+  ferramenta de linha de comando oficial da Cloudflare. Fica só no computador e não entra no
+  app (nem no bundle).
+- **Por que essa versão:** a mais nova é a 4.166.0, de 20/11. Escolhi a 4.157.0 (03/11/2026)
+  para usar uma versão com mais de duas semanas de uso. Exige Node 22.12 ou mais; temos 24.
+- **Lockfile:** entraram 86 pacotes no `package-lock.json`. **Nenhuma versão existente
+  mudou**, conferido comparando o lockfile antigo com o novo.
+- **Scripts de instalação:** o npm 11.17 **não rodou** os do `esbuild` e do `workerd` (aviso
+  `allow-scripts`). O `r2 object put` não usa nenhum dos dois, então deixei assim, que é o
+  mais seguro.
+- **Telemetria:** desligada no script (`WRANGLER_SEND_METRICS=false`).
+
+### Credencial: onde fica e por quê
+
+Credencial genérica `quedo-content-publish` no Gerenciador de Credenciais do Windows: o
+usuário é o ID da conta e a senha é o token. O nome da credencial fica em
+`scripts/content-hosting.json`.
+
+- **Por que não uma variável de ambiente:**
+  - A variável do usuário fica em texto no registro e é herdada por todo programa aberto
+    depois (Metro, Gradle, terminais). Isso aumenta a chance de o token aparecer num log.
+  - A credencial fica cifrada pelo Windows (DPAPI, presa ao login) e só é lida na hora de
+    publicar.
+  - Qualquer programa rodando como o usuário consegue lê-la, assim como a variável. O ganho
+    é não espalhar o token.
+- **Como o script usa:** lê a credencial pela API do Windows (`CredReadW`, pelo PowerShell,
+  sem módulo extra) e passa o token **só ao processo do Wrangler**, sem nunca imprimi-lo. Se a
+  saída do Wrangler trouxer o token por algum motivo, ele vira `<token>` antes de aparecer.
+- **Alternativa:** o script também aceita `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` no
+  ambiente, e eles têm prioridade sobre a credencial.
+
+### Publicação (`npm run content:publish`)
+
+1. **Valida o catálogo** rodando os testes do catálogo (`src/domain/catalog.test.ts` e
+   `src/features/content/embedded.test.ts`). Se falharem, nada é enviado.
+2. **Confere que cada vídeo do catálogo existe** em `content/videos/`. Arquivos fora do
+   catálogo não são enviados.
+3. **Envia primeiro os vídeos e depois o catálogo.** Assim o app nunca recebe um catálogo que
+   aponta para um vídeo ainda não enviado.
+   - Catálogo: `application/json; charset=utf-8`, com `Cache-Control: public, max-age=300` (5
+     min; o app já consulta no máximo uma vez por dia).
+   - Vídeos: `video/mp4`, com `public, max-age=31536000, immutable` (o identificador muda
+     quando o vídeo muda).
+4. **Lê tudo de volta pelo endereço público** e confere: status 200, conteúdo idêntico ao do
+   repositório e tipo e cache iguais aos enviados.
+
+**Simulação:** `-- --dry-run` faz só os passos 1 e 2 e mostra o que seria enviado, sem
+precisar da credencial.
+
+**Conferido no computador** (em nenhum caso algo foi enviado):
+- a simulação;
+- catálogo inválido (`contentVersion: 0`): recusado pelos testes;
+- vídeo faltando: recusado;
+- sem credencial: o script para e mostra a instrução. A leitura do Gerenciador de Credenciais
+  compilou e respondeu "não existe".
+
+### Vídeos de teste (`npm run content:test-videos`)
+
+- **ffmpeg 9.0.2:** build "essentials" de gyan.dev, o build para Windows indicado em
+  ffmpeg.org. Instalado com `winget install --id Gyan.FFmpeg.Essentials -e --version 9.0.2`.
+  - O atalho `ffmpeg` só vale em terminais abertos depois da instalação.
+  - O script aceita `FFMPEG=<caminho>`. O executável fica em
+    `%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg.Essentials_...\bin`.
+- **O que o script gera:** `scripts/content-test-videos.js` cria um MP4 por vídeo do catálogo
+  em `content/videos/`.
+  - Formato: 1280x720, 30 fps, H.264 High, `yuv420p`, CRF 28, sem áudio, sem metadados de
+    origem, com `+faststart`.
+  - Conteúdo: fundo de uma cor por compulsão, "Vídeo de teste", "A · 3 dias" (A = abstinência,
+    B = moderação) e um contador de segundos, para ver que está tocando.
+- **Conferência:** o script mede a duração de cada arquivo com o `ffprobe` e compara com o
+  `durationSeconds` do catálogo (12 s). Resultado: 10 vídeos de 33 a 37 KB, cerca de 350 KB ao
+  todo. Um quadro foi conferido visualmente.
+- **Os vídeos de teste ficam no repositório** (`content/videos/`, binários pequenos), para a
+  publicação não depender de gerá-los de novo. Os vídeos reais da Fase 7 serão maiores; decidir
+  então se ficam fora do git.
+
+### Verificação que impede o `r2.dev` na produção
+
+- **Endereço por variante:** fica no `app.config.ts`, em `resolveContentConfig`.
+  - Desenvolvimento e prévia usam o `r2.dev`.
+  - A produção fica **sem endereço** (só o catálogo embutido) até o domínio próprio.
+  - `CONTENT_BASE_URL` substitui o padrão (servidor falso).
+- **Barreira no build:** se a produção apontar para o `r2.dev` ou um subdomínio dele, o
+  `app.config.ts` lança erro e o build não sai. O Expo avalia esse arquivo no prebuild, no
+  Metro e no EAS. Conferido:
+  - `APP_ENV=production CONTENT_BASE_URL=https://pub-....r2.dev npx expo config` termina com
+    "A produção não pode usar o endereço de teste do R2";
+  - a prévia mostra o `r2.dev`;
+  - a produção não mostra endereço nenhum.
+- **Segunda barreira, no app:** `resolveContentBaseUrl` (`src/config/variant.ts`) também
+  recusa o `r2.dev` na produção. Um domínio que só contém "r2.dev" no meio
+  (`r2.dev.example.com`) passa, com teste.
+- **Interpretação (a confirmar):** a produção **sem endereço** ainda é aceita, para o
+  `check:manifest` de produção continuar funcionando sem o domínio. Quando o domínio existir
+  (antes da Fase 8), dá para passar a exigir o endereço na produção.
+
+### Problema encontrado: endereço nulo virava `{}` (defeito do passo 1)
+
+- **O que acontecia:** a serialização da configuração do Expo (`serializeAndEvaluate`, no
+  `@expo/config`) trata `null` como objeto (`typeof null === 'object'`) e o transforma em `{}`.
+  Com `contentBaseUrl: null`, num Metro ou build sem `CONTENT_BASE_URL`, o app recebia `{}`, e
+  `resolveContentBaseUrl` lançava "Endereço do conteúdo inválido" **ao abrir**.
+- **Por que não apareceu antes:** no passo 1, o aparelho sempre rodou com o servidor falso
+  configurado, e os testes simulam o `expo-constants`.
+- **Correção:** sem endereço, a chave fica `undefined` e sai do JSON, com teste. Conferido no
+  `expo config` da produção: o `extra` vem sem `contentBaseUrl`.
+
+### Primeira publicação (22/11/2026, 22:30)
+
+- **Token:** criado pelo responsável no painel novo ("Create token" > "Start from scratch" >
+  "Start with an Account policy"). O painel mudou em relação à documentação: a política
+  mostra a conta ("Include" e a conta do responsável) e uma busca de permissões, em que só
+  "Workers R2 Storage" ficou marcada (Read e Edit; o Read vem junto). Validade de 90 dias,
+  **até cerca de 20/02/2027**; depois disso, criar outro igual e trocar a senha da credencial.
+  O token nunca passou pelo chat.
+- **`npm run content:publish`:** catálogo validado, 10 vídeos e o catálogo enviados, e os 11
+  conferidos pelo endereço público, todos com status 200, conteúdo igual ao do repositório e
+  tipo e cache certos.
+- **Leitura por partes** (como o player baixa o vídeo): `Range: bytes=0-99` num vídeo responde
+  206, `bytes 0-99/35868`. A raiz do bucket e um vídeo que não existe respondem 404, ou seja,
+  o bucket não lista os arquivos.
+- **Rastro no computador:**
+  - O Wrangler grava logs em `%APPDATA%\xdg.config\.wrangler\logs`. Neles não aparece
+    `cfut_` (o começo dos tokens novos), `Bearer` nem `Authorization`.
+  - O log confirma a telemetria desligada: "Dispatching disabled".
+  - Nada foi criado no repositório: nem `.wrangler/` nem `.env`.
+- **No S22** (Metro sem `CONTENT_BASE_URL`): o manifesto do Metro entrega
+  `contentBaseUrl` = o `r2.dev`. Na tela de conferência, "Atualizar o catálogo agora"
+  respondeu "Consulta feita, sem catálogo mais novo", e a última consulta válida passou de
+  18:54:06 para 22:34:25.
+  - O catálogo em uso continua o **guardado na versão 2**, que veio do servidor falso no teste
+    do passo 1. O publicado é a versão 1 (mais velha): só a hora da consulta muda, como
+    previsto (interpretação 1 do passo 1).
+  - O aparelho de desenvolvimento fica com essa versão 2 até publicarmos uma versão maior.
+- **`adb` travado de novo** antes do teste (`adb devices` sem resposta). Resolvido como no
+  AP3: encerrar o `adb.exe` e `adb start-server`.
+- **Prévia:** o `expo config` da prévia leva o `r2.dev`. O build de prévia no aparelho fica
+  para o roteiro P15, no fim da fase.
+
+### Testes
+
+887 testes (874 no passo 1). Novos:
+- `src/config/appConfig.test.ts`: endereço por variante, produção com `r2.dev` recusada e
+  chave nunca `null`;
+- casos do `r2.dev` em `variant.test.ts`.
+
+`lint`, `typecheck` e `format:check` ok.
 
 ## Problemas
 

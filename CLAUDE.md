@@ -148,6 +148,8 @@ Preencher e manter atualizado na Fase 2.
 | Tela de conferência do monitoramento (só development) | Perfil → "Monitoramento (base)" (tem o limite de teste de 1 minuto) |
 | Estado das regras do dia no nativo | `adb shell run-as br.com.quedo.app.dev cat shared_prefs/quedo-monitoring-moment.xml` |
 | Servidor falso do conteúdo (Fase 5) | `npm run content:serve` (serve `content/` na porta 8090; ou `-- <pasta> <porta>`), depois `adb reverse tcp:8090 tcp:8090` e o Metro iniciado com `CONTENT_BASE_URL=http://localhost:8090`. Na tela de conferência, seção "Conteúdo": "Atualizar o catálogo agora" |
+| Publicar o conteúdo no R2 (Fase 5) | `npm run content:publish -- --dry-run` (valida e mostra o que enviaria) · `npm run content:publish` (valida, envia vídeos e catálogo e confere pelo endereço público). Credencial genérica `quedo-content-publish` no Gerenciador de Credenciais do Windows (usuário: ID da conta; senha: token só com o R2), nunca no repositório (`NOTAS-APP.md`, Fase 5, passo 2) |
+| Gerar os vídeos de teste do conteúdo | `npm run content:test-videos` (com `FFMPEG=<caminho do ffmpeg.exe>` se o `ffmpeg` não estiver no PATH) |
 | Bateria do app (sanidade) | no cabo, `adb shell dumpsys batterystats --reset`; uso normal fora do cabo; depois, `adb shell dumpsys batterystats` (linha `UID u0a<n>` em "Estimated power use") e `adb shell dumpsys batterystats br.com.quedo.app.dev`. O número do UID sai de `adb shell pm list packages -U br.com.quedo` (`NOTAS-APP.md`, "Bateria: resultado") |
 | Fila de eventos e configuração do nativo | `adb shell run-as br.com.quedo.app.dev cat files/quedo-monitoring-events.jsonl` · `... cat shared_prefs/quedo-monitoring-config.xml` |
 

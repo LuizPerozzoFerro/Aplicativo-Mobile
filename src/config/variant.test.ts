@@ -80,6 +80,24 @@ describe('resolveContentBaseUrl', () => {
     },
   );
 
+  it('recusa o endereço de teste do R2 (r2.dev) só na produção', () => {
+    const r2dev = 'https://pub-0123456789abcdef.r2.dev';
+    expect(resolveContentBaseUrl(r2dev, 'development')).toBe(r2dev);
+    expect(resolveContentBaseUrl(`${r2dev}/`, 'preview')).toBe(r2dev);
+    for (const value of [r2dev, 'https://R2.DEV', 'https://pub-x.r2.dev:443/conteudo']) {
+      expect(() => resolveContentBaseUrl(value, 'production')).toThrow(
+        'Endereço do conteúdo inválido',
+      );
+    }
+    // Domínio que só contém "r2.dev" no meio não é o endereço de teste.
+    expect(resolveContentBaseUrl('https://r2.dev.example.com', 'production')).toBe(
+      'https://r2.dev.example.com',
+    );
+    expect(resolveContentBaseUrl('https://conteudo-r2.dev-site.com', 'production')).toBe(
+      'https://conteudo-r2.dev-site.com',
+    );
+  });
+
   it('resolveVariant lê o endereço do extra', () => {
     expect(
       resolveVariant({ environment: 'preview', contentBaseUrl: 'https://conteudo.example.com' })
