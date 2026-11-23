@@ -14,7 +14,8 @@ do protótipo continua em `prototype/NOTAS.md`.
 - **Passo 1 (catálogo)** integrado (PR #36). Seção
   "Fase 5 · Passo 1 · Catálogo" (migração: uma por passo, decidido em 22/11).
 - **Passo 2 (hospedagem no Cloudflare R2)** integrado (PR #37). Seção "Fase 5 · Passo 2".
-- **Passo 3 (marcos e aba Progresso)** em andamento na branch `fase5/progresso`.
+- **Passo 3 (marcos e aba Progresso)** pronto na branch `fase5/progresso`, para revisão. Seção
+  "Fase 5 · Passo 3". Próximo: passo 4 (vídeos).
 - **Pendências para a Fase 8 (teste fechado):** chamada pela internet (Teams) com a tela de
   interrupção aberta e a medição oficial de bateria num build de loja.
 
@@ -3974,6 +3975,136 @@ precisar da credencial.
 - casos do `r2.dev` em `variant.test.ts`.
 
 `lint`, `typecheck` e `format:check` ok.
+
+## Fase 5 · Passo 3 · Marcos e aba Progresso (22/11/2026)
+
+Branch `fase5/progresso`. Migração própria do passo, como decidido: **`0008`**.
+
+### O que entrou
+
+- **Domínio:** `src/domain/milestones.ts`, com regras puras.
+  - **Sequências:** a base da streak até a quebra seguinte. O dia da quebra ainda conta para a
+    sequência que termina nele.
+  - **Alcances esperados.**
+  - **Plano de gravação:** o que gravar, o que celebrar e o que silenciar.
+  - **"De novo"** e **linha do tempo.**
+  - Os dias dos marcos vêm do catálogo (`getMilestoneDays`), com `MILESTONE_DAYS` só como
+    reserva. O próximo marco do Início também passou a vir do catálogo.
+- **Banco (`0008`):** só `CREATE TABLE`, um índice e `ALTER TABLE ADD`.
+  - `milestone_reaches`: único em (compulsão, marco, base); cascata pela compulsão; CHECKs no dia
+    (1 a 3650) e nas chaves de dia.
+  - `settings.milestones_checked_on` (ver a interpretação 1).
+  - "Apagar meus dados" apaga os alcances.
+- **Telas:**
+  - aba Progresso: filtro, cabeçalho e linha do tempo;
+  - detalhe do marco (`/milestone`);
+  - celebração (`/celebration`): um por vez, ou um resumo com mais de dois.
+- **Início:** a área da streak de cada card abre o Progresso filtrado, com rótulo e dica para o
+  leitor de tela.
+- **Quando a conferência roda:** ela grava e abre a celebração por um gancho nas abas
+  (`useMilestoneCelebrations`), ao abrir o app, ao voltar do segundo plano, à meia-noite e
+  depois de cada gravação.
+
+### Interpretações (a confirmar na revisão)
+
+1. **Coluna nova em `settings`: `milestones_checked_on`**, o último dia em que os alcances
+   foram conferidos. A spec (5.9) não lista essa coluna. Ela resolve dois casos:
+   - **Primeira abertura da Fase 5:** com a coluna nula, os alcances do passado entram
+     celebrados e só o de hoje é celebrado.
+   - **Marco acrescentado ao catálogo** num dia que o usuário já passou: entra sem celebração
+     atrasada.
+
+   Um marco alcançado com o app fechado (depois da última conferência) é celebrado ao abrir,
+   como a spec pede.
+2. **Celebração só da sequência atual.** A spec manda marcar como celebrado, sem a tela, o
+   marco alcançado **no dia** da quebra. Apliquei a mesma razão ("não aparecer uma celebração
+   depois da quebra") a qualquer alcance ainda não celebrado de uma sequência que já terminou.
+   Exemplo: marco no domingo, com o app fechado, e recaída na terça; o app abre na quarta sem
+   celebrar o de domingo.
+3. **Regra do 1 dia:** ele é celebrado só quando a sequência começa num início limpo. Num
+   recomeço (base num dia de quebra), nunca. Isso cobre "só na primeira vez" e a recaída
+   registrada hoje para ontem. Uma quebra no próprio dia do início também conta como
+   recomeço.
+4. **Mostrar a celebração já conta como celebrado.** Voltar pelo botão do sistema não faz a
+   mesma celebração aparecer de novo.
+5. **A celebração só abre com as abas à vista.** Nunca por cima do onboarding, da emergência
+   ou de outra tela; ao voltar às abas, o app confere de novo.
+6. **Resumo (mais de dois):** cada marco é uma linha que abre o detalhe, mais o "Fechar". Um
+   alcance sem o marco no catálogo (lista de reserva) não tem "Ver o marco".
+7. **Linha do tempo:** o próximo marco que já tinha sido desbloqueado antes aparece como
+   "Próximo · desbloqueado antes". Os estados aparecem em texto, não só em cor.
+8. **Vídeo no detalhe:** o player é do passo 4.
+   - Marco não alcançado: "Disponível ao chegar a N dias".
+   - Marco desbloqueado: a seção fica fora até o passo 4, para não deixar um título sozinho
+     (visto no S22).
+9. **Filtro do Progresso = parâmetro `compulsion` da rota.** O card do Início manda a
+   compulsão e os chips trocam o parâmetro.
+10. **`free` (marco gratuito) ainda não tem efeito.** As regras de plano são da Fase 6.
+11. **Ferramenta "Simular uma streak" fica para o passo 8**, como na ordem da spec. A
+    celebração foi conferida no S22 porque a compulsão A estava no dia 7 justamente hoje.
+
+### Problema encontrado e corrigido
+
+**Gravação vazia avisava `dataChanges`.** O teste "rodar de novo não grava nada" mostrou que a
+conferência chamava `addMany` e `markCelebrated` com listas vazias. O repositório não grava
+nada, mas o invólucro de `observeRepositories` avisa do mesmo jeito. Isso poderia virar um
+ciclo entre a conferência, a sincronização do monitoramento e o Início. Agora o repositório só
+é chamado quando há o que gravar, com teste.
+
+### Testes
+
+954 testes (887 no passo 2). Novos:
+- `src/domain/milestones.test.ts` (32);
+- `src/features/milestones/milestoneData.test.ts` (12, com o banco de teste);
+- `__tests__/milestones.test.tsx` (13, sobre as rotas reais): Progresso, filtro, detalhe,
+  referência, card do Início e celebração (um, dois e resumo);
+- repositório (alcances, CHECKs com a mensagem do SQLite, cascata, "Apagar meus dados"),
+  migração (`milestone_reaches` e a coluna nova) e próximo marco pelo catálogo.
+
+Os testes do Início e do Perfil desligam a celebração (ela abriria por cima quando a streak de
+teste cai num dia de marco).
+
+**Mutação de controle:** seis mudanças em `src/domain/milestones.ts` derrubam testes:
+- celebrar o 1 dia num recomeço;
+- celebrar sequência encerrada;
+- ignorar a última conferência;
+- excluir o dia da quebra;
+- não silenciar pendentes;
+- ignorar o início com N dias.
+
+O arquivo foi restaurado e conferido (idêntico).
+
+`lint`, `typecheck` e `format:check` ok.
+
+### No S22 (22/11, 23:02, development pelo Metro)
+
+- **Cópia de leitura do banco antes e depois:**
+  - a `0008` entrou (8 → 9 migrações);
+  - nenhuma linha perdida nas outras tabelas: só 1 evento a mais importado do nativo, que é o
+    funcionamento normal;
+  - `milestones_checked_on = 2026-11-22`.
+- **Alcances gravados:** os 10 alcances de A (com as recaídas de 10, 12 e 15/11) e de B
+  seguem as regras. Exemplo: o 3 dias de A alcançado em 15/11, dia de uma recaída, ficou
+  gravado.
+- **Primeira abertura:** só "Você chegou a 7 dias" (A estava no dia 7), com o título do
+  marco. Nenhuma celebração do passado nem de B (11 dias).
+- **Navegação:** "Ver o marco" abre o detalhe (textos, referência, aviso).
+- **Aba Progresso:**
+  - A com 7 dias, próximo 14, "Faltam 7 dias", e 1, 3 e 7 alcançados;
+  - o filtro mostra as duas compulsões;
+  - o card de B no Início abre o Progresso filtrado em B (11 dias, "Faltam 3 dias").
+- **Detalhe:** o de 14 dias mostra "Disponível ao chegar a 14 dias"; o de 7, sem seção de
+  vídeo.
+- **Reabrir o app** não repete a celebração.
+- **Fica para o roteiro da fase:**
+  - TalkBack, tema claro e fonte no máximo (P13);
+  - abrir a referência no navegador (conferida no Jest);
+  - o "(versão 2)" nos títulos de B é o catálogo de teste do passo 1, ainda guardado no
+    aparelho.
+- **`adb` travou três vezes em 22/11** (AP3). Antes de cada uso no aparelho:
+  `adb devices` com limite de tempo, e, se travar, encerrar o `adb.exe` e
+  `adb start-server`.
+
 
 ## Problemas
 

@@ -23,8 +23,9 @@ function hostOf(url: string): string {
  * Detalhe de um marco (spec 04, 5.4): dia, título, resumo, texto do benefício,
  * referências (abrem no navegador do aparelho), o aviso de que o conteúdo não
  * substitui acompanhamento profissional e a situação do vídeo. O player entra
- * no passo 4; por enquanto, o vídeo de um marco ainda não alcançado mostra
- * quando fica disponível, e um marco sem vídeo não deixa espaço vazio.
+ * no passo 4: por enquanto, só o vídeo de um marco ainda não alcançado aparece,
+ * dizendo quando fica disponível; o desbloqueado e o marco sem vídeo não deixam
+ * espaço vazio.
  */
 export function MilestoneDetailScreen({
   type,
@@ -77,14 +78,12 @@ export function MilestoneDetailScreen({
       </View>
       <Text variant="bodyStrong">{milestone.summary}</Text>
       <Text>{milestone.body}</Text>
-      {milestone.video === null ? null : (
+      {milestone.video === null || unlocked ? null : (
         <View style={{ gap: theme.spacing.xs }} testID="milestone-video">
           <Text variant="heading" accessibilityRole="header">
             {t('detail.video')}
           </Text>
-          {unlocked ? null : (
-            <Text color="textMuted">{t('detail.videoLocked', { count: milestone.day })}</Text>
-          )}
+          <Text color="textMuted">{t('detail.videoLocked', { count: milestone.day })}</Text>
         </View>
       )}
       {milestone.references.length === 0 ? null : (
