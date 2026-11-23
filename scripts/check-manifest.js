@@ -44,13 +44,16 @@ const ALLOWED_PERMISSIONS = [
   'android.permission.FOREGROUND_SERVICE_SPECIAL_USE',
   'android.permission.POST_NOTIFICATIONS',
   'android.permission.RECEIVE_BOOT_COMPLETED',
+  // Tipo de conexão: vem com o ExoPlayer do expo-video (spec 04, 5.6). Permissão
+  // comum, sem pedido ao usuário; liberada em todas as variantes por decisão do
+  // responsável (23/11/2026), para o aparelho de teste rodar o mesmo app dos testadores.
+  'android.permission.ACCESS_NETWORK_STATE',
 ];
 
 // Só na variante de desenvolvimento (pacote terminado em .dev): as do dev
 // client, para achar e falar com o Metro na rede. Prévia e produção são
 // conferidas pela lista estrita.
 const DEVELOPMENT_ONLY_PERMISSIONS = [
-  'android.permission.ACCESS_NETWORK_STATE',
   'android.permission.ACCESS_LOCAL_NETWORK',
   'android.permission.CHANGE_WIFI_MULTICAST_STATE',
 ];

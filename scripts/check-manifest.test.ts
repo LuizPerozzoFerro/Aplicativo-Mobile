@@ -144,7 +144,6 @@ describe('lista de permissões permitidas (spec 03, seção 5.8)', () => {
 
   it('aceita as permissões do dev client só na variante de desenvolvimento', () => {
     for (const permission of [
-      'android.permission.ACCESS_NETWORK_STATE',
       'android.permission.ACCESS_LOCAL_NETWORK',
       'android.permission.CHANGE_WIFI_MULTICAST_STATE',
     ]) {
@@ -156,6 +155,20 @@ describe('lista de permissões permitidas (spec 03, seção 5.8)', () => {
         `permissão fora da lista permitida: ${permission}`,
       ]);
     }
+  });
+
+  it('aceita a do tipo de conexão (ExoPlayer) em todas as variantes', () => {
+    for (const pkg of ['br.com.quedo.app.dev', 'br.com.quedo.app.preview', 'br.com.quedo.app']) {
+      expect(findForbidden(withPermission(pkg, 'android.permission.ACCESS_NETWORK_STATE'))).toEqual(
+        [],
+      );
+    }
+  });
+
+  it('acusa como proibida a de manter o processo acordado (ExoPlayer), mesmo no desenvolvimento', () => {
+    expect(
+      findForbidden(withPermission('br.com.quedo.app.dev', 'android.permission.WAKE_LOCK')),
+    ).toEqual(['permissão proibida: android.permission.WAKE_LOCK']);
   });
 
   it('acusa como proibidas as da Fase 4, mesmo no desenvolvimento', () => {
@@ -172,12 +185,12 @@ describe('lista de permissões permitidas (spec 03, seção 5.8)', () => {
   });
 
   it('sem pacote no manifesto, vale a lista estrita', () => {
-    const xml = withPermission('x', 'android.permission.ACCESS_NETWORK_STATE').replace(
+    const xml = withPermission('x', 'android.permission.ACCESS_LOCAL_NETWORK').replace(
       ' package="x"',
       '',
     );
     expect(findForbidden(xml)).toEqual([
-      'permissão fora da lista permitida: android.permission.ACCESS_NETWORK_STATE',
+      'permissão fora da lista permitida: android.permission.ACCESS_LOCAL_NETWORK',
     ]);
   });
 });

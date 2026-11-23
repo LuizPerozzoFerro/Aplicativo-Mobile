@@ -95,9 +95,9 @@ describe('permissões bloqueadas (spec 04, 5.6: o vídeo não traz permissão no
     }
   });
 
-  it('a do tipo de conexão fica fora na prévia e na produção; no desenvolvimento, o dev client usa', () => {
-    expect(blocked('preview')).toContain('android.permission.ACCESS_NETWORK_STATE');
-    expect(blocked('production')).toContain('android.permission.ACCESS_NETWORK_STATE');
-    expect(blocked('development')).not.toContain('android.permission.ACCESS_NETWORK_STATE');
+  it('a do tipo de conexão, também do ExoPlayer, fica em todas as variantes (decisão de 23/11)', () => {
+    for (const environment of ['development', 'preview', 'production']) {
+      expect(blocked(environment)).not.toContain('android.permission.ACCESS_NETWORK_STATE');
+    }
   });
 });
