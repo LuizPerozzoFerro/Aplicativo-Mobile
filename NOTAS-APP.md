@@ -4031,8 +4031,8 @@ Branch `fase5/progresso`. Migração própria do passo, como decidido: **`0008`*
    ou de outra tela; ao voltar às abas, o app confere de novo.
 6. **Resumo (mais de dois):** cada marco é uma linha que abre o detalhe, mais o "Fechar". Um
    alcance sem o marco no catálogo (lista de reserva) não tem "Ver o marco".
-7. **Linha do tempo:** o próximo marco que já tinha sido desbloqueado antes aparece como
-   "Próximo · desbloqueado antes". Os estados aparecem em texto, não só em cor.
+7. **Linha do tempo:** o próximo marco que já tinha sido alcançado antes aparece como
+   "Próximo · alcançado antes". Os estados aparecem em texto, não só em cor.
 8. **Vídeo no detalhe:** o player é do passo 4.
    - Marco não alcançado: "Disponível ao chegar a N dias".
    - Marco desbloqueado: a seção fica fora até o passo 4, para não deixar um título sozinho
@@ -4042,6 +4042,16 @@ Branch `fase5/progresso`. Migração própria do passo, como decidido: **`0008`*
 10. **`free` (marco gratuito) ainda não tem efeito.** As regras de plano são da Fase 6.
 11. **Ferramenta "Simular uma streak" fica para o passo 8**, como na ordem da spec. A
     celebração foi conferida no S22 porque a compulsão A estava no dia 7 justamente hoje.
+
+### Revisão do responsável (22/11/2026)
+
+- **Aceitas** as interpretações 1 (`milestones_checked_on`), 2 (celebração só da sequência
+  atual) e 8 e 11 (player no passo 4, "Simular uma streak" no passo 8).
+- **Textos:** "Desbloqueado antes" virou **"Alcançado antes"** e "Próximo · desbloqueado
+  antes" virou **"Próximo · alcançado antes"**, no estado e no que o leitor de tela lê. As
+  chaves foram renomeadas para `status.reachedBefore` e `status.nextReachedBefore`.
+- **`celebration.summary`** ganhou as formas `_zero`, `_one` e `_other`, como as outras
+  chaves com número.
 
 ### Problema encontrado e corrigido
 

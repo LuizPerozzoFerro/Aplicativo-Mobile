@@ -11,9 +11,9 @@
   "timeline": "Marcos",
   "status": {
     "reached": "Alcançado",
-    "unlockedBefore": "Desbloqueado antes",
+    "reachedBefore": "Alcançado antes",
     "next": "Próximo",
-    "nextUnlockedBefore": "Próximo · desbloqueado antes",
+    "nextReachedBefore": "Próximo · alcançado antes",
     "future": "Ainda não alcançado"
   },
   "itemSubtitle": "{{title}} · {{status}}",
@@ -38,7 +38,9 @@
     "reached_other": "Você chegou a {{count}} dias",
     "again_one": "Você chegou de novo a {{count}} dia",
     "again_other": "Você chegou de novo a {{count}} dias",
-    "summary": "Você alcançou {{count}} marcos",
+    "summary_zero": "Nenhum marco novo",
+    "summary_one": "Você alcançou {{count}} marco",
+    "summary_other": "Você alcançou {{count}} marcos",
     "summaryItem": "{{compulsion}}: {{days}}",
     "view": "Ver o marco",
     "close": "Fechar"

@@ -85,8 +85,8 @@ describe('aba Progresso', () => {
 
     const item = (day: number) => screen.getByTestId(`progress-milestone-${day}`);
     expect(item(3)).toHaveAccessibleName(/3 dias, Marco de teste A: 3 dias · Alcançado/);
-    expect(item(7)).toHaveAccessibleName(/Próximo · desbloqueado antes/);
-    expect(item(14)).toHaveAccessibleName(/Desbloqueado antes/);
+    expect(item(7)).toHaveAccessibleName(/Próximo · alcançado antes/);
+    expect(item(14)).toHaveAccessibleName(/14 dias, Marco de teste A: 14 dias · Alcançado antes/);
     expect(item(30)).toHaveAccessibleName(/Ainda não alcançado/);
     // Uma compulsão só: sem filtro.
     expect(screen.queryByTestId('progress-filter')).toBeNull();

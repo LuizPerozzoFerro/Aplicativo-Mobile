@@ -111,9 +111,9 @@ function Timeline({ progress }: { progress: CompulsionProgress }) {
   const statusText = (item: TimelineItem) => {
     if (item.status === 'reached') return t('status.reached');
     if (item.status === 'next') {
-      return item.unlocked ? t('status.nextUnlockedBefore') : t('status.next');
+      return item.unlocked ? t('status.nextReachedBefore') : t('status.next');
     }
-    return item.unlocked ? t('status.unlockedBefore') : t('status.future');
+    return item.unlocked ? t('status.reachedBefore') : t('status.future');
   };
 
   return (
