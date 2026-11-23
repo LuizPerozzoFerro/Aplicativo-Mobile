@@ -25,6 +25,8 @@ export type AbstinenceOverviewInput = {
     readonly answeredAt: Date;
   }[];
   readonly relapses: readonly { readonly dayKey: string; readonly recordedAt: Date }[];
+  /** Dias dos marcos da compulsão, do catálogo (`getMilestoneDays`). */
+  readonly milestoneDays: readonly number[];
   readonly now: Date;
 };
 
@@ -40,13 +42,18 @@ export type AbstinenceOverview = StreakOverview & {
   readonly relapseRecordedToday: boolean;
 };
 
-function streakOverview(startedAt: Date, eventDayKeys: readonly string[], now: Date) {
+function streakOverview(
+  startedAt: Date,
+  eventDayKeys: readonly string[],
+  milestoneDays: readonly number[],
+  now: Date,
+) {
   const streakDays = getStreakDays({ startedAt, eventDayKeys, now });
-  return { streakDays, nextMilestone: getNextMilestone(streakDays) };
+  return { streakDays, nextMilestone: getNextMilestone(streakDays, milestoneDays) };
 }
 
 export function getAbstinenceOverview(input: AbstinenceOverviewInput): AbstinenceOverview {
-  const { startedAt, checkIns, relapses, now } = input;
+  const { startedAt, checkIns, relapses, milestoneDays, now } = input;
   const todayKey = getRelapseDayKey('today', now);
   const yesterdayKey = getRelapseDayKey('yesterday', now);
   const relapseOn = (dayKey: string) => relapses.find((relapse) => relapse.dayKey === dayKey);
@@ -60,6 +67,7 @@ export function getAbstinenceOverview(input: AbstinenceOverviewInput): Abstinenc
     ...streakOverview(
       startedAt,
       relapses.map((relapse) => relapse.dayKey),
+      milestoneDays,
       now,
     ),
     checkIn:
@@ -79,11 +87,13 @@ export type ModerationOverviewInput = {
   readonly startedAt: Date;
   /** Dias reprovados (`day_states.failed`). */
   readonly failedDayKeys: readonly string[];
+  /** Dias dos marcos da compulsão, do catálogo (`getMilestoneDays`). */
+  readonly milestoneDays: readonly number[];
   readonly now: Date;
 };
 
 export function getModerationOverview(input: ModerationOverviewInput): StreakOverview {
-  return streakOverview(input.startedAt, input.failedDayKeys, input.now);
+  return streakOverview(input.startedAt, input.failedDayKeys, input.milestoneDays, input.now);
 }
 
 const MS_PER_MINUTE = 60 * 1000;

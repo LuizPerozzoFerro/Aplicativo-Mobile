@@ -51,6 +51,7 @@ describe('settings', () => {
       notificationsGrantedOnce: false,
       overlayGrantedOnce: false,
       protectionNoticeDismissedAt: null,
+      milestonesCheckedOn: null,
     });
     repositories.settings.get();
     expect(count('settings')).toBe(1);
@@ -615,6 +616,104 @@ describe('catálogo de conteúdo', () => {
   });
 });
 
+describe('alcances de marco', () => {
+  const reach = (milestoneDay: number, streakBaseDay = '2026-11-01', celebrated = false) => ({
+    milestoneDay,
+    streakBaseDay,
+    reachedOn: `2026-11-${String(1 + milestoneDay).padStart(2, '0')}`,
+    celebrated,
+  });
+
+  it('grava, lista por compulsão e por pendência, e marca como celebrado', () => {
+    const { id } = repositories.compulsions.add({ type: 'short_videos', startedAt: NOW });
+    repositories.milestoneReaches.addMany(id, [reach(1, undefined, true), reach(3), reach(7)]);
+    expect(repositories.milestoneReaches.listByCompulsion(id)).toEqual([
+      {
+        id: 1,
+        compulsionId: id,
+        milestoneDay: 1,
+        streakBaseDay: '2026-11-01',
+        reachedOn: '2026-11-02',
+        celebratedAt: NOW,
+      },
+      {
+        id: 2,
+        compulsionId: id,
+        milestoneDay: 3,
+        streakBaseDay: '2026-11-01',
+        reachedOn: '2026-11-04',
+        celebratedAt: null,
+      },
+      {
+        id: 3,
+        compulsionId: id,
+        milestoneDay: 7,
+        streakBaseDay: '2026-11-01',
+        reachedOn: '2026-11-08',
+        celebratedAt: null,
+      },
+    ]);
+    expect(repositories.milestoneReaches.listPending().map((row) => row.id)).toEqual([2, 3]);
+
+    clock = LATER;
+    repositories.milestoneReaches.markCelebrated([1, 2]);
+    const rows = repositories.milestoneReaches.listByCompulsion(id);
+    // O já celebrado mantém a hora da primeira vez.
+    expect(rows.map((row) => row.celebratedAt)).toEqual([NOW, LATER, null]);
+  });
+
+  it('o mesmo marco na mesma sequência não duplica; em outra sequência, sim', () => {
+    const { id } = repositories.compulsions.add({ type: 'short_videos', startedAt: NOW });
+    repositories.milestoneReaches.addMany(id, [reach(3)]);
+    repositories.milestoneReaches.addMany(id, [reach(3, undefined, true), reach(3, '2026-11-02')]);
+    expect(count('milestone_reaches')).toBe(2);
+    expect(repositories.milestoneReaches.listByCompulsion(id)[0]?.celebratedAt).toBeNull();
+  });
+
+  it('listas vazias não gravam nada', () => {
+    const { id } = repositories.compulsions.add({ type: 'short_videos', startedAt: NOW });
+    repositories.milestoneReaches.addMany(id, []);
+    repositories.milestoneReaches.markCelebrated([]);
+    expect(count('milestone_reaches')).toBe(0);
+  });
+
+  it('recusa dia de marco ou chave de dia inválidos', () => {
+    const { id } = repositories.compulsions.add({ type: 'short_videos', startedAt: NOW });
+    expect(() => repositories.milestoneReaches.addMany(id, [reach(0)])).toThrow('Dia de marco');
+    expect(() =>
+      repositories.milestoneReaches.addMany(id, [{ ...reach(3), reachedOn: '2026-02-30' }]),
+    ).toThrow('Dia inválido');
+    expect(count('milestone_reaches')).toBe(0);
+  });
+
+  it('o banco também recusa o que escapa do repositório', () => {
+    const { id } = repositories.compulsions.add({ type: 'short_videos', startedAt: NOW });
+    expect(() =>
+      database.raw.run(
+        `INSERT INTO milestone_reaches (compulsion_id, milestone_day, streak_base_day, reached_on) VALUES (${id}, 3651, '2026-11-01', '2026-11-02')`,
+      ),
+    ).toThrow(/CHECK constraint failed/);
+    expect(() =>
+      database.raw.run(
+        `INSERT INTO milestone_reaches (compulsion_id, milestone_day, streak_base_day, reached_on) VALUES (${id}, 3, 'ontem', '2026-11-02')`,
+      ),
+    ).toThrow(/CHECK constraint failed/);
+  });
+
+  it('remover a compulsão apaga os alcances dela', () => {
+    const { id } = repositories.compulsions.add({ type: 'short_videos', startedAt: NOW });
+    repositories.milestoneReaches.addMany(id, [reach(3)]);
+    repositories.compulsions.remove(id);
+    expect(count('milestone_reaches')).toBe(0);
+  });
+
+  it('guarda o dia da última conferência e recusa chave inválida', () => {
+    repositories.settings.setMilestonesCheckedOn('2026-11-02');
+    expect(repositories.settings.get().milestonesCheckedOn).toBe('2026-11-02');
+    expect(() => repositories.settings.setMilestonesCheckedOn('hoje')).toThrow('Dia inválido');
+  });
+});
+
 describe('deleteAllData', () => {
   it('apaga tudo, inclusive as tabelas da Fase 3, e as configurações voltam ao padrão', () => {
     const videos = repositories.compulsions.add({ type: 'short_videos', startedAt: NOW });
@@ -638,6 +737,10 @@ describe('deleteAllData', () => {
     repositories.settings.setOnboardingCompleted(true);
     repositories.settings.setOnboardingStep('summary');
     repositories.settings.setCheckInMinutes(600);
+    repositories.settings.setMilestonesCheckedOn('2026-11-02');
+    repositories.milestoneReaches.addMany(adult.id, [
+      { milestoneDay: 1, streakBaseDay: '2026-11-01', reachedOn: '2026-11-02', celebrated: false },
+    ]);
 
     repositories.deleteAllData();
 
@@ -649,6 +752,7 @@ describe('deleteAllData', () => {
       'check_ins',
       'relapses',
       'day_states',
+      'milestone_reaches',
       'settings',
     ]) {
       expect(count(table)).toBe(0);
@@ -657,6 +761,7 @@ describe('deleteAllData', () => {
       onboardingCompleted: false,
       onboardingStep: null,
       checkInMinutes: 1260,
+      milestonesCheckedOn: null,
     });
   });
   it('mantém o catálogo de conteúdo, que é público (spec 04, 5.9)', () => {

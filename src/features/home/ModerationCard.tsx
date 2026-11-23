@@ -6,6 +6,7 @@ import { sumUsageMinutes, type StreakOverview } from '@/domain/overview';
 import { getMonitoring, MonitoringError, UNSUPPORTED } from '@/monitoring';
 import { Button, Card, Text } from '@/ui';
 
+import { openProgress } from './openProgress';
 import { StreakSummary } from './StreakSummary';
 
 type Props = {
@@ -71,7 +72,12 @@ export function ModerationCard({ overview, packageNames, dailyLimitMinutes, load
           />
         </>
       ) : null}
-      <StreakSummary overview={overview} mechanic="moderation" />
+      <StreakSummary
+        overview={overview}
+        mechanic="moderation"
+        testID="home-progress-short_videos"
+        onPress={() => openProgress('short_videos')}
+      />
     </Card>
   );
 }

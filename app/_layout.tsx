@@ -64,6 +64,9 @@ function AppNavigator() {
         {/* Uma só: pedir a emergência com ela já aberta volta para o fluxo em curso. */}
         <Stack.Screen name="emergency" dangerouslySingular={() => 'emergency'} />
         <Stack.Screen name="edit" />
+        {/* Marcos (spec 04, 5.3 e 5.4). */}
+        <Stack.Screen name="milestone" />
+        <Stack.Screen name="celebration" dangerouslySingular={() => 'celebration'} />
         <Stack.Screen name="dev-components" />
         <Stack.Screen name="dev-monitoring" />
       </Stack.Protected>

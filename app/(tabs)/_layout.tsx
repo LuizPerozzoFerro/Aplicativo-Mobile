@@ -3,6 +3,7 @@ import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 import type { ColorValue } from 'react-native';
 
+import { useMilestoneCelebrations } from '@/features/milestones/useMilestoneCelebrations';
 import { useTheme } from '@/ui';
 
 // Ícones genéricos e neutros: Material Symbols no Android, SF Symbols no iOS.
@@ -16,6 +17,8 @@ function tabIcon(name: SymbolViewProps['name']) {
 export default function TabsLayout() {
   const { t } = useTranslation('tabs');
   const theme = useTheme();
+  // Alcances de marco e celebração, só com as abas à vista (spec 04, 5.3).
+  useMilestoneCelebrations();
 
   return (
     <Tabs

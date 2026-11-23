@@ -8,8 +8,8 @@
 import { addCalendarDays, calendarDaysBetween, fromDayKey, startOfDay } from './day';
 
 /**
- * Marcos provisórios, em dias (doc 01, 6.3). Único lugar da lista: o conteúdo
- * remoto da Fase 5 substitui.
+ * Marcos de reserva, em dias (doc 01, 6.3): valem só se o catálogo não tiver a
+ * compulsão (spec 04, 4.2; `getMilestoneDays` em milestones.ts).
  */
 export const MILESTONE_DAYS = [1, 3, 7, 14, 30, 60, 90, 180, 365] as const;
 
@@ -64,8 +64,11 @@ export function getStreakDays(input: StreakInput): number {
 }
 
 /** Primeiro marco maior que a streak, ou null depois do último. */
-export function getNextMilestone(streakDays: number): number | null {
-  return MILESTONE_DAYS.find((days) => days > streakDays) ?? null;
+export function getNextMilestone(
+  streakDays: number,
+  milestoneDays: readonly number[] = MILESTONE_DAYS,
+): number | null {
+  return [...milestoneDays].sort((a, b) => a - b).find((days) => days > streakDays) ?? null;
 }
 
 export function isValidDaysAlreadyWithoutRelapse(days: number): boolean {

@@ -6,6 +6,7 @@ import { AppState } from 'react-native';
 import { getRepositories } from '@/data/bootstrap';
 import { dataChanges } from '@/data/changes';
 import { startOfNextDay } from '@/domain/day';
+import { getAppCatalogService } from '@/features/content/useCatalog';
 import { Button, EmptyState, Screen, Text } from '@/ui';
 
 import { AbstinenceCard } from './AbstinenceCard';
@@ -15,7 +16,8 @@ import { ProtectionNotice } from './ProtectionNotice';
 
 function load() {
   const now = new Date();
-  return { now, cards: loadHomeCards(getRepositories(), now) };
+  const catalog = getAppCatalogService().current().catalog;
+  return { now, cards: loadHomeCards(getRepositories(), catalog, now) };
 }
 
 /**
@@ -23,8 +25,8 @@ function load() {
  * foco (volta do Perfil ou das permissões), ao voltar do segundo plano, à
  * meia-noite e depois de cada gravação no banco. A última cobre o que a
  * sincronização importa do nativo, que termina depois de a tela ter lido (uma
- * resposta dada na notificação, M10). Tocar no card ainda não leva a outra
- * tela (aba Progresso, Fase 5).
+ * resposta dada na notificação, M10). A área da streak de cada card abre a
+ * aba Progresso filtrada (spec 04, 5.4).
  */
 export function HomeScreen() {
   const { t } = useTranslation(['home', 'tabs']);

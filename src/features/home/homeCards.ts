@@ -1,7 +1,9 @@
 import type { Repositories, UserCompulsion } from '@/data/repositories';
+import type { Catalog } from '@/domain/catalog';
 import { getCompulsionDefinition } from '@/domain/compulsion';
 import { getDailyLimitToday } from '@/domain/dailyLimit';
 import { toDayKey } from '@/domain/day';
+import { getMilestoneDays } from '@/domain/milestones';
 import {
   getAbstinenceOverview,
   getModerationOverview,
@@ -21,9 +23,10 @@ export type HomeCard =
 
 /**
  * Um card por compulsão ativa, na ordem em que foram escolhidas (spec 02,
- * seção 4.5): a ordem de inserção, que o repositório devolve.
+ * seção 4.5): a ordem de inserção, que o repositório devolve. O próximo marco
+ * sai dos dias do catálogo (spec 04, 4.2).
  */
-export function loadHomeCards(repositories: Repositories, now: Date): HomeCard[] {
+export function loadHomeCards(repositories: Repositories, catalog: Catalog, now: Date): HomeCard[] {
   return repositories.compulsions
     .list()
     .filter((compulsion) => compulsion.status === 'active')
@@ -36,6 +39,7 @@ export function loadHomeCards(repositories: Repositories, now: Date): HomeCard[]
             startedAt: compulsion.startedAt,
             checkIns: repositories.checkIns.listByCompulsion(compulsion.id),
             relapses: repositories.relapses.listByCompulsion(compulsion.id),
+            milestoneDays: getMilestoneDays(catalog, compulsion.type),
             now,
           }),
         };
@@ -46,6 +50,7 @@ export function loadHomeCards(repositories: Repositories, now: Date): HomeCard[]
         overview: getModerationOverview({
           startedAt: compulsion.startedAt,
           failedDayKeys: repositories.dayStates.listFailedDayKeys(compulsion.id),
+          milestoneDays: getMilestoneDays(catalog, compulsion.type),
           now,
         }),
         packageNames: repositories.monitoredApps

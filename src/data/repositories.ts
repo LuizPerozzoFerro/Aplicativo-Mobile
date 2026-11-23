@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 
 import {
   getCompulsionDefinition,
@@ -12,6 +12,7 @@ import {
 import { isValidCheckInMinutes, type CheckInAnswer, type CheckInSource } from '@/domain/checkIn';
 import { applyDailyLimitChange } from '@/domain/dailyLimit';
 import { fromDayKey, toDayKey } from '@/domain/day';
+import { MAX_MILESTONE_DAY } from '@/domain/catalog';
 import type { EmergencyOutcome, EmergencySource } from '@/domain/monitoring';
 import { isValidDailyLimit, type OnboardingStep } from '@/domain/onboarding';
 import type { ProtectionPermission } from '@/domain/protection';
@@ -27,6 +28,7 @@ import {
   emergencySessions,
   importedEvents,
   interruptionEvents,
+  milestoneReaches,
   monitoredApps,
   motivation,
   relapses,
@@ -51,6 +53,7 @@ export type DayState = typeof dayStates.$inferSelect;
 export type InterruptionEvent = typeof interruptionEvents.$inferSelect;
 export type EmergencySession = typeof emergencySessions.$inferSelect;
 export type ContentCatalogRow = typeof contentCatalog.$inferSelect;
+export type MilestoneReach = typeof milestoneReaches.$inferSelect;
 
 const GRANTED_ONCE_COLUMN = {
   usageAccess: 'usageAccessGrantedOnce',
@@ -69,6 +72,8 @@ export type SettingsRepository = {
   /** Registra para sempre que estas permissões já estiveram concedidas. */
   markPermissionsGranted(permissions: readonly ProtectionPermission[]): void;
   setProtectionNoticeDismissedAt(date: Date | null): void;
+  /** Dia (AAAA-MM-DD) da última conferência dos alcances de marco. */
+  setMilestonesCheckedOn(dayKey: string): void;
 };
 
 export type CompulsionRepository = {
@@ -204,6 +209,27 @@ export type ContentCatalogRepository = {
   touch(locale: string): void;
 };
 
+export type MilestoneReachRepository = {
+  listByCompulsion(compulsionId: number): MilestoneReach[];
+  /** Alcances ainda não celebrados, de todas as compulsões, do mais antigo ao mais novo. */
+  listPending(): MilestoneReach[];
+  /**
+   * Grava alcances novos; os que já existem (mesma compulsão, marco e base)
+   * ficam como estão. `celebrated`: gravado já celebrado, sem a tela.
+   */
+  addMany(
+    compulsionId: number,
+    reaches: readonly {
+      milestoneDay: number;
+      streakBaseDay: string;
+      reachedOn: string;
+      celebrated: boolean;
+    }[],
+  ): void;
+  /** Marca como celebrados (só os que ainda não estavam). */
+  markCelebrated(ids: readonly number[]): void;
+};
+
 export type Repositories = {
   settings: SettingsRepository;
   compulsions: CompulsionRepository;
@@ -216,6 +242,7 @@ export type Repositories = {
   monitoringEvents: MonitoringEventRepository;
   emergencySessions: EmergencySessionRepository;
   contentCatalog: ContentCatalogRepository;
+  milestoneReaches: MilestoneReachRepository;
   /**
    * Apaga todos os dados do usuário; as configurações voltam ao padrão. O
    * catálogo de conteúdo fica: é público (spec 04, 5.9).
@@ -370,6 +397,14 @@ export function createRepositories(
       settingsRepository.get();
       db.update(settings)
         .set({ protectionNoticeDismissedAt: date })
+        .where(eq(settings.id, SETTINGS_ID))
+        .run();
+    },
+    setMilestonesCheckedOn(dayKey) {
+      requireDayKey(dayKey);
+      settingsRepository.get();
+      db.update(settings)
+        .set({ milestonesCheckedOn: dayKey })
         .where(eq(settings.id, SETTINGS_ID))
         .run();
     },
@@ -824,10 +859,60 @@ export function createRepositories(
       },
     },
 
+    milestoneReaches: {
+      listByCompulsion: (compulsionId) =>
+        db
+          .select()
+          .from(milestoneReaches)
+          .where(eq(milestoneReaches.compulsionId, compulsionId))
+          .orderBy(asc(milestoneReaches.reachedOn), asc(milestoneReaches.milestoneDay))
+          .all(),
+      listPending: () =>
+        db
+          .select()
+          .from(milestoneReaches)
+          .where(isNull(milestoneReaches.celebratedAt))
+          .orderBy(asc(milestoneReaches.reachedOn), asc(milestoneReaches.id))
+          .all(),
+      addMany: (compulsionId, reaches) => {
+        if (reaches.length === 0) return;
+        for (const reach of reaches) {
+          requireDayKey(reach.streakBaseDay);
+          requireDayKey(reach.reachedOn);
+          if (
+            !Number.isInteger(reach.milestoneDay) ||
+            reach.milestoneDay < 1 ||
+            reach.milestoneDay > MAX_MILESTONE_DAY
+          ) {
+            throw new RangeError('Dia de marco inválido');
+          }
+        }
+        const at = now();
+        db.insert(milestoneReaches)
+          .values(
+            reaches.map(({ celebrated, ...reach }) => ({
+              ...reach,
+              compulsionId,
+              celebratedAt: celebrated ? at : null,
+            })),
+          )
+          .onConflictDoNothing()
+          .run();
+      },
+      markCelebrated: (ids) => {
+        if (ids.length === 0) return;
+        db.update(milestoneReaches)
+          .set({ celebratedAt: now() })
+          .where(and(inArray(milestoneReaches.id, [...ids]), isNull(milestoneReaches.celebratedAt)))
+          .run();
+      },
+    },
+
     deleteAllData() {
       db.transaction((tx) => {
         // Filhos antes dos pais; a cascata cobriria, mas a ordem explícita não
         // depende do PRAGMA foreign_keys.
+        tx.delete(milestoneReaches).run();
         tx.delete(interruptionEvents).run();
         tx.delete(emergencySessions).run();
         tx.delete(importedEvents).run();

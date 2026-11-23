@@ -6,6 +6,7 @@ import home from './pt-BR/home.json';
 import monitoring from './pt-BR/monitoring.json';
 import onboarding from './pt-BR/onboarding.json';
 import profile from './pt-BR/profile.json';
+import progress from './pt-BR/progress.json';
 import tabs from './pt-BR/tabs.json';
 
 // Textos do app, por idioma e namespace (spec 01, seção 4.5). Um idioma novo
@@ -14,7 +15,7 @@ export const DEFAULT_LANGUAGE = 'pt-BR';
 export const DEFAULT_NAMESPACE = 'common';
 
 export const resources = {
-  'pt-BR': { about, common, dev, emergency, home, monitoring, onboarding, profile, tabs },
+  'pt-BR': { about, common, dev, emergency, home, monitoring, onboarding, profile, progress, tabs },
 } as const;
 
 export type Language = keyof typeof resources;

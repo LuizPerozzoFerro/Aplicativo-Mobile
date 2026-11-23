@@ -7,6 +7,7 @@ import { getRelapseDayKey, type CheckInAnswer, type RelapseDay } from '@/domain/
 import type { AbstinenceOverview } from '@/domain/overview';
 import { Button, Card, choiceDialog, Text, useTheme } from '@/ui';
 
+import { openProgress } from './openProgress';
 import { StreakSummary } from './StreakSummary';
 
 type Props = {
@@ -77,7 +78,12 @@ export function AbstinenceCard({ compulsion, overview, onChange }: Props) {
   return (
     <Card testID="home-card-pornography">
       <Text variant="heading">{t('common:compulsions.pornography')}</Text>
-      <StreakSummary overview={overview} mechanic="abstinence" />
+      <StreakSummary
+        overview={overview}
+        mechanic="abstinence"
+        testID="home-progress-pornography"
+        onPress={() => openProgress(compulsion.type)}
+      />
       {overview.relapseRecordedToday ? (
         <Text accessibilityLiveRegion="polite">{t('relapse.support')}</Text>
       ) : null}
