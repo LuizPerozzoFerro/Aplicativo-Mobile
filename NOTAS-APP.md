@@ -12,12 +12,23 @@ do protótipo continua em `prototype/NOTAS.md`.
 - **Fase 5 (spec 04 v0.2):** leitura e decisões integradas (PR #35). Seção "Fase 5 ·
   Leitura da spec 04".
 - **Passo 1 (catálogo)** integrado (PR #36). Seção
-  "Fase 5 · Passo 1 · Catálogo" (migração: uma por passo, decidido em 22/11). Passo 2
-  (hospedagem no Cloudflare R2) pronto na branch `fase5/hospedagem`, para revisão: catálogo e
-  vídeos de teste publicados no R2, desenvolvimento e prévia no `r2.dev`, produção impedida de
-  usar o `r2.dev`. Próximo: passo 3.
+  "Fase 5 · Passo 1 · Catálogo" (migração: uma por passo, decidido em 22/11).
+- **Passo 2 (hospedagem no Cloudflare R2)** integrado (PR #37). Seção "Fase 5 · Passo 2".
+- **Passo 3 (marcos e aba Progresso)** em andamento na branch `fase5/progresso`.
 - **Pendências para a Fase 8 (teste fechado):** chamada pela internet (Teams) com a tela de
   interrupção aberta e a medição oficial de bateria num build de loja.
+
+### Pendências para o fechamento da Fase 5 (decisões do responsável, 22/11/2026)
+
+1. **Endereço do conteúdo obrigatório na produção (Fase 8):** além de recusar o `r2.dev`, o
+   build de produção deve ser **recusado sem endereço** do conteúdo (domínio próprio). Hoje a
+   produção sem endereço é aceita, para o `check:manifest` de produção funcionar sem o
+   domínio (`resolveContentConfig` no `app.config.ts`).
+2. **Vídeos reais da Fase 7 fora do repositório:** só os vídeos de teste (`content/videos/`,
+   cerca de 350 KB) ficam no git. Onde guardar os reais é decisão da Fase 7.
+3. **Token de publicação vence em torno de 20/02/2027** (90 dias, criado em 22/11/2026):
+   criar outro igual no painel ("Workers R2 Storage", Edit, só a conta) e trocar a senha da
+   credencial `quedo-content-publish` no Gerenciador de Credenciais do Windows.
 
 ### Histórico até 09/11/2026
 
