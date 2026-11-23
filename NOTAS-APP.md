@@ -14,8 +14,9 @@ do protótipo continua em `prototype/NOTAS.md`.
 - **Passo 1 (catálogo)** integrado (PR #36). Seção
   "Fase 5 · Passo 1 · Catálogo" (migração: uma por passo, decidido em 22/11).
 - **Passo 2 (hospedagem no Cloudflare R2)** integrado (PR #37). Seção "Fase 5 · Passo 2".
-- **Passo 3 (marcos e aba Progresso)** revisado, PR #38. Seção "Fase 5 · Passo 3".
-- **Passo 4 (vídeos)** pronto na branch `fase5/videos` (a partir do passo 3), para revisão.
+- **Passo 3 (marcos e aba Progresso)** integrado (PR #38). Seção "Fase 5 · Passo 3".
+- **Passo 4 (vídeos)** pronto na branch `fase5/videos`, atualizada a partir da `main` depois do
+  merge do #38 (PR #39).
   Seção "Fase 5 · Passo 4". Próximo: passo 5 (notificação de marco no nativo).
 - **Pendências para a Fase 8 (teste fechado):** chamada pela internet (Teams) com a tela de
   interrupção aberta e a medição oficial de bateria num build de loja.
@@ -4184,10 +4185,14 @@ plugin.
   (`NetworkTypeObserver.getNetworkTypeFromConnectivityManager`) mostra a chamada a
   `getActiveNetworkInfo` dentro de um `catch (SecurityException)`. Sem a permissão, o
   ExoPlayer só trata a rede como desconhecida (afeta a estimativa de banda, não a
-  reprodução). Por isso foi **bloqueada na prévia e na produção**; no desenvolvimento fica,
-  porque o dev client precisa dela.
-- Um teste no `appConfig.test.ts` confere as duas por variante. A reprodução sem
-  `ACCESS_NETWORK_STATE` só pode ser vista num build de prévia (roteiro P15).
+  reprodução). Na primeira versão do PR #39, ela foi bloqueada na prévia e na produção.
+- **Decisão do responsável (23/11/2026):**
+  - **`WAKE_LOCK` continua bloqueada em todas as variantes.**
+  - **`ACCESS_NETWORK_STATE` foi liberada em todas as variantes:** saiu do bloqueio da
+    prévia e da produção e entrou na lista de permitidas do `check:manifest` (antes, só no
+    desenvolvimento). É uma permissão comum, sem pedido ao usuário, e o S22 deve testar o
+    mesmo app que os testadores vão receber.
+- Testes no `appConfig.test.ts` e no `check-manifest.test.ts` conferem as duas.
 
 ### Interpretações (a confirmar na revisão)
 
