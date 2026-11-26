@@ -14,6 +14,7 @@ const TABLES_005 = ['emergency_sessions', 'imported_events', 'interruption_event
 const TABLES_007 = ['content_catalog'];
 const TABLES_008 = ['milestone_reaches'];
 const TABLES_009 = ['app_usage_hourly', 'usage_history_days'];
+const TABLES_010 = ['monitoring_alerts'];
 /** Migrações do app no índice (drizzle/meta/_journal.json). */
 const APP_MIGRATIONS = loadMigrationBundle().journal.entries.length;
 
@@ -80,7 +81,7 @@ describe('migrações', () => {
     );
   });
 
-  it('as migrações criam as tabelas da 001, da 002, da 005, da 0007 e da 0008, a coluna do início informado (003), a resposta anterior do check-in (004) e a conferência dos marcos (0008)', async () => {
+  it('as migrações criam as tabelas da 001, da 002, da 005 e da 0007 à 0010, a coluna do início informado (003), a resposta anterior do check-in (004) e a conferência dos marcos (0008)', async () => {
     const { raw } = await createTestDatabase();
     expect(tableNames(raw)).toEqual(
       expect.arrayContaining([
@@ -90,6 +91,7 @@ describe('migrações', () => {
         ...TABLES_007,
         ...TABLES_008,
         ...TABLES_009,
+        ...TABLES_010,
       ]),
     );
     expect(columnNames(raw, 'user_compulsions')).toEqual(
@@ -423,6 +425,9 @@ const FIXTURE_ROWS: Record<string, readonly string[]> = {
   ],
   app_usage_hourly: [
     "INSERT INTO app_usage_hourly (day_key, hour, compulsion_id, app_package, seconds) VALUES ('2026-11-20', 9, 2, 'com.example.clips', 600)",
+  ],
+  monitoring_alerts: [
+    "INSERT INTO monitoring_alerts (id, compulsion_id, day_key, sent_at, kind, app_package) VALUES ('event-2', 1, '2026-11-01', 0, 'risk_app', 'com.example.forum')",
   ],
   milestone_reaches: [
     "INSERT INTO milestone_reaches (compulsion_id, milestone_day, streak_base_day, reached_on, celebrated_at) VALUES (1, 7, '2026-11-01', '2026-11-08', 1)",

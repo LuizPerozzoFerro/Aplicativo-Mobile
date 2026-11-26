@@ -15,6 +15,20 @@ export const MAX_PREVENTIVE_NOTIFICATIONS_PER_DAY = 4;
 export const INTERRUPTION_RESPONSES = ['emergency', 'home', 'continue', 'ignore_today'] as const;
 export type InterruptionResponse = (typeof INTERRUPTION_RESPONSES)[number];
 
+/** Respostas que contam como alerta respeitado e como ignorado (spec 04, 5.8). */
+export const RESPECTED_RESPONSES = ['home', 'emergency'] as const satisfies InterruptionResponse[];
+export const IGNORED_RESPONSES = [
+  'continue',
+  'ignore_today',
+] as const satisfies InterruptionResponse[];
+
+/**
+ * Avisos por notificação (`limit_reached`, spec 04, 5.9): o do limite somado
+ * da moderação e o de um app de risco, que tem o pacote do app.
+ */
+export const MONITORING_ALERT_KINDS = ['limit', 'risk_app'] as const;
+export type MonitoringAlertKind = (typeof MONITORING_ALERT_KINDS)[number];
+
 /** De onde a emergência foi aberta (spec 03, 5.6). */
 export const EMERGENCY_SOURCES = ['home', 'interruption', 'notification'] as const;
 export type EmergencySource = (typeof EMERGENCY_SOURCES)[number];

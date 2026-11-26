@@ -210,24 +210,93 @@ describe('importEvents', () => {
   it('eventos sem tabela própria ficam só como importados', () => {
     repositories.monitoringEvents.importEvents([
       event({ type: 'service_started', origin: 'boot' }),
-      event({ type: 'limit_reached', compulsionId: videos, targetId: null }),
       event({ type: 'notification_sent', kind: 'limit' }),
       event({ type: 'emergency_requested', source: 'interruption' }),
       event({ type: 'permission_lost', permission: 'usageAccess' }),
     ]);
-    expect(count('imported_events')).toBe(5);
-    for (const table of ['interruption_events', 'day_states', 'check_ins', 'emergency_sessions']) {
+    expect(count('imported_events')).toBe(4);
+    for (const table of [
+      'interruption_events',
+      'monitoring_alerts',
+      'day_states',
+      'check_ins',
+      'emergency_sessions',
+    ]) {
       expect(count(table)).toBe(0);
     }
+  });
+
+  it('avisos por notificação (spec 04, 5.9): limite somado sem app, app de risco com o app', () => {
+    const forum = asTargetId('com.example.forum');
+    const limit = event({ type: 'limit_reached', compulsionId: videos, targetId: null });
+    const risk = event({ type: 'limit_reached', compulsionId: adult, targetId: forum });
+    repositories.monitoringEvents.importEvents([limit, risk]);
+    // Importar de novo não duplica.
+    repositories.monitoringEvents.importEvents([limit, risk]);
+
+    expect(repositories.monitoringEvents.listAlerts(videos)).toEqual([
+      {
+        id: limit.id,
+        compulsionId: videos,
+        dayKey: DAY,
+        sentAt: new Date(EVENT_AT),
+        kind: 'limit',
+        appPackage: null,
+      },
+    ]);
+    expect(repositories.monitoringEvents.listAlerts(adult)).toEqual([
+      expect.objectContaining({ id: risk.id, kind: 'risk_app', appPackage: 'com.example.forum' }),
+    ]);
+    // O aviso não mexe no dia: nada de contagem nem reprovação.
+    expect(count('day_states')).toBe(0);
+  });
+
+  it('aviso de uma compulsão apagada é confirmado sem efeito', () => {
+    repositories.compulsions.remove(videos);
+    const limit = event({ type: 'limit_reached', compulsionId: videos, targetId: null });
+    expect(repositories.monitoringEvents.importEvents([limit])).toEqual({
+      handledIds: [limit.id],
+      failed: 0,
+    });
+    expect(count('monitoring_alerts')).toBe(0);
+  });
+
+  it('o banco recusa aviso de app de risco sem o app e aviso de limite com app', () => {
+    let row = 0;
+    const insert = (kind: string, app: string) =>
+      database.raw.run(
+        `INSERT INTO monitoring_alerts (id, compulsion_id, day_key, sent_at, kind, app_package) VALUES ('x-${(row += 1)}', ${adult}, '${DAY}', 0, '${kind}', ${app})`,
+      );
+    expect(() => insert('risk_app', 'NULL')).toThrow(/CHECK/);
+    expect(() => insert('limit', "'com.example.forum'")).toThrow(/CHECK/);
+    expect(() => insert('other', 'NULL')).toThrow(/CHECK/);
+    expect(count('monitoring_alerts')).toBe(0);
+  });
+
+  it('apagar a compulsão apaga os avisos dela; zerar o dia apaga os avisos do dia', () => {
+    repositories.monitoringEvents.importEvents([
+      event({ type: 'limit_reached', compulsionId: videos, targetId: null }),
+      event({ type: 'limit_reached', compulsionId: adult, targetId: clips }),
+    ]);
+    repositories.compulsions.remove(videos);
+    expect(count('monitoring_alerts')).toBe(1);
+    repositories.dayStates.clearDay(DAY);
+    expect(count('monitoring_alerts')).toBe(0);
   });
 
   it('apagar todos os dados apaga também as interrupções, as sessões e os importados', () => {
     repositories.monitoringEvents.importEvents([
       event({ type: 'interruption_shown', compulsionId: videos, targetId: clips }),
+      event({ type: 'limit_reached', compulsionId: videos, targetId: null }),
     ]);
     database.raw.run("INSERT INTO emergency_sessions (started_at, source) VALUES (0, 'home')");
     repositories.deleteAllData();
-    for (const table of ['interruption_events', 'emergency_sessions', 'imported_events']) {
+    for (const table of [
+      'interruption_events',
+      'monitoring_alerts',
+      'emergency_sessions',
+      'imported_events',
+    ]) {
       expect(count(table)).toBe(0);
     }
   });
