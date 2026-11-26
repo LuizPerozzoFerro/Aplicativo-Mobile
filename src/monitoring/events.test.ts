@@ -28,6 +28,8 @@ describe('parseNativeEvents', () => {
       { id: 'h', ...base, type: 'check_in_answered', compulsionId: 1, answer: 'relapse' },
       { id: 'i', ...base, type: 'emergency_requested', source: 'notification' },
       { id: 'j', ...base, type: 'permission_lost', permission: 'overlay' },
+      // Fase 5: notificação de marco (spec 04, 5.10).
+      { id: 'k', ...base, type: 'notification_sent', kind: 'milestone' },
     ];
     const { events, invalidIds } = parseNativeEvents(raw);
     expect(invalidIds).toEqual([]);

@@ -28,6 +28,7 @@ const TEXTS: MonitoringTexts = {
       },
     },
     restart: { title: 'd', text: 'e' },
+    milestone: { title: 'm', text: 'n' },
     protectionPaused: { title: 'd', text: 'e' },
   },
   interruption: {
@@ -58,6 +59,12 @@ const createSync = (target = fake, isForeground = () => true) =>
   createMonitoringSync({
     isForeground,
     repositories: () => repositories,
+    catalog: () => ({
+      formatVersion: 1,
+      contentVersion: 1,
+      updatedAt: '2026-11-22',
+      compulsions: {},
+    }),
     target: () => target,
     texts: () => TEXTS,
     links: () => ({

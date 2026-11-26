@@ -1,4 +1,5 @@
 import type { Repositories } from '@/data/repositories';
+import type { Catalog } from '@/domain/catalog';
 import { getProtectionNeeds } from '@/domain/protection';
 import type { MonitoringConfig, MonitoringModule, MonitoringTexts } from '@/monitoring';
 
@@ -11,6 +12,8 @@ import { buildMonitoringConfig } from './config';
 
 export type MonitoringSyncDeps = {
   repositories: () => Repositories;
+  /** Catálogo em uso: os dias dos marcos vão na configuração (spec 04, 5.10). */
+  catalog: () => Catalog;
   target: () => MonitoringModule;
   texts: () => MonitoringTexts;
   links: () => MonitoringConfig['links'];
@@ -28,6 +31,7 @@ export type MonitoringSync = {
 
 export function createMonitoringSync({
   repositories,
+  catalog,
   target,
   texts,
   links,
@@ -54,7 +58,7 @@ export function createMonitoringSync({
     // Só depois de gravar no banco o nativo pode apagar (spec 03, 4.3).
     const ids = [...handled.handledIds, ...invalidIds];
     if (ids.length > 0) await monitoring.acknowledgeEvents(ids);
-    const config = buildMonitoringConfig(repos, texts(), now(), links());
+    const config = buildMonitoringConfig(repos, catalog(), texts(), now(), links());
     await monitoring.configure(config);
     await applyServiceState(monitoring, config, repos.settings.get().onboardingCompleted);
     await monitoring.checkProtection();

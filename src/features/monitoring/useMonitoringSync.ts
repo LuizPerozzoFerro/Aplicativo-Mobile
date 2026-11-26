@@ -5,6 +5,7 @@ import { AppState } from 'react-native';
 
 import { getRepositories } from '@/data/bootstrap';
 import { dataChanges } from '@/data/changes';
+import { getAppCatalogService } from '@/features/content/useCatalog';
 import { getMonitoring, type MonitoringTexts } from '@/monitoring';
 
 import { createMonitoringSync, type MonitoringSync } from './monitoringSync';
@@ -22,6 +23,7 @@ let currentTexts: MonitoringTexts | null = null;
 export function getAppMonitoringSync(): MonitoringSync {
   shared ??= createMonitoringSync({
     repositories: getRepositories,
+    catalog: () => getAppCatalogService().current().catalog,
     target: () => getMonitoring(),
     texts: () => {
       if (!currentTexts) throw new Error('Textos do monitoramento ainda não carregados');
@@ -84,6 +86,10 @@ export function useMonitoringSync(): void {
           },
         },
         restart: { title: t('notifications.restart.title'), text: t('notifications.restart.text') },
+        milestone: {
+          title: t('notifications.milestone.title'),
+          text: t('notifications.milestone.text'),
+        },
         protectionPaused: {
           title: t('notifications.protectionPaused.title'),
           text: t('notifications.protectionPaused.text'),

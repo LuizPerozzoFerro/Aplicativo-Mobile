@@ -393,6 +393,11 @@ export default function DevMonitoringScreen() {
             onPress={() => native.debugFireNotification('restart')}
           />
           <Button
+            label={t('monitoring.notifications.fireMilestone')}
+            variant="secondary"
+            onPress={() => native.debugFireNotification('milestone')}
+          />
+          <Button
             label={t('monitoring.notifications.fireProtection')}
             variant="secondary"
             onPress={() => native.debugFireNotification('protection_paused')}

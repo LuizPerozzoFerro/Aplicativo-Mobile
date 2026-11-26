@@ -200,11 +200,14 @@ object MomentRunner {
           )
         }
 
-        is MomentRules.Action.DayFailed -> EventStore.append(
-          context,
-          "day_failed",
-          mapOf("compulsionId" to action.compulsionId, "reason" to action.reason),
-        )
+        is MomentRules.Action.DayFailed -> {
+          val eventId = EventStore.append(
+            context,
+            "day_failed",
+            mapOf("compulsionId" to action.compulsionId, "reason" to action.reason),
+          )
+          NotificationCenter.onDayFailed(context, action.compulsionId, eventId)
+        }
       }
     }
     editor.apply()
@@ -268,12 +271,12 @@ object MomentRunner {
     }
     for (action in actions) {
       if (action is MomentRules.Action.DayFailed) {
-        EventStore.append(
+        val eventId = EventStore.append(
           context,
           "day_failed",
           mapOf("compulsionId" to action.compulsionId, "reason" to action.reason),
         )
-        NotificationCenter.onDayFailed(context, action.compulsionId)
+        NotificationCenter.onDayFailed(context, action.compulsionId, eventId)
       }
     }
   }

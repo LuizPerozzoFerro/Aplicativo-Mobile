@@ -11,11 +11,13 @@ import {
   type MomentResponse,
   type MomentState,
 } from './momentRules';
+import { getMilestoneDay } from './milestoneNotification';
 import dayBoundary from './vectors/day-boundary.json';
+import milestoneDay from './vectors/milestone-day.json';
 import momentRules from './vectors/moment-rules.json';
 
-// Os mesmos vetores rodam no JUnit (MomentRulesVectorsTest e
-// DayBoundaryVectorsTest), contra o Kotlin que executa no aparelho (spec 03, 4.1).
+// Os mesmos vetores rodam no JUnit (VectorsTest: regras do momento, borda do
+// dia e dia de marco), contra o Kotlin que executa no aparelho (spec 03, 4.1).
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -136,5 +138,28 @@ describe('vetores da borda do dia', () => {
     expect(toDayKey(instant)).toBe(item.dayKey);
     expect(startOfDay(instant).toISOString()).toBe(item.startOfDay);
     expect(startOfNextDay(instant).toISOString()).toBe(item.startOfNextDay);
+  });
+});
+
+describe('vetores do dia de marco (spec 04, 4.3 e 5.5)', () => {
+  it('há casos para rodar', () => {
+    expect(milestoneDay.cases.length).toBeGreaterThan(10);
+  });
+
+  it.each(milestoneDay.cases.map((item) => [item.name, item] as const))('%s', (_name, item) => {
+    expect(
+      getMilestoneDay({
+        today: item.today,
+        compulsions: item.compulsions.map((compulsion) => ({
+          id: compulsion.id,
+          streakBaseDayKey: compulsion.base,
+          streakBaseIsBreak: compulsion.baseIsBreak,
+          milestoneDays: compulsion.days,
+          quietUntilDayKey: compulsion.quietUntil,
+          celebratedOnDayKey: compulsion.celebratedOn,
+        })),
+        nativeBreaks: item.nativeBreaks,
+      }),
+    ).toEqual(item.expect);
   });
 });

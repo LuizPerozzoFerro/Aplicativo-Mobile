@@ -28,6 +28,8 @@ object EventStore {
 
   fun acknowledge(context: Context, ids: Collection<String>) = log(context).acknowledge(ids)
 
+  fun pendingIds(context: Context): Set<String> = log(context).pendingIds()
+
   fun count(context: Context): Int = log(context).count()
 
   fun clear(context: Context) = log(context).clear()

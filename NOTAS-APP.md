@@ -5,18 +5,7 @@ do protótipo continua em `prototype/NOTAS.md`.
 
 ---
 
-## Onde paramos (23/11/2026)
-
-**Ponto de parada:** o PR #39 (passo 4, vídeos) está **aguardando o merge do responsável**. O
-código foi conferido no S22, e o `check:manifest` deu OK nas três variantes (seção "Fase 5 ·
-Passo 4"). **Próximo: passo 5 (notificação de marco no nativo), ainda não começado**; só houve
-leitura de `NotificationPlan.kt` e `NotificationCenter.kt`. Ao retomar:
-1. Atualizar a `main` local depois do merge do #39.
-2. Criar a branch do passo 5 a partir dela.
-3. Conferir o `adb` com limite de tempo antes de usar o aparelho, porque ele travou várias vezes
-   em 22 e 23/11 (AP3).
-
-A pasta `android/` está no desenvolvimento (`br.com.quedo.app.dev`), com o build instalado no S22.
+## Onde paramos (25/11/2026)
 
 - **Fase 4 concluída e revisada** (PRs #21 a #33); documentos fechados no planejamento
   (PR #34: doc 01 v0.11, doc 02 v0.9, spec 03 v0.3, relatório 01 v0.5).
@@ -26,8 +15,9 @@ A pasta `android/` está no desenvolvimento (`br.com.quedo.app.dev`), com o buil
   "Fase 5 · Passo 1 · Catálogo" (migração: uma por passo, decidido em 22/11).
 - **Passo 2 (hospedagem no Cloudflare R2)** integrado (PR #37). Seção "Fase 5 · Passo 2".
 - **Passo 3 (marcos e aba Progresso)** integrado (PR #38). Seção "Fase 5 · Passo 3".
-- **Passo 4 (vídeos)** pronto na branch `fase5/videos`, atualizada a partir da `main` depois do
-  merge do #38 (PR #39, aguardando o merge). Seção "Fase 5 · Passo 4".
+- **Passo 4 (vídeos)** integrado (PR #39). Seção "Fase 5 · Passo 4".
+- **Passo 5 (notificação de marco no nativo)** pronto na branch `fase5/notificacao-marco`, para
+  revisão. Seção "Fase 5 · Passo 5". Próximo: passo 6 (histórico de uso no nativo).
 - **Pendências para a Fase 8 (teste fechado):** chamada pela internet (Teams) com a tela de
   interrupção aberta e a medição oficial de bateria num build de loja.
 
@@ -4256,6 +4246,133 @@ Também 2 testes novos no `appConfig.test.ts`, com as permissões bloqueadas por
 - **Sem internet (mensagem e "Tentar de novo"):** conferido no Jest. No aparelho, pede o modo
   avião ligado pelo responsável e fica para o roteiro (P2).
 - **`adb`** travado de novo antes do primeiro build (AP3): reiniciado.
+
+## Fase 5 · Passo 5 · Notificação de marco no nativo (25/11/2026)
+
+Branch `fase5/notificacao-marco`, a partir da `main` com o PR #39. **Sem migração:** nada
+mudou no banco.
+
+### O que entrou
+
+- **Regras "hoje é dia de marco?"** (spec 04, 4.3 e 5.5), iguais em
+  `src/domain/milestoneNotification.ts` e `MilestoneRules.kt`, sem nada do Android.
+  - **Base efetiva:** a mais recente entre a do JS e a última quebra que o nativo viu e o JS
+    ainda não importou (dia reprovado na tela de interrupção, "Tive uma recaída" na
+    notificação).
+  - **Dia do recomeço, para o aparelho inteiro:** se alguma compulsão está no dia seguinte a
+    uma quebra, nenhuma notificação de marco sai. Inclui a recaída registrada hoje para ontem
+    (base do JS em ontem, como quebra).
+  - **Uma notificação por dia,** mesmo com marco nas duas compulsões.
+  - **Início com "há N dias":** quieto até o dia em que o usuário começou no app.
+  - **Marco de hoje já celebrado no app:** a notificação não repete.
+- **Vetores compartilhados:** `src/domain/vectors/milestone-day.json`, com 17 casos,
+  lidos pelo Jest (`vectors.test.ts`) e pelo JUnit (`VectorsTest.milestoneDay`).
+- **Agendamento** (`NotificationPlan`, só no nativo, vetores em
+  `notification-schedule.json`):
+  - o item `Milestone` sai às 9h com o celular em uso ou no primeiro desbloqueio depois das
+    9h, pelo mesmo mecanismo do recomeço (`milestoneWaiting`, conferência no desbloqueio);
+  - usa a vaga garantida do recomeço no limite de 6 (check-in, marco e 4 preventivas);
+  - expira à meia-noite.
+  - Seis cenários novos: 9h; duas compulsões; recomeço de outra compulsão; quebra vista pelo
+    nativo; limite de 6; configuração anterior à Fase 5.
+- **Quebras vistas pelo nativo** (`seenBreaks` no estado das notificações):
+  - guardadas com o id do evento (`check_in_answered` com recaída, `day_failed`);
+  - **esquecidas quando a configuração nova chega e o evento já não está pendente**. O JS
+    sempre importa e confirma os eventos antes de enviar a configuração, então a quebra já
+    está na base do JS, inclusive depois de um "Desfazer" no app. Assim, desfazer uma quebra
+    no mesmo dia reavalia o marco, como a spec pede (5.5);
+  - "Apagar meus dados" (`reset` do nativo) limpa o estado das notificações, com as quebras
+    vistas.
+- **Notificação** (`Notifier.sendMilestone`, id 1013):
+  - canal Lembretes;
+  - texto neutro vindo do i18n ("Um novo marco" / "Você chegou a um novo marco. Toque para ver
+    o seu progresso."), sem o nome da compulsão;
+  - na tela bloqueada, a versão pública neutra, como todas (`NotificationHold`);
+  - tocar abre o app, que mostra a celebração.
+- **Configuração** (5.10): por compulsão, `streakBaseIsBreak`, `milestoneDays` (do catálogo),
+  `milestoneQuietUntilDayKey` e `milestoneCelebratedOnDayKey`, e o texto
+  `notifications.milestone`.
+  - Sem esse texto (configuração gravada antes da Fase 5), o nativo não calcula marco nenhum.
+    A validação da configuração não passou a exigir o texto, para uma configuração antiga
+    continuar valendo até o app abrir.
+- **Evento:** `notification_sent` do tipo `milestone`, importado como os outros.
+- **Ferramenta de teste:** "Disparar marco" na tela de conferência, junto dos outros disparos.
+  A spec põe as ferramentas no passo 8, mas esta usa o disparo que já existia
+  (`debugFireNotification`, só em build depurável).
+
+### Interpretações (a confirmar na revisão)
+
+1. **Marco já celebrado no app hoje não gera notificação:** se o usuário abriu o app antes
+   das 9h e viu a celebração, a notificação seria repetida. A spec não trata do caso.
+2. **"Dia do recomeço" pela base efetiva:** é dia de recomeço o dia seguinte a uma quebra de
+   qualquer compulsão, com ou sem notificação de recomeço (que só sai se havia streak a
+   perder). Assim, a recaída registrada hoje para ontem e a quebra vista pelo nativo ontem
+   ficam cobertas pela mesma regra.
+3. **Quebra vista pelo nativo esquecida pela confirmação do evento** (ver acima). A
+   alternativa, esquecer pela data, falharia no "Desfazer".
+4. **O dia reprovado no caminho da verificação (`tick`) também avisa o `NotificationCenter`**,
+   como o da resposta à tela já fazia (antes só o segundo agendava o recomeço). Hoje o `tick`
+   não produz `DayFailed`; a mudança deixa os dois caminhos iguais.
+
+### Pendência herdada da Fase 4 (5.14): falha intermitente do Jest, resolvida
+
+- **Reproduzida com `npx jest --clearCache`:** com o cache frio, o primeiro teste de quatro
+  suítes que montam as rotas reais estourou o limite de 5 s. Eram
+  `milestones.test.tsx` ("aba Progresso › sem compulsão ativa", 39 s),
+  `profile.test.tsx`, `home.test.tsx` e `onboardingSteps.test.tsx`.
+- **Causa:** o `renderRouter` carrega e transforma todas as telas na primeira vez, e esse tempo
+  cai dentro do primeiro teste. Não é defeito do app.
+- **Correção:** `testTimeout: 20000` na configuração do Jest (`package.json`). Com o cache
+  limpo de novo, os 988 testes passaram (61 s); com o cache quente, levam 22 s.
+
+### Testes
+
+988 testes no Jest (964 no passo 4). Novos:
+- vetores do dia de marco (17);
+- configuração do monitoramento (dias do catálogo, base como quebra, quieto até, celebrado);
+- evento `milestone`.
+
+JUnit: 12 classes, sem falhas. Novos:
+- `VectorsTest.milestoneDay`;
+- seis cenários em `scheduleVectors`;
+- `milestoneWaitingExpiresAtMidnight`;
+- `stateFromBeforePhase5StillLoads`;
+- `milestonesComeFromTheConfigOnlyWithTheirTexts`.
+
+**Mutação de controle:**
+- TypeScript, quatro mutações, todas pegas: ignorar a quebra vista, tirar a regra do
+  recomeço, ignorar o início com N dias e ignorar o já celebrado.
+- Kotlin, três mutações, todas pegas: ignorar a quebra vista, tirar a regra do recomeço e
+  tirar o limite de um por dia. Uma delas foi conferida no relatório do JUnit: caiu na
+  asserção do vetor "recomeço de outra compulsão hoje", não em erro de compilação.
+- Os arquivos foram restaurados e conferidos.
+
+`lint`, `typecheck` e `format:check` ok.
+
+### No S22 (25/11, 23:07, development build novo)
+
+- **Builds:** o primeiro caiu no AP2 duas vezes, com sintomas diferentes:
+  - arquivo do `react-native-worklets` preso pelo daemon do Gradle dos testes JUnit. Resolvido
+    com `gradlew --stop`, os `java` encerrados e a pasta `cxx/Debug` apagada;
+  - depois, `packageDebug` com `IncrementalSplitterRunnable`. Resolvido rodando a instalação
+    de novo (1m28s).
+  - `check:manifest` OK.
+- **Celebração ao abrir:** B chegou a 14 dias hoje e apareceu "Você chegou a 14 dias", com o
+  título do marco.
+- **Configuração no nativo** (`quedo-monitoring-config.xml`):
+  - B com base em 11/11 (início limpo), dias do catálogo e `milestoneCelebratedOnDayKey =
+    2026-11-25`;
+  - A com base em 15/11 como quebra;
+  - o texto neutro do marco chegou.
+- **Estado das notificações:** `milestoneSent: false` e `milestoneWaiting: false`. O marco de
+  hoje foi celebrado no app, então a notificação não sai (interpretação 1).
+- **"Disparar marco":** pelo `dumpsys notification`, a notificação 1013 tem canal
+  `reminders`, título "Um novo marco", texto neutro, `vis=SECRET` e versão pública neutra.
+  Disparei o recomeço (1012) para comparar, e os dois têm o mesmo padrão.
+- **Fica para o roteiro:** ver a tela bloqueada com o S22 bloqueado (P8) e a notificação
+  saindo sozinha às 9h com o app fechado. Isso depende da ferramenta "Simular uma streak"
+  (passo 8) ou de esperar um marco real sem abrir o app.
+- **`adb`:** travado de novo antes do build (AP3), reiniciado.
 
 ## Problemas
 

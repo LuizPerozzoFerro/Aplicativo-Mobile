@@ -124,6 +124,14 @@ export type MonitoringCompulsionConfig = {
   readonly streakBaseDayKey: string;
   /** Último dia com check-in respondido (AAAA-MM-DD), ou nulo. Só na abstinência. */
   readonly checkInAnsweredDayKey: string | null;
+  /** A base é o dia de uma quebra (recomeço), não um início limpo (spec 04, 4.3). */
+  readonly streakBaseIsBreak: boolean;
+  /** Dias dos marcos, do catálogo (spec 04, 5.10). */
+  readonly milestoneDays: readonly number[];
+  /** Início com "há N dias": até este dia, nada de notificação de marco (spec 04, 5.3). */
+  readonly milestoneQuietUntilDayKey: string | null;
+  /** Último dia com um alcance de marco já celebrado no app: hoje, a notificação não repete. */
+  readonly milestoneCelebratedOnDayKey: string | null;
 };
 
 export type ModerationRuleConfig = {
@@ -182,6 +190,8 @@ export type MonitoringTexts = {
       readonly byEmotion: { readonly [E in Emotion]: string };
     };
     readonly restart: { readonly title: string; readonly text: string };
+    /** Marco alcançado (spec 04, 5.5): neutro, sem o nome da compulsão. */
+    readonly milestone: { readonly title: string; readonly text: string };
     readonly protectionPaused: { readonly title: string; readonly text: string };
   };
   readonly interruption: {
@@ -221,6 +231,7 @@ export const NOTIFICATION_KINDS = [
   'preventive',
   'restart',
   'protection_paused',
+  'milestone',
 ] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 

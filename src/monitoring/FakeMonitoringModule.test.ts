@@ -160,6 +160,7 @@ describe('configuração e eventos (spec 03, 4.2 e 4.3)', () => {
           },
         },
         restart: { title: 'd', text: 'e' },
+        milestone: { title: 'm', text: 'n' },
         protectionPaused: { title: 'd', text: 'e' },
       },
       interruption: {

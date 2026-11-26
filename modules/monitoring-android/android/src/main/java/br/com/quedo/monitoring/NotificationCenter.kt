@@ -146,6 +146,16 @@ object NotificationCenter {
             Notifier.sendPreventive(context, configJson, preventiveBody(configJson, item.minutes, now))
             recordSent(context, "preventive")
           }
+
+          // Como o recomeço: às 9h com o celular em uso, senão no primeiro desbloqueio (spec 04, 5.5).
+          NotificationPlan.Item.Milestone -> {
+            if (canWaitForUnlock(context) && !inUse(context)) {
+              state.milestoneWaiting = true
+              continue
+            }
+            Notifier.sendMilestone(context, configJson)
+            recordSent(context, "milestone")
+          }
         }
         NotificationPlan.markSent(state, item)
       }
@@ -158,12 +168,13 @@ object NotificationCenter {
   }
 
   /**
-   * A cada verificação do serviço e no desbloqueio: o recomeço esperando o
-   * desbloqueio e as notificações publicadas neutras (M12).
+   * A cada verificação do serviço e no desbloqueio: o recomeço e o marco
+   * esperando o desbloqueio e as notificações publicadas neutras (M12).
    */
   @Synchronized
   fun onServiceCheck(context: Context) {
-    if (load(context).restartWaiting && inUse(context)) run(context)
+    val state = load(context)
+    if ((state.restartWaiting || state.milestoneWaiting) && inUse(context)) run(context)
     Notifier.revealHeld(context)
   }
 
@@ -191,15 +202,28 @@ object NotificationCenter {
     save(context, state)
   }
 
+  /**
+   * Quebra vista pelo nativo com o app fechado (spec 04, 4.3): vale para a base
+   * da streak até o JS importar o evento dela (`onConfigured`).
+   */
+  private fun rememberBreak(context: Context, compulsionId: Int, eventId: String) {
+    val state = load(context)
+    state.seenBreaks.add(
+      NotificationPlan.SeenBreak(compulsionId, DayBoundary.dayKey(System.currentTimeMillis()), eventId),
+    )
+    save(context, state)
+  }
+
   /** Resposta dada na própria notificação, sem abrir o app. */
   @Synchronized
   fun answerCheckIn(context: Context, compulsionId: Int, answer: String) {
     val config = ConfigStore.get(context) ?: return
-    EventStore.append(
+    val eventId = EventStore.append(
       context,
       "check_in_answered",
       mapOf("compulsionId" to compulsionId, "answer" to answer),
     )
+    if (answer == "relapse") rememberBreak(context, compulsionId, eventId)
     val state = load(context)
     NotificationPlan.enterDay(state, System.currentTimeMillis(), ZoneId.systemDefault())
     state.checkInAnswered = true
@@ -209,11 +233,27 @@ object NotificationCenter {
     run(context)
   }
 
-  /** Dia reprovado na tela de interrupção: pode haver recomeço amanhã. */
+  /** Dia reprovado na tela de interrupção: pode haver recomeço amanhã. `eventId`: o do `day_failed`. */
   @Synchronized
-  fun onDayFailed(context: Context, compulsionId: Int) {
+  fun onDayFailed(context: Context, compulsionId: Int, eventId: String) {
     val config = ConfigStore.get(context) ?: return
+    rememberBreak(context, compulsionId, eventId)
     scheduleRestartIfHadStreak(context, config, compulsionId)
+    run(context)
+  }
+
+  /**
+   * Configuração nova do JS, que sempre importa os eventos antes de enviá-la:
+   * as quebras cujo evento já foi importado estão na base do JS (inclusive um
+   * "Desfazer" no app), e o nativo as esquece (spec 04, 4.3 e 5.5).
+   */
+  @Synchronized
+  fun onConfigured(context: Context) {
+    val state = load(context)
+    if (state.seenBreaks.isNotEmpty()) {
+      val pending = EventStore.pendingIds(context)
+      if (state.seenBreaks.removeAll { it.eventId !in pending }) save(context, state)
+    }
     run(context)
   }
 
@@ -256,6 +296,7 @@ object NotificationCenter {
 
       "preventive" -> Notifier.sendPreventive(context, config, preventiveBody(config, now.toInt().mod(1440), now))
       "restart" -> Notifier.sendRestart(context, config)
+      "milestone" -> Notifier.sendMilestone(context, config)
       "protection_paused" -> Notifier.sendProtectionPaused(context, config)
     }
   }

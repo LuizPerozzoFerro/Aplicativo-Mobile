@@ -76,6 +76,11 @@ class EventLog(private val file: File, private val maxEvents: Int = MAX_EVENTS) 
     write(readLines().filter { line -> parse(line)?.optString("id")?.let { it !in remove } ?: false })
   }
 
+  /** Ids dos eventos ainda não confirmados (não importados) pelo JS. */
+  @Synchronized
+  fun pendingIds(): Set<String> =
+    readLines().mapNotNull { line -> parse(line)?.optString("id")?.takeIf { it.isNotEmpty() } }.toSet()
+
   @Synchronized
   fun count(): Int = readLines().count { parse(it) != null }
 

@@ -196,4 +196,40 @@ class VectorsTest {
     assertEquals(minute, test.moderation[0].limitOn("2026-11-08"))
     assertEquals(minute, test.risk[0].limitMs)
   }
+
+  @Test
+  fun milestoneDay() {
+    val cases = load("milestone-day.json").getJSONArray("cases")
+    assertTrue(cases.length() > 10)
+    for (index in 0 until cases.length()) {
+      val item = cases.getJSONObject(index)
+      val name = item.getString("name")
+      val compulsions = item.getJSONArray("compulsions")
+      val breaks = item.getJSONArray("nativeBreaks")
+      val result = MilestoneRules.today(
+        item.getString("today"),
+        (0 until compulsions.length()).map {
+          val c = compulsions.getJSONObject(it)
+          val days = c.getJSONArray("days")
+          MilestoneRules.Compulsion(
+            id = c.getInt("id"),
+            streakBaseDayKey = c.getString("base"),
+            streakBaseIsBreak = c.getBoolean("baseIsBreak"),
+            milestoneDays = (0 until days.length()).map { i -> days.getInt(i) }.toSet(),
+            quietUntilDayKey = if (c.isNull("quietUntil")) null else c.getString("quietUntil"),
+            celebratedOnDayKey = if (c.isNull("celebratedOn")) null else c.getString("celebratedOn"),
+          )
+        },
+        (0 until breaks.length()).map {
+          val b = breaks.getJSONObject(it)
+          MilestoneRules.NativeBreak(b.getInt("compulsionId"), b.getString("dayKey"))
+        },
+      )
+      val expect = item.getJSONObject("expect")
+      val ids = expect.getJSONArray("compulsionIds")
+      assertEquals(name, expect.getBoolean("restartDay"), result.restartDay)
+      assertEquals(name, (0 until ids.length()).map { ids.getInt(it) }, result.compulsionIds)
+      assertEquals(name, expect.getBoolean("due"), result.due)
+    }
+  }
 }

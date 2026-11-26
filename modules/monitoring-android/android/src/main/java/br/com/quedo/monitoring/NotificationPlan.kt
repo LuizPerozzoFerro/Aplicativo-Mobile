@@ -7,9 +7,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * Quais lembretes saem e quando acordar de novo (spec 03, 5.4). Sem nada do
- * Android além do org.json, para os testes JUnit. O estado cabe num JSON,
- * porque o processo morre e o aparelho reinicia.
+ * Quais lembretes saem e quando acordar de novo (spec 03, 5.4; marco: spec 04,
+ * 5.5). Sem nada do Android além do org.json, para os testes JUnit. O estado
+ * cabe num JSON, porque o processo morre e o aparelho reinicia.
  *
  * Um alarme só: o do próximo lembrete ou, no máximo, o da próxima meia-noite.
  */
@@ -33,7 +33,15 @@ object NotificationPlan {
     val weekdays: Set<Int>,
     val startMinutes: List<Int>,
     val restartDayKeys: Set<String>,
+    /**
+     * Compulsões e dias dos marcos (spec 04, 5.10). Vazio com uma configuração
+     * anterior à Fase 5, sem os textos da notificação de marco.
+     */
+    val milestones: List<MilestoneRules.Compulsion> = emptyList(),
   )
+
+  /** Quebra vista pelo nativo; sai quando o JS importa o evento dela (`eventId`). */
+  data class SeenBreak(val compulsionId: Int, val dayKey: String, val eventId: String)
 
   sealed class Item {
     data object CheckInDue : Item()
@@ -41,6 +49,9 @@ object NotificationPlan {
     data object Restart : Item()
 
     data class Preventive(val minutes: Int) : Item()
+
+    /** Uma só por dia, mesmo com marco em várias compulsões (spec 04, 5.5). */
+    data object Milestone : Item()
   }
 
   class State(
@@ -57,6 +68,11 @@ object NotificationPlan {
     val nativeRestartDays: MutableSet<String> = HashSet(),
     /** Motivos de "proteção pausada" já avisados hoje. */
     val protectionReasons: MutableSet<String> = HashSet(),
+    var milestoneSent: Boolean = false,
+    /** Marco vencido, esperando o desbloqueio (como o recomeço). */
+    var milestoneWaiting: Boolean = false,
+    /** Quebras vistas pelo nativo e ainda não importadas pelo JS (spec 04, 4.3). */
+    val seenBreaks: MutableList<SeenBreak> = ArrayList(),
   ) {
     fun toJson(): JSONObject = JSONObject()
       .put("dayKey", dayKey ?: JSONObject.NULL)
@@ -68,6 +84,16 @@ object NotificationPlan {
       .put("preventiveSent", JSONArray(preventiveSent.toList()))
       .put("nativeRestartDays", JSONArray(nativeRestartDays.toList()))
       .put("protectionReasons", JSONArray(protectionReasons.toList()))
+      .put("milestoneSent", milestoneSent)
+      .put("milestoneWaiting", milestoneWaiting)
+      .put(
+        "seenBreaks",
+        JSONArray(
+          seenBreaks.map {
+            JSONObject().put("compulsionId", it.compulsionId).put("dayKey", it.dayKey).put("eventId", it.eventId)
+          },
+        ),
+      )
 
     companion object {
       fun fromJson(json: JSONObject): State {
@@ -85,6 +111,15 @@ object NotificationPlan {
         for (i in 0 until days.length()) state.nativeRestartDays.add(days.getString(i))
         val reasons = json.getJSONArray("protectionReasons")
         for (i in 0 until reasons.length()) state.protectionReasons.add(reasons.getString(i))
+        // Campos da Fase 5: um estado gravado antes deles continua valendo.
+        state.milestoneSent = json.optBoolean("milestoneSent", false)
+        state.milestoneWaiting = json.optBoolean("milestoneWaiting", false)
+        json.optJSONArray("seenBreaks")?.let { seen ->
+          for (i in 0 until seen.length()) {
+            val item = seen.getJSONObject(i)
+            state.seenBreaks.add(SeenBreak(item.getInt("compulsionId"), item.getString("dayKey"), item.getString("eventId")))
+          }
+        }
         return state
       }
     }
@@ -110,6 +145,8 @@ object NotificationPlan {
     state.proactiveSent = 0
     state.preventiveSent.clear()
     state.protectionReasons.clear()
+    state.milestoneSent = false
+    state.milestoneWaiting = false
     state.nativeRestartDays.removeAll { it < today }
     return hadDay
   }
@@ -121,6 +158,16 @@ object NotificationPlan {
 
   private fun restartPending(config: Config, state: State, today: String): Boolean =
     !state.restartSent && (today in config.restartDayKeys || today in state.nativeRestartDays)
+
+  /** Marco de hoje ainda não enviado, pelas regras de `MilestoneRules` (vetores compartilhados). */
+  private fun milestonePending(config: Config, state: State, today: String): Boolean =
+    !state.milestoneSent &&
+      config.milestones.isNotEmpty() &&
+      MilestoneRules.today(
+        today,
+        config.milestones,
+        state.seenBreaks.map { MilestoneRules.NativeBreak(it.compulsionId, it.dayKey) },
+      ).due
 
   private fun preventiveToday(config: Config, today: LocalDate): List<Int> {
     // DayOfWeek: segunda = 1 ... domingo = 7.
@@ -148,6 +195,13 @@ object NotificationPlan {
         total += 1
       }
     }
+    // Usa a vaga garantida do recomeço, que nunca sai no mesmo dia (spec 04, 5.5).
+    if (milestonePending(config, state, key) && now >= at(today, RESTART_MINUTES, zone)) {
+      if (total < MAX_PROACTIVE_PER_DAY) {
+        items.add(Item.Milestone)
+        total += 1
+      }
+    }
     var preventive = state.preventiveSent.size
     for (minutes in preventiveToday(config, today)) {
       if (minutes in state.preventiveSent) continue
@@ -169,6 +223,10 @@ object NotificationPlan {
         state.restartWaiting = false
       }
       is Item.Preventive -> state.preventiveSent.add(item.minutes)
+      Item.Milestone -> {
+        state.milestoneSent = true
+        state.milestoneWaiting = false
+      }
     }
     state.proactiveSent += 1
   }
@@ -184,6 +242,7 @@ object NotificationPlan {
       if (checkInPending(config, state, key)) candidates.add(at(today, it.minutes, zone))
     }
     if (restartPending(config, state, key)) candidates.add(at(today, RESTART_MINUTES, zone))
+    if (milestonePending(config, state, key)) candidates.add(at(today, RESTART_MINUTES, zone))
     for (minutes in preventiveToday(config, today)) {
       if (minutes !in state.preventiveSent) candidates.add(at(today, minutes, zone))
     }
@@ -212,7 +271,33 @@ object NotificationPlan {
       weekdays = (0 until weekdays.length()).map { weekdays.getInt(it) }.toSet(),
       startMinutes = (0 until starts.length()).map { starts.getInt(it) },
       restartDayKeys = (0 until restart.length()).map { restart.getString(it) }.toSet(),
+      milestones = milestonesFrom(json),
     )
+  }
+
+  private fun JSONObject.optDayKey(name: String): String? =
+    if (isNull(name)) null else optString(name).takeIf { it.isNotEmpty() }
+
+  /**
+   * Compulsões com dias de marco. Sem os textos da notificação de marco (uma
+   * configuração gravada antes da Fase 5), nenhuma: o nativo não tem o que mostrar.
+   */
+  private fun milestonesFrom(json: JSONObject): List<MilestoneRules.Compulsion> {
+    val texts = json.optJSONObject("texts")?.optJSONObject("notifications")?.optJSONObject("milestone")
+    if (texts == null || texts.optString("title").isBlank() || texts.optString("text").isBlank()) return emptyList()
+    val compulsions = json.getJSONArray("compulsions")
+    return (0 until compulsions.length()).mapNotNull {
+      val item = compulsions.getJSONObject(it)
+      val days = item.optJSONArray("milestoneDays") ?: return@mapNotNull null
+      MilestoneRules.Compulsion(
+        id = item.getInt("id"),
+        streakBaseDayKey = item.getString("streakBaseDayKey"),
+        streakBaseIsBreak = item.optBoolean("streakBaseIsBreak", false),
+        milestoneDays = (0 until days.length()).map { i -> days.getInt(i) }.toSet(),
+        quietUntilDayKey = item.optDayKey("milestoneQuietUntilDayKey"),
+        celebratedOnDayKey = item.optDayKey("milestoneCelebratedOnDayKey"),
+      )
+    }
   }
 
   /** O recomeço vale se havia streak a perder: 1 dia ou mais até hoje (spec 03, 5.4). */

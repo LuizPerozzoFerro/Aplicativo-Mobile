@@ -32,6 +32,7 @@ object Notifier {
   const val PREVENTIVE_NOTIFICATION_ID = 1010
   const val CHECK_IN_NOTIFICATION_ID = 1011
   const val RESTART_NOTIFICATION_ID = 1012
+  const val MILESTONE_NOTIFICATION_ID = 1013
   const val PROTECTION_NOTIFICATION_ID = 1020
 
   /** Um id por app de risco, para um aviso não substituir o de outro. */
@@ -184,6 +185,7 @@ object Notifier {
       "checkIn" -> spec.compulsionId?.let { sendCheckIn(context, config, it, spec.postedAt, mode) }
       "preventive" -> spec.body?.let { sendPreventive(context, config, it, id, spec.postedAt, mode) }
       "restart" -> sendRestart(context, config, spec.postedAt, mode)
+      "milestone" -> sendMilestone(context, config, spec.postedAt, mode)
       "protectionPaused" -> sendProtectionPaused(context, config, spec.postedAt, mode)
       else -> PostedNotifications.remove(context, id)
     }
@@ -330,6 +332,26 @@ object Notifier {
     open?.let { builder.setContentIntent(it) }
     val spec = NotificationHold.Spec("restart", postedAt)
     publish(context, RESTART_NOTIFICATION_ID, REMINDERS_CHANNEL_ID, texts, builder, open, spec, mode)
+  }
+
+  /**
+   * Marco alcançado (spec 04, 5.5): texto neutro, sem o nome da compulsão, e a
+   * versão pública na tela bloqueada, como as outras. Tocar abre o app, que
+   * mostra a celebração.
+   */
+  fun sendMilestone(
+    context: Context,
+    config: JSONObject,
+    postedAt: Long = System.currentTimeMillis(),
+    mode: NotificationHold.Mode = NotificationHold.Mode.NEW,
+  ) {
+    val texts = notifications(config)
+    val copy = texts.optJSONObject("milestone") ?: return
+    val open = openApp(context, MILESTONE_NOTIFICATION_ID)
+    val builder = base(context, REMINDERS_CHANNEL_ID, texts, copy.getString("title"), copy.getString("text"))
+    open?.let { builder.setContentIntent(it) }
+    val spec = NotificationHold.Spec("milestone", postedAt)
+    publish(context, MILESTONE_NOTIFICATION_ID, REMINDERS_CHANNEL_ID, texts, builder, open, spec, mode)
   }
 
   fun sendProtectionPaused(

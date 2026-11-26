@@ -1,0 +1,301 @@
+{
+  "description": "Hoje é dia de marco? (spec 04, 4.3 e 5.5). Lidos pelo Jest (src/domain/vectors.test.ts) e pelo JUnit (VectorsTest), contra src/domain/milestoneNotification.ts e MilestoneRules.kt. Cada compulsão: base do JS, se a base é uma quebra, dias dos marcos, até quando fica quieta (início com N dias) e o último dia celebrado no app. nativeBreaks: quebras vistas pelo nativo e ainda não importadas.",
+  "cases": [
+    {
+      "name": "sem marco hoje",
+      "today": "2026-11-25",
+      "compulsions": [
+        {
+          "id": 1,
+          "base": "2026-11-20",
+          "baseIsBreak": false,
+          "days": [1, 3, 7],
+          "quietUntil": null,
+          "celebratedOn": null
+        }
+      ],
+      "nativeBreaks": [],
+      "expect": { "restartDay": false, "compulsionIds": [], "due": false }
+    },
+    {
+      "name": "dia de marco: sai",
+      "today": "2026-11-25",
+      "compulsions": [
+        {
+          "id": 1,
+          "base": "2026-11-18",
+          "baseIsBreak": false,
+          "days": [1, 3, 7],
+          "quietUntil": null,
+          "celebratedOn": null
+        }
+      ],
+      "nativeBreaks": [],
+      "expect": { "restartDay": false, "compulsionIds": [1], "due": true }
+    },
+    {
+      "name": "duas compulsões com marco no mesmo dia: uma notificação só",
+      "today": "2026-11-25",
+      "compulsions": [
+        {
+          "id": 1,
+          "base": "2026-11-18",
+          "baseIsBreak": false,
+          "days": [1, 3, 7],
+          "quietUntil": null,
+          "celebratedOn": null
+        },
+        {
+          "id": 2,
+          "base": "2026-11-22",
+          "baseIsBreak": true,
+          "days": [1, 3, 7],
+          "quietUntil": null,
+          "celebratedOn": null
+        }
+      ],
+      "nativeBreaks": [],
+      "expect": { "restartDay": false, "compulsionIds": [1, 2], "due": true }
+    },
+    {
+      "name": "recomeço de outra compulsão hoje: nenhuma notificação de marco no aparelho",
+      "today": "2026-11-25",
+      "compulsions": [
+        {
+          "id": 1,
+          "base": "2026-11-18",
+          "baseIsBreak": false,
+          "days": [1, 3, 7],
+          "quietUntil": null,
+          "celebratedOn": null
+        },
+        {
+          "id": 2,
+          "base": "2026-11-24",
+          "baseIsBreak": true,
+          "days": [1, 3, 7],
+          "quietUntil": null,
+          "celebratedOn": null
+        }
+      ],
+      "nativeBreaks": [],
+      "expect": { "restartDay": true, "compulsionIds": [1, 2], "due": false }
+    },
+    {
+      "name": "recaída registrada hoje para ontem: hoje é recomeço, sem marco de 1 dia",
+      "today": "2026-11-25",
+      "compulsions": [
+        {
+          "id": 1,
+          "base": "2026-11-24",
+          "baseIsBreak": true,
+          "days": [1, 3, 7],
+          "quietUntil": null,
+          "celebratedOn": null
+        }
+      ],
+      "nativeBreaks": [],
+      "expect": { "restartDay": true, "compulsionIds": [1], "due": false }
+    },
+    {
+      "name": "quebra vista pelo nativo ontem, ainda não importada: vale a nova base e hoje é recomeço",
+      "today": "2026-11-25",
+      "compulsions": [
+        {
+          "id": 1,
+          "base": "2026-11-18",
+          "baseIsBreak": false,
+          "days": [1, 3, 7],
+          "quietUntil": null,
+          "celebratedOn": null
+        }
+      ],
+      "nativeBreaks": [{ "compulsionId": 1, "dayKey": "2026-11-24" }],
+      "expect": { "restartDay": true, "compulsionIds": [1], "due": false }
+    },
+    {
+      "name": "quebra vista pelo nativo hoje: streak 0, sem marco",
+      "today": "2026-11-25",
+      "compulsions": [
+        {
+          "id": 1,
+          "base": "2026-11-18",
+          "baseIsBreak": false,
+          "days": [1, 3, 7],
+          "quietUntil": null,
+          "celebratedOn": null
+        }
+      ],
+      "nativeBreaks": [{ "compulsionId": 1, "dayKey": "2026-11-25" }],
+      "expect": { "restartDay": false, "compulsionIds": [], "due": false }
+    },
+    {
+      "name": "quebra vista pelo nativo mais antiga que a base do JS: não conta",
+      "today": "2026-11-25",
+      "compulsions": [
+        {
+          "id": 1,
+          "base": "2026-11-18",
+          "baseIsBreak": true,
+          "days": [1, 3, 7],
+          "quietUntil": null,
+          "celebratedOn": null
+        }
+      ],
+      "nativeBreaks": [{ "compulsionId": 1, "dayKey": "2026-11-10" }],
+      "expect": { "restartDay": false, "compulsionIds": [1], "due": true }
+    },
+    {
+      "name": "quebra vista pelo nativo noutra compulsão: só muda a dela",
+      "today": "2026-11-25",
+      "compulsions": [
+        {
+          "id": 1,
+          "base": "2026-11-18",
+          "baseIsBreak": false,
+          "days": [1, 3, 7],
+          "quietUntil": null,
+          "celebratedOn": null
+        },
+        {
+          "id": 2,
+          "base": "2026-11-01",
+          "baseIsBreak": false,
+          "days": [1, 3, 7],
+          "quietUntil": null,
+          "celebratedOn": null
+        }
+      ],
+      "nativeBreaks": [{ "compulsionId": 2, "dayKey": "2026-11-22" }],
+      "expect": { "restartDay": false, "compulsionIds": [1, 2], "due": true }
+    },
+    {
+      "name": "início com N dias: até o dia em que começou no app, quieto",
+      "today": "2026-11-25",
+      "compulsions": [
+        {
+          "id": 1,
+          "base": "2026-11-18",
+          "baseIsBreak": false,
+          "days": [1, 3, 7],
+          "quietUntil": "2026-11-25",
+          "celebratedOn": null
+        }
+      ],
+      "nativeBreaks": [],
+      "expect": { "restartDay": false, "compulsionIds": [], "due": false }
+    },
+    {
+      "name": "início com N dias: depois do dia em que começou, sai",
+      "today": "2026-11-25",
+      "compulsions": [
+        {
+          "id": 1,
+          "base": "2026-11-18",
+          "baseIsBreak": false,
+          "days": [1, 3, 7],
+          "quietUntil": "2026-11-21",
+          "celebratedOn": null
+        }
+      ],
+      "nativeBreaks": [],
+      "expect": { "restartDay": false, "compulsionIds": [1], "due": true }
+    },
+    {
+      "name": "marco de hoje já celebrado no app: não repete pela notificação",
+      "today": "2026-11-25",
+      "compulsions": [
+        {
+          "id": 1,
+          "base": "2026-11-18",
+          "baseIsBreak": false,
+          "days": [1, 3, 7],
+          "quietUntil": null,
+          "celebratedOn": "2026-11-25"
+        }
+      ],
+      "nativeBreaks": [],
+      "expect": { "restartDay": false, "compulsionIds": [], "due": false }
+    },
+    {
+      "name": "celebrado num dia anterior não impede o marco de hoje",
+      "today": "2026-11-25",
+      "compulsions": [
+        {
+          "id": 1,
+          "base": "2026-11-18",
+          "baseIsBreak": false,
+          "days": [1, 3, 7],
+          "quietUntil": null,
+          "celebratedOn": "2026-11-21"
+        }
+      ],
+      "nativeBreaks": [],
+      "expect": { "restartDay": false, "compulsionIds": [1], "due": true }
+    },
+    {
+      "name": "início limpo ontem: marco de 1 dia sai (não é recomeço)",
+      "today": "2026-11-25",
+      "compulsions": [
+        {
+          "id": 1,
+          "base": "2026-11-24",
+          "baseIsBreak": false,
+          "days": [1, 3, 7],
+          "quietUntil": null,
+          "celebratedOn": null
+        }
+      ],
+      "nativeBreaks": [],
+      "expect": { "restartDay": false, "compulsionIds": [1], "due": true }
+    },
+    {
+      "name": "dias do catálogo, não a lista de reserva",
+      "today": "2026-11-25",
+      "compulsions": [
+        {
+          "id": 1,
+          "base": "2026-11-23",
+          "baseIsBreak": true,
+          "days": [2, 5],
+          "quietUntil": null,
+          "celebratedOn": null
+        }
+      ],
+      "nativeBreaks": [],
+      "expect": { "restartDay": false, "compulsionIds": [1], "due": true }
+    },
+    {
+      "name": "conta pelo calendário na virada do ano",
+      "today": "2027-01-01",
+      "compulsions": [
+        {
+          "id": 1,
+          "base": "2026-12-25",
+          "baseIsBreak": false,
+          "days": [1, 3, 7],
+          "quietUntil": null,
+          "celebratedOn": null
+        }
+      ],
+      "nativeBreaks": [],
+      "expect": { "restartDay": false, "compulsionIds": [1], "due": true }
+    },
+    {
+      "name": "início no futuro: nada",
+      "today": "2026-11-25",
+      "compulsions": [
+        {
+          "id": 1,
+          "base": "2026-11-30",
+          "baseIsBreak": false,
+          "days": [1, 3, 7],
+          "quietUntil": null,
+          "celebratedOn": null
+        }
+      ],
+      "nativeBreaks": [],
+      "expect": { "restartDay": false, "compulsionIds": [], "due": false }
+    }
+  ]
+}

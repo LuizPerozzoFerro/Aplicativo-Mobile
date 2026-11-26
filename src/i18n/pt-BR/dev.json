@@ -103,6 +103,7 @@
       "fireCheckIn": "Disparar check-in",
       "firePreventive": "Disparar preventiva",
       "fireRestart": "Disparar recomeço",
+      "fireMilestone": "Disparar marco",
       "fireProtection": "Disparar proteção pausada"
     }
   },

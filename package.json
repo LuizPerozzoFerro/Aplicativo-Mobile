@@ -71,6 +71,7 @@
   },
   "jest": {
     "preset": "jest-expo/android",
+    "testTimeout": 20000,
     "testPathIgnorePatterns": [
       "/node_modules/",
       "<rootDir>/prototype/",

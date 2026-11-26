@@ -33,11 +33,24 @@ class NotificationPlanTest {
     val weekdays = json.getJSONArray("weekdays")
     val starts = json.getJSONArray("startMinutes")
     val restart = json.getJSONArray("restartDayKeys")
+    val milestones = json.optJSONArray("milestones")
     return NotificationPlan.Config(
       checkIn,
       (0 until weekdays.length()).map { weekdays.getInt(it) }.toSet(),
       (0 until starts.length()).map { starts.getInt(it) },
       (0 until restart.length()).map { restart.getString(it) }.toSet(),
+      (0 until (milestones?.length() ?: 0)).map {
+        val c = milestones!!.getJSONObject(it)
+        val days = c.getJSONArray("days")
+        MilestoneRules.Compulsion(
+          c.getInt("id"),
+          c.getString("base"),
+          c.getBoolean("baseIsBreak"),
+          (0 until days.length()).map { i -> days.getInt(i) }.toSet(),
+          if (c.isNull("quietUntil")) null else c.getString("quietUntil"),
+          if (c.isNull("celebratedOn")) null else c.getString("celebratedOn"),
+        )
+      },
     )
   }
 
@@ -45,6 +58,7 @@ class NotificationPlanTest {
     NotificationPlan.Item.CheckInDue -> "check_in"
     NotificationPlan.Item.Restart -> "restart"
     is NotificationPlan.Item.Preventive -> "preventive:${item.minutes}"
+    NotificationPlan.Item.Milestone -> "milestone"
   }
 
   @Test
@@ -66,6 +80,9 @@ class NotificationPlanTest {
         val now = millis(step.getString("at"), zone)
         NotificationPlan.enterDay(state, now, zone)
         step.optString("nativeRestartDay").takeIf { it.isNotEmpty() }?.let { state.nativeRestartDays.add(it) }
+        step.optJSONObject("seenBreak")?.let {
+          state.seenBreaks.add(NotificationPlan.SeenBreak(it.getInt("compulsionId"), it.getString("dayKey"), "evento-$i"))
+        }
 
         val due = NotificationPlan.due(plan, state, now, zone)
         val expected = step.getJSONArray("due")
@@ -161,5 +178,72 @@ class NotificationPlanTest {
       ),
       NotificationPlan.configFrom(json),
     )
+  }
+
+  /** Marco: espera o desbloqueio como o recomeço e expira à meia-noite (spec 04, 5.5). */
+  @Test
+  fun milestoneWaitingExpiresAtMidnight() {
+    val zone = ZoneId.of("America/Sao_Paulo")
+    val config = NotificationPlan.Config(
+      null,
+      (0..6).toSet(),
+      emptyList(),
+      emptySet(),
+      listOf(MilestoneRules.Compulsion(1, "2026-11-18", false, setOf(7), null, null)),
+    )
+    val state = NotificationPlan.State()
+    NotificationPlan.enterDay(state, millis("2026-11-25T00:01", zone), zone)
+    assertEquals(listOf("milestone"), NotificationPlan.due(config, state, millis("2026-11-25T09:30", zone), zone).map(::label))
+    state.milestoneWaiting = true
+    val roundTrip = NotificationPlan.State.fromJson(JSONObject(state.toJson().toString()))
+    assertTrue(roundTrip.milestoneWaiting)
+
+    assertTrue(NotificationPlan.enterDay(roundTrip, millis("2026-11-26T00:01", zone), zone))
+    assertFalse(roundTrip.milestoneWaiting)
+    assertTrue(NotificationPlan.due(config, roundTrip, millis("2026-11-26T09:30", zone), zone).isEmpty())
+  }
+
+  /** Um estado gravado antes da Fase 5 (sem os campos do marco) continua valendo. */
+  @Test
+  fun stateFromBeforePhase5StillLoads() {
+    val old = JSONObject(
+      """{"dayKey":"2026-11-20","checkInSent":true,"checkInAnswered":false,"restartSent":false,"restartWaiting":false,"proactiveSent":1,"preventiveSent":[],"nativeRestartDays":[],"protectionReasons":[]}""",
+    )
+    val state = NotificationPlan.State.fromJson(old)
+    assertFalse(state.milestoneSent)
+    assertTrue(state.seenBreaks.isEmpty())
+    state.seenBreaks.add(NotificationPlan.SeenBreak(2, "2026-11-20", "abc"))
+    assertEquals(
+      listOf(NotificationPlan.SeenBreak(2, "2026-11-20", "abc")),
+      NotificationPlan.State.fromJson(JSONObject(state.toJson().toString())).seenBreaks,
+    )
+  }
+
+  /** A configuração do JS só liga o marco com os textos dele (configuração da Fase 5). */
+  @Test
+  fun milestonesComeFromTheConfigOnlyWithTheirTexts() {
+    fun json(withTexts: Boolean): JSONObject {
+      val notifications = if (withTexts) """{ "milestone": { "title": "t", "text": "x" } }""" else "{}"
+      return JSONObject(
+      """
+      {
+        "compulsions": [
+          { "id": 1, "type": "short_videos", "streakBaseDayKey": "2026-11-18", "checkInAnsweredDayKey": null,
+            "streakBaseIsBreak": true, "milestoneDays": [1, 7], "milestoneQuietUntilDayKey": null,
+            "milestoneCelebratedOnDayKey": "2026-11-20" },
+          { "id": 2, "type": "pornography", "streakBaseDayKey": "2026-11-10", "checkInAnsweredDayKey": null }
+        ],
+        "checkInCompulsionId": null, "checkInMinutes": null, "restartDayKeys": [],
+        "preventive": { "weekdays": [0], "startMinutes": [], "emotions": [] },
+        "texts": { "notifications": $notifications }
+      }
+      """.trimIndent(),
+      )
+    }
+    assertEquals(
+      listOf(MilestoneRules.Compulsion(1, "2026-11-18", true, setOf(1, 7), null, "2026-11-20")),
+      NotificationPlan.configFrom(json(true)).milestones,
+    )
+    assertTrue(NotificationPlan.configFrom(json(false)).milestones.isEmpty())
   }
 }
