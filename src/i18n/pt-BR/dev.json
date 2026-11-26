@@ -139,5 +139,26 @@
     "baselinePending": "Ponto de partida a partir de {{date}}",
     "baselineUnknown": "Ponto de partida: sem histórico ainda",
     "import": "Importar o histórico agora"
+  },
+  "simulation": {
+    "title": "Simular uma streak",
+    "description": "Muda o início e tira as quebras do período, para ver marcos e celebração sem esperar. Altera dados reais deste app de desenvolvimento; \"Desfazer a simulação\" volta tudo e apaga os alcances de marco criados nela.",
+    "compulsion": "Compulsão",
+    "days": "Streak desejada",
+    "daysOption_zero": "0 dias",
+    "daysOption_one": "{{count}} dia",
+    "daysOption_other": "{{count}} dias",
+    "apply_zero": "Simular streak de 0 dias",
+    "apply_one": "Simular streak de {{count}} dia",
+    "apply_other": "Simular streak de {{count}} dias",
+    "active_zero": "Simulação ativa: {{compulsion}}, 0 dias (desde {{date}})",
+    "active_one": "Simulação ativa: {{compulsion}}, {{count}} dia (desde {{date}})",
+    "active_other": "Simulação ativa: {{compulsion}}, {{count}} dias (desde {{date}})",
+    "undo": "Desfazer a simulação",
+    "done": "Streak simulada. Volte às abas para ver a celebração, se hoje for dia de marco.",
+    "undone": "Simulação desfeita: início, quebras e alcances voltaram ao que eram.",
+    "saveFailed": "Não foi possível guardar a simulação; nada foi mudado.",
+    "noCompulsion": "Nenhuma compulsão ativa.",
+    "removed": "compulsão apagada"
   }
 }

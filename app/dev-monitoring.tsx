@@ -8,6 +8,7 @@ import { getRepositories } from '@/data/bootstrap';
 import { toDayKey } from '@/domain/day';
 import { SUGGESTED_PACKAGES } from '@/domain/suggestedApps';
 import { ContentDevTools } from '@/features/content/ContentDevTools';
+import { StreakSimulationDevTools } from '@/features/milestones/StreakSimulationDevTools';
 import { UsageDevTools } from '@/features/usage/UsageDevTools';
 import { getAppMonitoringSync } from '@/features/monitoring/useMonitoringSync';
 import { Button, Screen, Text } from '@/ui';
@@ -435,7 +436,8 @@ export default function DevMonitoringScreen() {
         </>
       ) : null}
 
-      {/* Catálogo de conteúdo (spec 04, 5.12): não depende do módulo nativo. */}
+      {/* Ferramentas da Fase 5 (spec 04, 5.12): não dependem do módulo nativo. */}
+      <StreakSimulationDevTools />
       <ContentDevTools />
       <UsageDevTools />
 
