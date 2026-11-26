@@ -139,13 +139,14 @@ Preencher e manter atualizado na Fase 2.
 | Testes | `npm test` |
 | Gerar migração do banco (depois de mudar `src/data/schema/`) | `npm run db:generate` |
 | Ler o banco do app de desenvolvimento no aparelho | `adb exec-out run-as br.com.quedo.app.dev cat files/SQLite/app.db > app.db` |
-| Fluxos Maestro (ponta a ponta no S22) | `npm run e2e` roda os seis de `.maestro/` (~15 min), com o Metro ligado e o `adb reverse` feito. Apaga os dados do app de desenvolvimento. Maestro em `C:\Users\User\tools\maestro` (`NOTAS-APP.md`, passo 10 da Fase 2 e passo 7 da Fase 3) |
+| Fluxos Maestro (ponta a ponta no S22) | `npm run e2e` roda os nove de `.maestro/` (~25 min), com o Metro ligado e o `adb reverse` feito. Apaga os dados do app de desenvolvimento. Maestro em `C:\Users\User\tools\maestro` (`NOTAS-APP.md`, passo 10 da Fase 2 e passo 7 da Fase 3) |
 | Um fluxo Maestro só | `C:\Users\User\tools\maestro\bin\maestro test .maestro/<arquivo>.yaml`, com `MAESTRO_CLI_NO_ANALYTICS=true` |
 | Ver o que o Maestro enxerga na tela | `C:\Users\User\tools\maestro\bin\maestro hierarchy --compact` |
 | Instalação pelo `adb` recusada (`INSTALL_FAILED_VERIFICATION_FAILURE`) | `adb logcat -d`, filtrando `VerifyApps`; em geral, basta tentar de novo (`NOTAS-APP.md`, AP4) |
 | Verificar o manifesto (proibidas e lista de permitidas) | `npm run check:manifest` (depois de um build) |
 | Testes JUnit do módulo nativo | `cd android && gradlew.bat :monitoring-android:testDebugUnitTest` (depois do prebuild); resultado em `modules/monitoring-android/android/build/test-results/` |
 | Tela de conferência do monitoramento (só development) | Perfil → "Monitoramento (base)" (tem o limite de teste de 1 minuto) |
+| Simular uma streak (Fase 5, só development) | Perfil → "Monitoramento (base)" → "Simular uma streak": escolhe a compulsão e N dias; "Desfazer a simulação" volta tudo e apaga os alcances criados nela. Muda dados reais do app de desenvolvimento (`NOTAS-APP.md`, Fase 5, passo 8) |
 | Estado das regras do dia no nativo | `adb shell run-as br.com.quedo.app.dev cat shared_prefs/quedo-monitoring-moment.xml` |
 | Servidor falso do conteúdo (Fase 5) | `npm run content:serve` (serve `content/` na porta 8090; ou `-- <pasta> <porta>`), depois `adb reverse tcp:8090 tcp:8090` e o Metro iniciado com `CONTENT_BASE_URL=http://localhost:8090`. Na tela de conferência, seção "Conteúdo": "Atualizar o catálogo agora" |
 | Publicar o conteúdo no R2 (Fase 5) | `npm run content:publish -- --dry-run` (valida e mostra o que enviaria) · `npm run content:publish` (valida, envia vídeos e catálogo e confere pelo endereço público). Credencial genérica `quedo-content-publish` no Gerenciador de Credenciais do Windows (usuário: ID da conta; senha: token só com o R2), nunca no repositório (`NOTAS-APP.md`, Fase 5, passo 2) |

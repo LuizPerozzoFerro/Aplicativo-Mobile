@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, inArray, isNull, sql } from 'drizzle-orm';
 
 import {
   getCompulsionDefinition,
@@ -19,6 +19,12 @@ import type { HourlyRow } from '@/domain/usageHistory';
 import { isValidDailyLimit, type OnboardingStep } from '@/domain/onboarding';
 import type { ProtectionPermission } from '@/domain/protection';
 import { isValidDaysAlreadyWithoutRelapse, type DayFailureReason } from '@/domain/streak';
+import {
+  planStreakSimulation,
+  type SavedFailedDay,
+  type SavedRelapse,
+  type SimulationSnapshot,
+} from '@/domain/streakSimulation';
 import { isValidTriggerValue } from '@/domain/triggers';
 import type { MonitoringEvent } from '@/monitoring/types';
 
@@ -260,6 +266,22 @@ export type UsageHistoryRepository = {
   ): void;
 };
 
+/**
+ * Ferramenta de teste "Simular uma streak" (spec 04, 5.12), só em
+ * desenvolvimento. Muda dados reais do app de desenvolvimento e devolve o que
+ * mudou, para desfazer depois.
+ */
+export type StreakSimulationRepository = {
+  /** Deixa a streak da compulsão em `days` dias (streakSimulation.ts). */
+  apply(compulsionId: number, days: number): SimulationSnapshot;
+  /**
+   * Volta o início, os dias sem recair, o ponto de partida e as quebras, e
+   * apaga os alcances de marco criados durante a simulação. Sem a compulsão
+   * (apagada nesse meio-tempo), não faz nada.
+   */
+  undo(snapshot: SimulationSnapshot): void;
+};
+
 export type Repositories = {
   settings: SettingsRepository;
   compulsions: CompulsionRepository;
@@ -274,6 +296,7 @@ export type Repositories = {
   contentCatalog: ContentCatalogRepository;
   milestoneReaches: MilestoneReachRepository;
   usageHistory: UsageHistoryRepository;
+  streakSimulation: StreakSimulationRepository;
   /**
    * Apaga todos os dados do usuário; as configurações voltam ao padrão. O
    * catálogo de conteúdo fica: é público (spec 04, 5.9).
@@ -1043,6 +1066,155 @@ export function createRepositories(
                 .run();
             }
           }
+        });
+      },
+    },
+
+    streakSimulation: {
+      apply: (compulsionId, days) =>
+        db.transaction((tx) => {
+          const compulsion = tx
+            .select()
+            .from(userCompulsions)
+            .where(eq(userCompulsions.id, compulsionId))
+            .get();
+          if (!compulsion) throw new Error('Compulsão não encontrada');
+          const plan = planStreakSimulation(days, now());
+          const abstinence = getCompulsionDefinition(compulsion.type).mechanic === 'abstinence';
+          const maxReach = tx
+            .select({ id: sql<number | null>`max(${milestoneReaches.id})` })
+            .from(milestoneReaches)
+            .where(eq(milestoneReaches.compulsionId, compulsionId))
+            .get();
+
+          const saved: SavedRelapse[] = [];
+          const failedDays: SavedFailedDay[] = [];
+          if (abstinence) {
+            const removed = tx
+              .select()
+              .from(relapses)
+              .where(
+                and(
+                  eq(relapses.compulsionId, compulsionId),
+                  gte(relapses.dayKey, plan.breaksFromDayKey),
+                ),
+              )
+              .all();
+            for (const relapse of removed) {
+              const day = { compulsionId, dayKey: relapse.dayKey };
+              const checkIn = tx.select().from(checkIns).where(sameDay(checkIns, day)).get();
+              saved.push({
+                dayKey: relapse.dayKey,
+                recordedAt: relapse.recordedAt.getTime(),
+                checkIn: checkIn
+                  ? {
+                      answer: checkIn.answer,
+                      source: checkIn.source,
+                      answeredAt: checkIn.answeredAt.getTime(),
+                      previousAnswer: checkIn.previousAnswer,
+                      previousSource: checkIn.previousSource,
+                      previousAnsweredAt: checkIn.previousAnsweredAt?.getTime() ?? null,
+                    }
+                  : null,
+              });
+              tx.delete(checkIns).where(sameDay(checkIns, day)).run();
+              tx.delete(relapses).where(sameDay(relapses, day)).run();
+            }
+          } else {
+            const failed = tx
+              .select()
+              .from(dayStates)
+              .where(
+                and(
+                  eq(dayStates.compulsionId, compulsionId),
+                  eq(dayStates.failed, true),
+                  gte(dayStates.dayKey, plan.breaksFromDayKey),
+                ),
+              )
+              .all();
+            // As contagens do dia ficam: só a reprovação sai durante a simulação.
+            for (const day of failed) {
+              failedDays.push({ dayKey: day.dayKey, reason: day.failedReason ?? 'ignored_limit' });
+              tx.update(dayStates)
+                .set({ failed: false, failedReason: null })
+                .where(sameDay(dayStates, { compulsionId, dayKey: day.dayKey }))
+                .run();
+            }
+          }
+
+          tx.update(userCompulsions)
+            .set({
+              startedAt: plan.startedAt,
+              ...(abstinence ? { initialStreakDays: 0 } : {}),
+            })
+            .where(eq(userCompulsions.id, compulsionId))
+            .run();
+
+          return {
+            version: 1,
+            compulsionId,
+            days,
+            simulatedAt: now().getTime(),
+            startedAt: compulsion.startedAt.getTime(),
+            initialStreakDays: compulsion.initialStreakDays,
+            baselineMinutesPerDay: compulsion.baselineMinutesPerDay,
+            baselineSource: compulsion.baselineSource,
+            relapses: saved,
+            failedDays,
+            maxReachId: maxReach?.id ?? 0,
+          } satisfies SimulationSnapshot;
+        }),
+      undo: (snapshot) => {
+        db.transaction((tx) => {
+          const { compulsionId } = snapshot;
+          if (!compulsionExists(tx, compulsionId)) return;
+          tx.update(userCompulsions)
+            .set({
+              startedAt: new Date(snapshot.startedAt),
+              initialStreakDays: snapshot.initialStreakDays,
+              baselineMinutesPerDay: snapshot.baselineMinutesPerDay,
+              baselineSource: snapshot.baselineSource as BaselineSource | null,
+            })
+            .where(eq(userCompulsions.id, compulsionId))
+            .run();
+          for (const relapse of snapshot.relapses) {
+            const day = { compulsionId, dayKey: relapse.dayKey };
+            tx.insert(relapses)
+              .values({ ...day, recordedAt: new Date(relapse.recordedAt) })
+              .onConflictDoNothing()
+              .run();
+            if (relapse.checkIn === null) continue;
+            const values = {
+              answer: relapse.checkIn.answer as CheckInAnswer,
+              source: relapse.checkIn.source as CheckInSource,
+              answeredAt: new Date(relapse.checkIn.answeredAt),
+              previousAnswer: relapse.checkIn.previousAnswer as CheckInAnswer | null,
+              previousSource: relapse.checkIn.previousSource as CheckInSource | null,
+              previousAnsweredAt:
+                relapse.checkIn.previousAnsweredAt === null
+                  ? null
+                  : new Date(relapse.checkIn.previousAnsweredAt),
+            };
+            tx.insert(checkIns)
+              .values({ ...day, ...values })
+              .onConflictDoUpdate({ target: [checkIns.compulsionId, checkIns.dayKey], set: values })
+              .run();
+          }
+          for (const failed of snapshot.failedDays) {
+            markDayFailed(
+              tx,
+              { compulsionId, dayKey: failed.dayKey },
+              failed.reason as DayFailureReason,
+            );
+          }
+          tx.delete(milestoneReaches)
+            .where(
+              and(
+                eq(milestoneReaches.compulsionId, compulsionId),
+                gt(milestoneReaches.id, snapshot.maxReachId),
+              ),
+            )
+            .run();
         });
       },
     },

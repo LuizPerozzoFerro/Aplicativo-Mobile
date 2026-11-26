@@ -1,0 +1,86 @@
+# Fluxo (h) da spec 04 (seções 5.3, 5.12 e 5.15): a ferramenta "Simular uma
+# streak" leva a 7 dias, a celebração aparece ao voltar às abas, "Ver o marco"
+# abre o detalhe já desbloqueado e "Desfazer a simulação" volta tudo.
+#
+# Apaga os dados do app de desenvolvimento antes de começar.
+appId: br.com.quedo.app.dev
+name: (h) Simular uma streak, celebração e desfazer
+---
+- runFlow: subflows/onboarding-curto.yaml
+- runFlow: subflows/dispensar-aviso.yaml
+- assertVisible: 3 dias
+
+- tapOn: Perfil
+- extendedWaitUntil:
+    visible: Minhas escolhas
+    timeout: 10000
+- scrollUntilVisible:
+    element: Monitoramento \(base\)
+    direction: DOWN
+- tapOn: Monitoramento \(base\)
+- scrollUntilVisible:
+    element: Simular uma streak
+    direction: DOWN
+- scrollUntilVisible:
+    element: Simular streak de .*
+    direction: DOWN
+- tapOn: 7 dias
+- tapOn: Simular streak de 7 dias
+- extendedWaitUntil:
+    visible:
+      id: dev-simulation-active
+    timeout: 10000
+- assertVisible: 'Simulação ativa: Conteúdo adulto, 7 dias.*'
+
+# A celebração abre só com as abas à vista.
+- back
+- extendedWaitUntil:
+    visible:
+      id: celebration
+    timeout: 15000
+- assertVisible: Você chegou a 7 dias
+- assertVisible: 'Marco de teste A: 7 dias'
+- tapOn: Ver o marco
+- extendedWaitUntil:
+    visible:
+      id: milestone-detail
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: milestone-watch
+    direction: DOWN
+- back
+
+# No Progresso, 7 dias e o próximo marco em 14.
+- extendedWaitUntil:
+    visible:
+      id: progress-header-pornography
+    timeout: 10000
+- assertVisible: 'Próximo marco: 14 dias'
+
+# Desfazer: volta aos 3 dias do início.
+- tapOn: Perfil
+- extendedWaitUntil:
+    visible: Minhas escolhas
+    timeout: 10000
+- scrollUntilVisible:
+    element: Monitoramento \(base\)
+    direction: DOWN
+- tapOn: Monitoramento \(base\)
+- scrollUntilVisible:
+    element: Desfazer a simulação
+    direction: DOWN
+- tapOn: Desfazer a simulação
+- extendedWaitUntil:
+    visible: Simulação desfeita.*
+    timeout: 10000
+- back
+- tapOn: Início
+- extendedWaitUntil:
+    visible:
+      id: home-card-pornography
+    timeout: 10000
+- assertVisible: 3 dias
+- assertVisible: 'Próximo marco: 7 dias'
+- assertNotVisible:
+    id: celebration

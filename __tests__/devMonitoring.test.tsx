@@ -127,6 +127,11 @@ jest.mock('@/data/bootstrap', () => ({
   }),
 }));
 
+// A simulação de streak tem teste próprio (streakSimulation.test.tsx).
+jest.mock('@/features/milestones/simulationStore', () => ({
+  simulationStore: { read: () => null, save: jest.fn(), clear: jest.fn() },
+}));
+
 const mockSync = jest.fn(async () => undefined);
 jest.mock('@/features/monitoring/useMonitoringSync', () => ({
   getAppMonitoringSync: () => ({ sync: mockSync }),

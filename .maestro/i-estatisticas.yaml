@@ -1,0 +1,85 @@
+# Fluxo (i) da spec 04 (seções 5.8 e 5.15): aba Estatísticas sem dados (logo
+# depois do onboarding) e com dados (check-in, recaída e emergência). Os
+# minutos de uso dos vídeos curtos dependem do aparelho e ficam no roteiro
+# manual (P10 e P11).
+#
+# Apaga os dados do app de desenvolvimento antes de começar.
+appId: br.com.quedo.app.dev
+name: (i) Estatísticas sem dados e com dados
+---
+- runFlow: subflows/onboarding-curto.yaml
+- runFlow: subflows/dispensar-aviso.yaml
+
+# Sem dados.
+- tapOn: Estatísticas
+- extendedWaitUntil:
+    visible:
+      id: stats-streaks
+    timeout: 10000
+- assertVisible: 'Atual: 3 dias'
+- assertVisible: Nenhuma recaída registrada
+- scrollUntilVisible:
+    element: Nenhum check-in respondido ainda
+    direction: DOWN
+- scrollUntilVisible:
+    element: Nenhum aviso por notificação
+    direction: DOWN
+- assertVisible: Nenhuma tela de interrupção até agora
+- scrollUntilVisible:
+    element: O botão de emergência ainda não foi usado
+    direction: DOWN
+- assertVisible: Nenhuma vitória registrada ainda
+
+# Com dados: emergência pelo Início, com "a vontade passou".
+- tapOn: Início
+- extendedWaitUntil:
+    visible:
+      id: home-emergency
+    timeout: 10000
+- tapOn:
+    id: home-emergency
+- extendedWaitUntil:
+    visible: Este momento vai passar
+    timeout: 10000
+- tapOn: Começar a respiração
+- tapOn: Pular
+- extendedWaitUntil:
+    visible: A vontade passou?
+    timeout: 15000
+- tapOn: Sim
+- extendedWaitUntil:
+    visible: Muito bem
+    timeout: 10000
+- tapOn: Voltar ao início
+- extendedWaitUntil:
+    visible:
+      id: home-card-pornography
+    timeout: 10000
+
+# Com dados: "Tive uma recaída" hoje.
+- tapOn: Tive uma recaída
+- extendedWaitUntil:
+    visible: 'Hoje: recaída registrada.'
+    timeout: 10000
+
+- tapOn: Estatísticas
+- extendedWaitUntil:
+    visible:
+      id: stats-streaks
+    timeout: 10000
+- assertVisible: 'Atual: 0 dias'
+- assertVisible: 'Maior: 3 dias'
+- assertVisible: 1 recaída registrada
+- scrollUntilVisible:
+    element: 1 check-in respondido
+    direction: DOWN
+- assertVisible: 'Sem recaída: 0 · Com recaída: 1'
+- scrollUntilVisible:
+    element: Botão de emergência usado 1 vez
+    direction: DOWN
+- assertVisible: 'Pelo Início: 1'
+- scrollUntilVisible:
+    element: 1 vitória
+    direction: DOWN
+- assertVisible: 'No botão de emergência: 1 vitória'
+- assertVisible: 'Na tela de interrupção: nenhuma vitória'
