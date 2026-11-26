@@ -1,0 +1,133 @@
+{
+  "filterLabel": "Mostrar as estatísticas de",
+  "duration": {
+    "minutes": "{{minutes}} min",
+    "hours": "{{hours}} h",
+    "hoursMinutes": "{{hours}} h {{minutes}} min"
+  },
+  "spoken": {
+    "minutes_zero": "zero minuto",
+    "minutes_one": "{{count}} minuto",
+    "minutes_other": "{{count}} minutos",
+    "hours_zero": "zero hora",
+    "hours_one": "{{count}} hora",
+    "hours_other": "{{count}} horas",
+    "hoursMinutes": "{{hours}} e {{minutes}}",
+    "list": "{{title}}. {{items}}."
+  },
+  "noAccess": {
+    "title": "Minutos indisponíveis",
+    "description": "Sem o acesso ao uso, o app não consegue medir os minutos. As outras estatísticas continuam aqui.",
+    "action": "Ver o que fazer"
+  },
+  "usage": {
+    "title": "Uso",
+    "appFilterLabel": "Mostrar o uso de",
+    "allApps": "Todos os apps",
+    "daily": "Por dia",
+    "dailyCaption": "Últimos 7 dias. A linha marca o seu limite diário.",
+    "dailyChart": "Uso por dia nos últimos 7 dias",
+    "limit": "Limite diário: {{duration}}",
+    "today": "Hoje",
+    "noData": "Sem dados",
+    "item": "{{label}}: {{value}}",
+    "itemOverLimit": "{{label}}: {{value}}, acima do limite",
+    "weekly": "Por semana",
+    "weeklyCaption": "Últimas 8 semanas, de 7 dias cada. A mais recente vai até hoje.",
+    "weeklyChart": "Uso por semana nas últimas 8 semanas",
+    "weekLabel": "{{from}} a {{to}}",
+    "weekPartial_zero": "nenhum dia com dados",
+    "weekPartial_one": "{{count}} de 7 dias com dados",
+    "weekPartial_other": "{{count}} de 7 dias com dados",
+    "empty": "Ainda sem dados de uso nestes dias. Eles aparecem aqui enquanto o acompanhamento estiver ativo."
+  },
+  "hours": {
+    "title": "Horários de maior uso",
+    "caption": "Média por hora nos últimos 30 dias, sem contar hoje.",
+    "chart": "Média de uso por hora",
+    "peak": "Mais uso: das {{from}} às {{to}}",
+    "triggerLegend": "Faixas de horário que você marcou como gatilho",
+    "triggerItem": "{{item}}, faixa de gatilho",
+    "pending": "Disponível a partir de {{date}}, depois de um dia completo com dados.",
+    "noUse": "Nenhum uso nos últimos 30 dias."
+  },
+  "recovered": {
+    "title": "Tempo recuperado",
+    "total": "{{duration}} desde o início",
+    "week": "{{duration}} nos últimos 7 dias",
+    "baselineBeforeStart": "Ponto de partida: {{duration}} por dia, a média dos 7 dias antes do início.",
+    "baselineFirstWeek": "Ponto de partida: {{duration}} por dia, a média da sua primeira semana.",
+    "explanation": "Soma de quanto cada dia ficou abaixo do ponto de partida. Dias acima não descontam.",
+    "pending": "Disponível a partir de {{date}}, depois de uma semana com dados de uso.",
+    "unknown": "Disponível depois de uma semana com dados de uso."
+  },
+  "alerts": {
+    "title": "Alertas",
+    "screens_zero": "Nenhuma tela de interrupção até agora",
+    "screens_one": "{{count}} tela de interrupção",
+    "screens_other": "{{count}} telas de interrupção",
+    "respected": "Respeitados: {{count}}",
+    "respectedHint": "\"Ir para a tela inicial\" ou \"Emergência\"",
+    "ignored": "Ignorados: {{count}}",
+    "ignoredHint": "\"Continuar mesmo assim\" ou \"Ignorar o limite por hoje\"",
+    "unanswered": "Fechados sem resposta: {{count}}"
+  },
+  "days": {
+    "title": "Dias",
+    "approved": "Aprovados: {{count}}",
+    "failed": "Reprovados: {{count}}",
+    "explanation": "Aprovado é o dia que terminou sem ser reprovado, mesmo que tenha passado um pouco do limite."
+  },
+  "streaks": {
+    "title": "Sequências",
+    "days_zero": "0 dias",
+    "days_one": "{{count}} dia",
+    "days_other": "{{count}} dias",
+    "current": "Atual: {{days}}",
+    "longest": "Maior: {{days}}",
+    "history": "Histórico",
+    "item": "{{from}} a {{to}} · {{days}}",
+    "itemCurrent": "Desde {{from}} · {{days}} · atual",
+    "relapses_zero": "Nenhuma recaída registrada",
+    "relapses_one": "{{count}} recaída registrada",
+    "relapses_other": "{{count}} recaídas registradas"
+  },
+  "checkIns": {
+    "title": "Check-ins",
+    "answered_zero": "Nenhum check-in respondido ainda",
+    "answered_one": "{{count}} check-in respondido",
+    "answered_other": "{{count}} check-ins respondidos",
+    "breakdown": "Sem recaída: {{noRelapse}} · Com recaída: {{relapse}}"
+  },
+  "riskApps": {
+    "title": "Avisos dos apps de risco",
+    "notifications_zero": "Nenhum aviso por notificação",
+    "notifications_one": "{{count}} aviso por notificação",
+    "notifications_other": "{{count}} avisos por notificação",
+    "historyNote": "Os avisos por notificação são contados a partir desta versão do app.",
+    "hoursTitle": "Em que horários",
+    "chart": "Avisos e telas de interrupção por hora",
+    "hourValue": "{{notifications}} e {{screens}}",
+    "spokenNotifications_zero": "nenhum aviso",
+    "spokenNotifications_one": "{{count}} aviso",
+    "spokenNotifications_other": "{{count}} avisos",
+    "spokenScreens_zero": "nenhuma tela",
+    "spokenScreens_one": "{{count}} tela",
+    "spokenScreens_other": "{{count}} telas"
+  },
+  "general": {
+    "title": "Geral",
+    "emergency_zero": "O botão de emergência ainda não foi usado",
+    "emergency_one": "Botão de emergência usado {{count}} vez",
+    "emergency_other": "Botão de emergência usado {{count}} vezes",
+    "fromHome": "Pelo Início: {{count}}",
+    "fromInterruption": "Pela tela de interrupção: {{count}}",
+    "fromNotification": "Pela notificação: {{count}}",
+    "victories_zero": "Nenhuma vitória registrada ainda",
+    "victories_one": "{{count}} vitória: a vontade passou",
+    "victories_other": "{{count}} vitórias: a vontade passou"
+  },
+  "chart": {
+    "none": "Nenhum valor para mostrar."
+  }
+}
