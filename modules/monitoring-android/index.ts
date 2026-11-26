@@ -95,7 +95,14 @@ export type QuedoMonitoringNativeModule = {
   getNotificationStatus(): string;
   /** Dispara agora, fora das regras. Só tem efeito em build depurável (spec 03, 5.10). */
   debugFireNotification(
-    kind: 'limit' | 'risk_app' | 'check_in' | 'preventive' | 'restart' | 'protection_paused',
+    kind:
+      | 'limit'
+      | 'risk_app'
+      | 'check_in'
+      | 'preventive'
+      | 'restart'
+      | 'milestone'
+      | 'protection_paused',
   ): void;
   /** Esquece as telas e reprovações de hoje e zera o uso visto pelas regras. Só em build depurável. */
   debugResetToday(): void;

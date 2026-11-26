@@ -74,6 +74,10 @@
       "title": "Um novo dia",
       "text": "Ontem foi difícil. Hoje você recomeça, e isso já conta."
     },
+    "milestone": {
+      "title": "Um novo marco",
+      "text": "Você chegou a um novo marco. Toque para ver o seu progresso."
+    },
     "protectionPaused": {
       "title": "Quedo",
       "text": "Sua proteção está pausada. Toque para ver o que fazer."

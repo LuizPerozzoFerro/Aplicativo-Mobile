@@ -43,6 +43,7 @@ const CONFIG: MonitoringConfig = {
         },
       },
       restart: { title: 'd', text: 'e' },
+      milestone: { title: 'm', text: 'n' },
       protectionPaused: { title: 'd', text: 'e' },
     },
     interruption: {

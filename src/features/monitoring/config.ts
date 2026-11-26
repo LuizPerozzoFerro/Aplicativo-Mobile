@@ -1,7 +1,9 @@
 import type { Repositories, UserCompulsion } from '@/data/repositories';
+import type { Catalog } from '@/domain/catalog';
 import { getCompulsionDefinition } from '@/domain/compulsion';
 import { getDailyLimitToday } from '@/domain/dailyLimit';
-import { toDayKey } from '@/domain/day';
+import { addCalendarDays, startOfDay, toDayKey } from '@/domain/day';
+import { getMilestoneDays, getStreakSegments } from '@/domain/milestones';
 import { getPreventiveStartMinutes, RISK_APP_DAILY_LIMIT_MINUTES } from '@/domain/monitoring';
 import { getRestartDayKeys, type RestartInput } from '@/domain/restart';
 import { getStreakBase } from '@/domain/streak';
@@ -24,6 +26,7 @@ import {
 function compulsionConfig(
   repositories: Repositories,
   compulsion: UserCompulsion,
+  catalog: Catalog,
   now: Date,
 ): MonitoringCompulsionConfig {
   const abstinence = getCompulsionDefinition(compulsion.type).mechanic === 'abstinence';
@@ -34,13 +37,26 @@ function compulsionConfig(
   const lastCheckIn = abstinence
     ? repositories.checkIns.listByCompulsion(compulsion.id).at(-1)
     : undefined;
+  const history = { startedAt: compulsion.startedAt, eventDayKeys, now };
+  const initialDays = compulsion.initialStreakDays ?? 0;
+  const celebrated = repositories.milestoneReaches
+    .listByCompulsion(compulsion.id)
+    .filter((reach) => reach.celebratedAt !== null)
+    .map((reach) => reach.reachedOn)
+    .sort();
   return {
     id: compulsion.id,
     type: compulsion.type,
-    streakBaseDayKey: toDayKey(
-      getStreakBase({ startedAt: compulsion.startedAt, eventDayKeys, now }),
-    ),
+    streakBaseDayKey: toDayKey(getStreakBase(history)),
     checkInAnsweredDayKey: lastCheckIn?.dayKey ?? null,
+    // Notificação de marco no nativo (spec 04, 4.3, 5.5 e 5.10).
+    streakBaseIsBreak: getStreakSegments(history).at(-1)?.baseIsBreak ?? false,
+    milestoneDays: [...getMilestoneDays(catalog, compulsion.type)],
+    milestoneQuietUntilDayKey:
+      initialDays > 0
+        ? toDayKey(addCalendarDays(startOfDay(compulsion.startedAt), initialDays))
+        : null,
+    milestoneCelebratedOnDayKey: celebrated.at(-1) ?? null,
   };
 }
 
@@ -104,6 +120,7 @@ export function buildUsageRules(repositories: Repositories, now: Date) {
 
 export function buildMonitoringConfig(
   repositories: Repositories,
+  catalog: Catalog,
   texts: MonitoringTexts,
   now: Date,
   links: MonitoringConfig['links'],
@@ -131,7 +148,9 @@ export function buildMonitoringConfig(
 
   return {
     version: MONITORING_CONFIG_VERSION,
-    compulsions: active.map((compulsion) => compulsionConfig(repositories, compulsion, now)),
+    compulsions: active.map((compulsion) =>
+      compulsionConfig(repositories, compulsion, catalog, now),
+    ),
     moderationRules,
     riskAppRules,
     checkInMinutes: hasAbstinence ? repositories.settings.get().checkInMinutes : null,

@@ -1,5 +1,6 @@
 import { createRepositories, type Repositories } from '@/data/repositories';
 import { createTestDatabase } from '@/data/testing';
+import type { Catalog } from '@/domain/catalog';
 import type { MonitoringTexts } from '@/monitoring';
 
 import { buildMonitoringConfig } from './config';
@@ -31,6 +32,7 @@ const TEXTS: MonitoringTexts = {
       },
     },
     restart: { title: 'd', text: 'e' },
+    milestone: { title: 'm', text: 'n' },
     protectionPaused: { title: 'd', text: 'e' },
   },
   interruption: {
@@ -58,7 +60,26 @@ const LINKS = {
   emergencyFromNotification: 'quedo-dev://emergency?source=notification',
   emergencyFromInterruption: 'quedo-dev://emergency?source=interruption',
 };
-const build = (now = NOW) => buildMonitoringConfig(repositories, TEXTS, now, LINKS);
+// Catálogo só com a moderação: a abstinência usa a lista de reserva.
+const CATALOG: Catalog = {
+  formatVersion: 1,
+  contentVersion: 1,
+  updatedAt: '2026-11-22',
+  compulsions: {
+    short_videos: {
+      milestones: [2, 5].map((day) => ({
+        day,
+        title: 'Marco',
+        summary: 'Resumo',
+        body: 'Texto',
+        references: [],
+        free: true,
+        video: null,
+      })),
+    },
+  },
+};
+const build = (now = NOW) => buildMonitoringConfig(repositories, CATALOG, TEXTS, now, LINKS);
 
 function addAdult() {
   const { id } = repositories.compulsions.add({ type: 'pornography', startedAt: STARTED });
@@ -176,14 +197,66 @@ describe('buildMonitoringConfig', () => {
         type: 'pornography',
         streakBaseDayKey: '2026-11-03',
         checkInAnsweredDayKey: '2026-11-07',
+        streakBaseIsBreak: true,
+        milestoneDays: [1, 3, 7, 14, 30, 60, 90, 180, 365],
+        milestoneQuietUntilDayKey: null,
+        milestoneCelebratedOnDayKey: null,
       },
       {
         id: videos,
         type: 'short_videos',
         streakBaseDayKey: '2026-11-05',
         checkInAnsweredDayKey: null,
+        streakBaseIsBreak: true,
+        milestoneDays: [2, 5],
+        milestoneQuietUntilDayKey: null,
+        milestoneCelebratedOnDayKey: null,
       },
     ]);
+  });
+
+  describe('notificação de marco (spec 04, 4.3, 5.5 e 5.10)', () => {
+    it('sem quebra, a base é um início limpo', () => {
+      addVideos();
+      expect(build().compulsions[0]).toMatchObject({
+        streakBaseDayKey: '2026-11-01',
+        streakBaseIsBreak: false,
+      });
+    });
+
+    it('quebra no próprio dia do início também é recomeço', () => {
+      const videos = addVideos();
+      repositories.dayStates.markFailed(
+        { compulsionId: videos, dayKey: '2026-11-01' },
+        'ignored_limit',
+      );
+      expect(build().compulsions[0]).toMatchObject({
+        streakBaseDayKey: '2026-11-01',
+        streakBaseIsBreak: true,
+      });
+    });
+
+    it('início com "há N dias": quieto até o dia em que começou no app', () => {
+      const { id } = repositories.compulsions.add({ type: 'pornography', startedAt: STARTED });
+      repositories.compulsions.setInitialStreakDays(id, 4);
+      expect(build().compulsions[0]?.milestoneQuietUntilDayKey).toBe('2026-11-05');
+      repositories.compulsions.setInitialStreakDays(id, 0);
+      expect(build().compulsions[0]?.milestoneQuietUntilDayKey).toBeNull();
+    });
+
+    it('leva o último dia com alcance já celebrado, não os pendentes', () => {
+      const videos = addVideos();
+      repositories.milestoneReaches.addMany(videos, [
+        { milestoneDay: 2, streakBaseDay: '2026-11-01', reachedOn: '2026-11-03', celebrated: true },
+        {
+          milestoneDay: 5,
+          streakBaseDay: '2026-11-01',
+          reachedOn: '2026-11-06',
+          celebrated: false,
+        },
+      ]);
+      expect(build().compulsions[0]?.milestoneCelebratedOnDayKey).toBe('2026-11-03');
+    });
   });
 
   it('sem quebra, o dia-base é o do início', () => {

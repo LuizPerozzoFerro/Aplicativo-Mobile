@@ -76,7 +76,7 @@ class MonitoringModule : Module() {
     AsyncFunction("configure") { json: String ->
       if (!ConfigStore.save(context, json)) throw InvalidConfigException()
       Notifier.refresh(context)
-      NotificationCenter.run(context)
+      NotificationCenter.onConfigured(context)
     }
 
     Function("getConfig") { ConfigStore.json(context) }
