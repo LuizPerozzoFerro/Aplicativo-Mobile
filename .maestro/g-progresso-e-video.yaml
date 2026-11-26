@@ -1,0 +1,90 @@
+# Fluxo (g) da spec 04 (seção 5.15): aba Progresso aberta pelo card do Início,
+# linha do tempo, detalhe do marco (desbloqueado, bloqueado e sem vídeo) e o
+# vídeo de teste. O vídeo vem do endereço de conteúdo do development (r2.dev):
+# precisa de internet no aparelho.
+#
+# Apaga os dados do app de desenvolvimento antes de começar.
+appId: br.com.quedo.app.dev
+name: (g) Progresso, detalhe do marco e vídeo de teste
+---
+- runFlow: subflows/onboarding-curto.yaml
+- runFlow: subflows/dispensar-aviso.yaml
+
+# Só a área da streak abre o Progresso, já filtrado na compulsão do card.
+- tapOn:
+    id: home-progress-pornography
+- extendedWaitUntil:
+    visible:
+      id: progress-header-pornography
+    timeout: 10000
+- assertVisible: 'Próximo marco: 7 dias'
+- assertVisible: Faltam 4 dias
+
+# 3 dias: desbloqueado no início ("sem recair há 3 dias"), com vídeo.
+- tapOn:
+    id: progress-milestone-3
+- extendedWaitUntil:
+    visible:
+      id: milestone-detail
+    timeout: 10000
+- assertVisible: 'Marco de teste A: 3 dias'
+- scrollUntilVisible:
+    element:
+      id: milestone-watch
+    direction: DOWN
+- assertVisible: .*não substitui o acompanhamento de um profissional.*
+- tapOn:
+    id: milestone-watch
+- extendedWaitUntil:
+    visible:
+      id: video-screen
+    timeout: 10000
+# Este vídeo de teste não é marcado como gerado com IA.
+- assertNotVisible:
+    id: video-ai-badge
+- tapOn:
+    id: video-play
+- extendedWaitUntil:
+    visible:
+      id: video-view
+    timeout: 10000
+# Carregou: o indicador some e não aparece a mensagem de erro.
+- extendedWaitUntil:
+    notVisible:
+      id: video-loading
+    timeout: 30000
+- assertNotVisible: Não foi possível carregar o vídeo.*
+- back
+- extendedWaitUntil:
+    visible:
+      id: milestone-detail
+    timeout: 10000
+- back
+
+# 7 dias: ainda bloqueado, sem botão de assistir.
+- extendedWaitUntil:
+    visible:
+      id: progress-milestone-7
+    timeout: 10000
+- tapOn:
+    id: progress-milestone-7
+- extendedWaitUntil:
+    visible: Disponível ao chegar a 7 dias
+    timeout: 10000
+- assertNotVisible:
+    id: milestone-watch
+- back
+
+# 60 dias: marco sem vídeo no catálogo de teste, sem espaço vazio.
+- scrollUntilVisible:
+    element:
+      id: progress-milestone-60
+    direction: DOWN
+- tapOn:
+    id: progress-milestone-60
+- extendedWaitUntil:
+    visible: 'Marco de teste A: 60 dias'
+    timeout: 10000
+- assertNotVisible:
+    id: milestone-video
+- back

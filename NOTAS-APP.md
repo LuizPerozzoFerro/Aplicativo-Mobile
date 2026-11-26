@@ -21,14 +21,13 @@ do protótipo continua em `prototype/NOTAS.md`.
   "Fase 5 · Passo 6". O responsável aceitou as três decisões: histórico só dos apps de vídeos
   curtos, desconto das telas de interrupção no JS, e a tabela `usage_history_days` mais a
   coluna `settings.usage_history_since`.
-- **Passo 7 (aba Estatísticas)** no PR #43 (branch `fase5/estatisticas`, migração `0010`).
-  Seção "Fase 5 · Passo 7". Revisão do responsável aplicada: vitórias das duas origens (a
-  spec 04, 5.8, será corrigida no fechamento da fase), média de horários sem hoje e semana de
-  7 dias corridos aceitas.
-- **Passo 8:** antes de começar o roteiro (P1 a P15), levar a lista de blocos ao responsável
-  para aprovar, como na Fase 4.
-- **Próximo: passo 8 (ferramentas de teste, Maestro e roteiro P1 a P15)**, depois da revisão do
-  passo 7.
+- **Passo 7 (aba Estatísticas)** integrado (PR #43). Seção "Fase 5 · Passo 7". Vitórias das
+  duas origens (a spec 04, 5.8, será corrigida no fechamento da fase).
+- **Passo 8, parte 1 (ferramenta "Simular uma streak" e fluxos Maestro g, h e i)** em revisão,
+  branch `fase5/ferramentas-maestro`. Seção "Fase 5 · Passo 8".
+- **Próximo: roteiro P1 a P15**, com a lista de blocos aprovada pelo responsável antes de
+  começar (como na Fase 4). Os fluxos Maestro apagam os dados do app de desenvolvimento: só
+  rodam no bloco que o responsável aprovar para isso.
 - **Pendências para a Fase 8 (teste fechado):** chamada pela internet (Teams) com a tela de
   interrupção aberta e a medição oficial de bateria num build de loja.
 
@@ -4728,6 +4727,74 @@ celebração por cima da aba. Os testes usam streaks fora dos marcos.
 - **Fica para o roteiro (passo 8):** P10 (totais contra o "Tempo de uso" do Android), P11 (sem
   acesso ao uso no aparelho), P13 (TalkBack lendo os gráficos, tema claro e fonte no máximo) e
   um aviso de app de risco real gravado em `monitoring_alerts`.
+
+## Fase 5 · Passo 8 · Ferramentas de teste e Maestro (26/11/2026)
+
+Branch `fase5/ferramentas-maestro`, a partir da `main` com o PR #43. Sem migração.
+
+### Ferramentas de teste (spec 5.12)
+
+Já existiam: "Disparar marco" (passo 5), "Atualizar o catálogo agora" com a versão em uso
+(passo 1) e "Histórico de uso" com o ponto de partida (passo 6). Faltava **"Simular uma
+streak"**, que entrou na tela de conferência (Perfil → "Monitoramento (base)"):
+
+- escolhe a compulsão (com mais de uma ativa) e a streak (1, 3, 6, 7, 14 ou 30 dias);
+- **o que muda** (`src/domain/streakSimulation.ts` e `streakSimulation` no repositório): o
+  início vai para hoje − N; as quebras desse dia em diante saem (abstinência: recaídas e o
+  check-in do dia; moderação: o dia deixa de ser reprovado, e as contagens ficam); na
+  abstinência, os "dias sem recair" do início viram 0 (senão os marcos até eles entrariam sem
+  celebração);
+- **"Desfazer a simulação"** volta o início, os dias sem recair, o ponto de partida (se foi
+  calculado durante a simulação, volta a nulo), as recaídas com os check-ins e os dias
+  reprovados, e apaga os alcances de marco criados durante a simulação (os de id maior que o
+  maior de antes). Os alcances de antes ficam;
+- uma simulação por vez. O registro do que mudou fica no armazenamento chave-valor do
+  próprio `expo-sqlite` (`SQLiteStorage`, arquivo `quedo-dev-tools.db`), fora do banco do app:
+  sobrevive a fechar o app e não precisou de migração nem de biblioteca nova. Fica fora do
+  backup como o resto (`allowBackup: false`). Se não der para guardar, a simulação é desfeita
+  na hora;
+- a celebração aparece ao voltar às abas, como no uso normal.
+
+**Limite conhecido:** a ferramenta muda só os dados do JS. Uma quebra que o nativo viu com o
+app fechado (dia reprovado na tela, "Tive uma recaída" na notificação) continua valendo para a
+notificação de marco (é o P7b do roteiro).
+
+### Maestro (spec 5.15)
+
+Três fluxos novos em `.maestro/` (todos começam pelo `onboarding-curto`, que apaga os dados):
+
+- **(g) `g-progresso-e-video.yaml`:** card do Início abre o Progresso filtrado; marco de 3 dias
+  desbloqueado com o vídeo de teste tocando (precisa de internet: vem do `r2.dev`); 7 dias
+  bloqueado; 60 dias sem vídeo;
+- **(h) `h-simular-streak-e-celebracao.yaml`:** "Simular uma streak" de 7 dias, celebração ao
+  voltar às abas, "Ver o marco", próximo marco em 14 e "Desfazer a simulação" de volta aos 3 dias;
+- **(i) `i-estatisticas.yaml`:** Estatísticas sem dados e depois com emergência ("Sim"),
+  recaída de hoje, check-in e as vitórias separadas.
+
+O selo de IA não está no Maestro (o vídeo com o selo é o de 3 dias dos vídeos curtos, e o
+onboarding curto só tem conteúdo adulto): fica para o roteiro (P5). Os minutos de uso também
+(P10 e P11).
+
+**Ainda não rodados no S22:** eles apagam os dados do app de desenvolvimento, e o roteiro
+depende dos dados reais (P10 e o ponto de partida de 03/12). Rodam no bloco aprovado.
+
+### Testes
+
+1071 testes no Jest (1064 no passo 7). Novos: regras e repositório da simulação
+(`src/data/streakSimulation.test.ts`, 5) e a ferramenta sobre as rotas reais
+(`__tests__/streakSimulation.test.tsx`, 2: simular, celebração "de novo" ao voltar às abas,
+o registro que continua e o desfazer; escolha da compulsão). A lista de métodos que gravam
+(`changes.test.ts`) ganhou `streakSimulation.apply` e `undo`.
+
+**Mutação de controle** (duas, pegas): o desfazer não apagar os alcances da simulação; a
+simulação não zerar os dias sem recair.
+
+**No S22 (26/11, 18:06, development pelo Metro):** a seção "Simular uma streak" aparece na tela
+de conferência com as duas compulsões e as streaks, e o armazenamento foi lido sem erro. A
+ferramenta não foi usada (fica para o roteiro).
+
+**Cuidado:** depois de parar o Metro pela tarefa em segundo plano, o processo do Node continuou
+com a porta 8081. Encerrar pelo `Get-NetTCPConnection -LocalPort 8081` antes de iniciar outro.
 
 ## Problemas
 

@@ -31,6 +31,8 @@ const WRITES = [
   'monitoredApps.add',
   'monitoredApps.replaceForCompulsion',
   'monitoredApps.remove',
+  'streakSimulation.apply',
+  'streakSimulation.undo',
   'triggers.add',
   'triggers.replaceAll',
   'triggers.remove',
