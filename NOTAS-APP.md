@@ -23,11 +23,10 @@ do protótipo continua em `prototype/NOTAS.md`.
   coluna `settings.usage_history_since`.
 - **Passo 7 (aba Estatísticas)** integrado (PR #43). Seção "Fase 5 · Passo 7". Vitórias das
   duas origens (a spec 04, 5.8, será corrigida no fechamento da fase).
-- **Passo 8, parte 1 (ferramenta "Simular uma streak" e fluxos Maestro g, h e i)** em revisão,
-  branch `fase5/ferramentas-maestro`. Seção "Fase 5 · Passo 8".
-- **Próximo: roteiro P1 a P15**, com a lista de blocos aprovada pelo responsável antes de
-  começar (como na Fase 4). Os fluxos Maestro apagam os dados do app de desenvolvimento: só
-  rodam no bloco que o responsável aprovar para isso.
+- **Passo 8, parte 1 (ferramenta "Simular uma streak" e fluxos Maestro g, h e i)** integrado
+  (PR #44). Seção "Fase 5 · Passo 8".
+- **Roteiro P1 a P15 aprovado em blocos** (26/11/2026). Seção "Fase 5 · Roteiro aprovado".
+- **Próximo: bloco A em 27/11**, quando o responsável conectar o S22.
 - **Pendências para a Fase 8 (teste fechado):** chamada pela internet (Teams) com a tela de
   interrupção aberta e a medição oficial de bateria num build de loja.
 
@@ -4795,6 +4794,99 @@ ferramenta não foi usada (fica para o roteiro).
 
 **Cuidado:** depois de parar o Metro pela tarefa em segundo plano, o processo do Node continuou
 com a porta 8081. Encerrar pelo `Get-NetTCPConnection -LocalPort 8081` antes de iniciar outro.
+
+## Fase 5 · Roteiro aprovado (26/11/2026)
+
+Roteiro da spec 04 (seção 7, P1 a P15) em blocos, aprovado pelo responsável em 26/11/2026, com
+três acréscimos dele (marcados com ➕). A ordem protege os dados reais do app de
+desenvolvimento: o que apaga dados fica no bloco E. Antes de cada bloco, o passo a passo do
+que tocar no aparelho; os resultados entram nesta seção.
+
+**Estado de partida (26/11):** development build do passo 6 no S22, JavaScript da `main` pelo
+Metro (sem código nativo novo desde o passo 6). Conteúdo adulto (streak de 11 dias, desde
+15/11) e vídeos curtos (15 dias, desde 11/11; ponto de partida "a partir de 03/12/2026").
+Catálogo em uso: versão 2, do `r2.dev`.
+
+### Bloco A · Dados atuais (27/11, pelo cabo, ~30 min)
+
+- **P6:** tocar na área da streak de cada card do Início abre o Progresso filtrado.
+- **P13:** tema escuro e claro, fonte no máximo e TalkBack no Progresso, no detalhe do marco e
+  nas Estatísticas (gráficos lidos em texto).
+- **P11:** tirar o acesso ao uso, ver o motivo e "Ver o que fazer" nas Estatísticas, com o resto
+  continuando; devolver o acesso.
+- **P5 com o selo:** "Simular uma streak" de 3 dias nos vídeos curtos (o vídeo de 3 dias é o
+  marcado como gerado com IA) e de 7 no adulto; celebração, vídeo tocando, selo quando for o
+  caso; "Desfazer a simulação" nos dois.
+- **P7:** recaída de hoje e, depois, streak de 7 de novo pela ferramenta: celebração "Você chegou
+  de novo a 7 dias", e o vídeo do 7 disponível durante a quebra. No fim, desfazer a simulação e
+  a recaída.
+- **P8:** "Disparar marco" com o S22 bloqueado: só a versão neutra na tela bloqueada, completa
+  no desbloqueio, e o toque abre a celebração.
+- ➕ **Aviso real de app de risco** (A, ou B se não der tempo): um app de risco do conteúdo
+  adulto **sem** "consumo declarado" (doc 01, 6.5.6: só notificação, sem tela). Usar o app por
+  mais de 10 minutos no dia, esperar o aviso por notificação, ver o número em Estatísticas →
+  "Avisos dos apps de risco" e a linha em `monitoring_alerts` (cópia de leitura do banco). No
+  fim, voltar a lista de apps de risco ao que era.
+
+### Bloco B · Noite de 27/11 → manhã de 28/11
+
+- **Notificação de marco às 9h com o app fechado** (pendência do passo 5): à noite, simular 6 dias
+  no adulto e fechar o app. Às 9h (ou no primeiro desbloqueio depois disso) chega a notificação
+  do 7, neutra. De manhã, desfazer a simulação.
+- **P10:** em 27/11, usar vídeos curtos sem passar do limite (dia sem telas de interrupção). Em
+  28/11, comparar os totais do dia e de cada app nas Estatísticas com o "Tempo de uso" do Android
+  (tolerância de 1 minuto por app).
+
+### Bloco C · Noite de 28/11 → 29/11
+
+- **P7b e P9:** à noite, simular 6 dias no adulto; responder "Tive uma recaída" pela notificação
+  do check-in, com o app fechado. Em 29/11: só a notificação de recomeço, nenhuma de marco;
+  "Disparar marco" não sai com a streak antiga (o nativo usa a quebra que viu).
+- **P9, segundo caso:** registrar uma recaída para ontem: nenhuma notificação de marco nem
+  celebração do 1 dia.
+- No fim, desfazer a simulação e as recaídas de teste.
+
+### Bloco D · Conteúdo (qualquer dia)
+
+- **P3 e P4 pelo servidor falso** (`npm run content:serve`, `adb reverse tcp:8090 tcp:8090` e o
+  Metro com `CONTENT_BASE_URL=http://localhost:8090`): catálogo com versão nova e texto de um
+  marco alterado (o texto novo aparece, o antigo some); depois um catálogo inválido (o app
+  ignora e continua com o anterior, sem erro na tela).
+- ➕ **Publicação real no R2:** versão **3** válida do catálogo em `content/catalog.pt-BR.json`
+  (texto de teste de um marco alterado), revisada por PR como o código; depois do merge,
+  `npm run content:publish -- --dry-run` e `npm run content:publish`. Conferir que o S22 passa da
+  versão 2 para a 3 ("Atualizar o catálogo agora" na tela de conferência) e que o texto novo
+  aparece. **O catálogo inválido fica só no servidor falso.**
+- **P1:** revisar juntos a evidência já registrada (passo 3: primeira abertura sem chuva de
+  celebrações; passo 6: dias anteriores do histórico).
+
+### Bloco E · Destrutivo (depois de A a D, ~45 min)
+
+**Apaga os dados do app de desenvolvimento.**
+
+- Os **9 fluxos Maestro** (`npm run e2e`, com o Metro e o `adb reverse`).
+- **P2:** desinstalar, modo avião, instalar do zero: marcos e textos do catálogo embutido; o
+  vídeo mostra a mensagem de sem internet.
+- **P12 pela instalação nova** (decisão do responsável): onboarding com vídeos curtos; o ponto
+  de partida sai na hora, com a origem "antes do início" (os 7 dias antes, lidos do Android). No
+  dia seguinte, o tempo recuperado coerente com os dias mostrados. A origem "primeira semana"
+  fica coberta pelo Jest (o ponto de partida de 03/12 dos dados atuais se perde aqui).
+- ➕ **"Apagar meus dados":** antes, anotar o que existe (catálogo em cache, histórico de uso,
+  alcances de marco, avisos, `files/quedo-usage-history.json` e a última quebra vista no
+  nativo, por leitura com `run-as`). Depois: o **catálogo continua** (mesma versão, sem baixar
+  de novo), e somem o histórico de uso (`app_usage_hourly` e `usage_history_days`), os alcances
+  de marco, os avisos (`monitoring_alerts`), o histórico do nativo e a última quebra vista.
+- **P14:** o responsável lê todos os textos novos da fase (PRs #36 a #44).
+
+### Bloco F · Build de prévia (no fim, ~20 min de build)
+
+- **P15:** build de prévia (`.preview`, outro app; os dados do development não mudam). Conteúdo
+  pelo `r2.dev`, vídeo tocando na prévia, ferramentas de teste ausentes, `check:manifest` ok, e
+  o build de produção recusado enquanto apontar para o `r2.dev`.
+
+### Resultados
+
+(Preenchido bloco a bloco.)
 
 ## Problemas
 
