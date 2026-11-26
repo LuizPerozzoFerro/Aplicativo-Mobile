@@ -127,5 +127,17 @@
       "unchanged": "Consulta feita, sem catálogo mais novo.",
       "failed": "A consulta falhou (sem rede, erro do servidor ou catálogo inválido)."
     }
+  },
+  "usage": {
+    "title": "Histórico de uso",
+    "noDays": "Nenhum dia com histórico ainda.",
+    "days_zero": "Nenhum dia com histórico.",
+    "days_one": "{{count}} dia com histórico ({{from}} a {{to}})",
+    "days_other": "{{count}} dias com histórico ({{from}} a {{to}})",
+    "today": "Hoje: {{minutes}} min",
+    "baselineSaved": "Ponto de partida: {{minutes}} min/dia ({{source}})",
+    "baselinePending": "Ponto de partida a partir de {{date}}",
+    "baselineUnknown": "Ponto de partida: sem histórico ainda",
+    "import": "Importar o histórico agora"
   }
 }

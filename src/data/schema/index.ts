@@ -19,6 +19,7 @@ import {
 import { CHECK_IN_ANSWERS, CHECK_IN_SOURCES, DEFAULT_CHECK_IN_MINUTES } from '@/domain/checkIn';
 import { EMERGENCY_OUTCOMES, EMERGENCY_SOURCES, INTERRUPTION_RESPONSES } from '@/domain/monitoring';
 import { ONBOARDING_STEPS } from '@/domain/onboarding';
+import { BASELINE_SOURCES } from '@/domain/baseline';
 import { MAX_MILESTONE_DAY } from '@/domain/catalog';
 import { DAY_FAILURE_REASONS } from '@/domain/streak';
 import { EMOTIONS, WEEKDAYS } from '@/domain/triggers';
@@ -99,6 +100,12 @@ export const settings = sqliteTable(
      * a validação fica no repositório.
      */
     milestonesCheckedOn: text('milestones_checked_on'),
+    /**
+     * Dia (AAAA-MM-DD) da primeira importação do histórico de uso: o começo da
+     * janela do ponto de partida de quem começou antes da Fase 5 (spec 04, 5.7).
+     * Sem CHECK: só ALTER TABLE ADD.
+     */
+    usageHistorySince: text('usage_history_since'),
   },
   () => [
     // A tabela é recriada na 002: o CHECK da 001 passa a citar a coluna sem a tabela.
@@ -135,6 +142,13 @@ export const userCompulsions = sqliteTable(
      */
     previousDailyLimitMinutes: integer('previous_daily_limit_minutes'),
     dailyLimitRaisedOn: text('daily_limit_raised_on'),
+    /**
+     * Ponto de partida da moderação (spec 04, 5.7): média diária, em minutos, dos
+     * apps escolhidos. Nulo até calcular; calculado uma vez. Sem CHECK, pelo mesmo
+     * motivo dos campos acima.
+     */
+    baselineMinutesPerDay: integer('baseline_minutes_per_day'),
+    baselineSource: text('baseline_source', { enum: BASELINE_SOURCES }),
   },
   (table) => [
     uniqueIndex('user_compulsions_type_unique').on(table.type),
@@ -414,4 +428,45 @@ export const milestoneReaches = sqliteTable(
     check('milestone_reaches_base_valid', isDayKey('streak_base_day')),
     check('milestone_reaches_reached_on_valid', isDayKey('reached_on')),
   ],
+);
+
+// Migração 0009 (spec 04, 5.9; uma migração por passo): tabelas novas e colunas
+// novas em user_compulsions e settings, sem recriar tabela-pai.
+
+/**
+ * Uso por dia, hora, compulsão e app (spec 04, 4.4), já sem o tempo diante da
+ * tela de interrupção. Só os apps de vídeos curtos (moderação). Importado do
+ * nativo de forma idempotente: o total da mesma hora é substituído.
+ */
+export const appUsageHourly = sqliteTable(
+  'app_usage_hourly',
+  {
+    dayKey: text('day_key').notNull(),
+    hour: integer('hour').notNull(),
+    compulsionId: integer('compulsion_id')
+      .notNull()
+      .references(() => userCompulsions.id, { onDelete: 'cascade' }),
+    appPackage: text('app_package').notNull(),
+    seconds: integer('seconds').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.dayKey, table.hour, table.compulsionId, table.appPackage] }),
+    check('app_usage_hourly_day_key_valid', isDayKey('day_key')),
+    check('app_usage_hourly_hour_valid', sql`${column('hour')} between 0 and 23`),
+    check('app_usage_hourly_seconds_valid', sql`${column('seconds')} between 0 and 3600`),
+  ],
+);
+
+/**
+ * Dias com histórico de uso (spec 04, 5.7): o aparelho tinha dados do dia
+ * inteiro, mesmo com uso zero. Só eles entram no ponto de partida e no tempo
+ * recuperado.
+ */
+export const usageHistoryDays = sqliteTable(
+  'usage_history_days',
+  {
+    dayKey: text('day_key').primaryKey(),
+    importedAt: integer('imported_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  () => [check('usage_history_days_day_key_valid', isDayKey('day_key'))],
 );

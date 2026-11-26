@@ -13,6 +13,7 @@ const TABLES_002 = ['check_ins', 'day_states', 'relapses'];
 const TABLES_005 = ['emergency_sessions', 'imported_events', 'interruption_events'];
 const TABLES_007 = ['content_catalog'];
 const TABLES_008 = ['milestone_reaches'];
+const TABLES_009 = ['app_usage_hourly', 'usage_history_days'];
 /** Migrações do app no índice (drizzle/meta/_journal.json). */
 const APP_MIGRATIONS = loadMigrationBundle().journal.entries.length;
 
@@ -88,6 +89,7 @@ describe('migrações', () => {
         ...TABLES_005,
         ...TABLES_007,
         ...TABLES_008,
+        ...TABLES_009,
       ]),
     );
     expect(columnNames(raw, 'user_compulsions')).toEqual(
@@ -100,7 +102,12 @@ describe('migrações', () => {
     expect(columnNames(raw, 'check_ins')).toEqual(
       expect.arrayContaining(['previous_answer', 'previous_source', 'previous_answered_at']),
     );
-    expect(columnNames(raw, 'settings')).toContain('milestones_checked_on');
+    expect(columnNames(raw, 'settings')).toEqual(
+      expect.arrayContaining(['milestones_checked_on', 'usage_history_since']),
+    );
+    expect(columnNames(raw, 'user_compulsions')).toEqual(
+      expect.arrayContaining(['baseline_minutes_per_day', 'baseline_source']),
+    );
     expect(appliedCount(raw)).toBe(APP_MIGRATIONS);
   });
 
@@ -149,6 +156,7 @@ describe('migrações', () => {
       overlayGrantedOnce: false,
       protectionNoticeDismissedAt: null,
       milestonesCheckedOn: null,
+      usageHistorySince: null,
     });
     expect(repositories.compulsions.list()).toEqual([
       {
@@ -160,6 +168,8 @@ describe('migrações', () => {
         initialStreakDays: null,
         previousDailyLimitMinutes: null,
         dailyLimitRaisedOn: null,
+        baselineMinutesPerDay: null,
+        baselineSource: null,
       },
     ]);
     expect(repositories.monitoredApps.listByCompulsion(7)).toHaveLength(1);
@@ -410,6 +420,9 @@ const FIXTURE_ROWS: Record<string, readonly string[]> = {
   ],
   interruption_events: [
     "INSERT INTO interruption_events (id, compulsion_id, day_key, shown_at, response, responded_at, app_package) VALUES ('event-1', 2, '2026-11-01', 0, 'home', 1, 'com.example.clips')",
+  ],
+  app_usage_hourly: [
+    "INSERT INTO app_usage_hourly (day_key, hour, compulsion_id, app_package, seconds) VALUES ('2026-11-20', 9, 2, 'com.example.clips', 600)",
   ],
   milestone_reaches: [
     "INSERT INTO milestone_reaches (compulsion_id, milestone_day, streak_base_day, reached_on, celebrated_at) VALUES (1, 7, '2026-11-01', '2026-11-08', 1)",

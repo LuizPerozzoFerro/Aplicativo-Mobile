@@ -62,6 +62,9 @@ function fakeNative(usageAccess: boolean): jest.Mocked<QuedoMonitoringNativeModu
       { id: 'com.instagram.android', label: 'Instagram' },
       { id: 'com.example.notes', label: 'Notas' },
     ]),
+    getUsageHistory: jest.fn(async (_fromDayKey: string) =>
+      JSON.stringify({ today: '2026-11-25', days: [] }),
+    ),
     getUsageToday: jest.fn(async () => {
       if (!usageAccess) throw permissionRequired();
       return [
@@ -118,6 +121,9 @@ jest.mock('@/data/bootstrap', () => ({
   getRepositories: () => ({
     dayStates: { clearDay: mockClearDay },
     contentCatalog: { get: () => null },
+    usageHistory: { listCoveredDayKeys: () => [], listByCompulsion: () => [] },
+    compulsions: { list: () => [] },
+    settings: { get: () => ({ usageHistorySince: null }) },
   }),
 }));
 

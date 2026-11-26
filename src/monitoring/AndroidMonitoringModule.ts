@@ -6,6 +6,7 @@ import type {
 } from '../../modules/monitoring-android';
 
 import { parseNativeEvents } from './events';
+import { parseUsageHistory } from './usageHistory';
 import {
   MonitoringError,
   UNSUPPORTED,
@@ -19,6 +20,7 @@ import {
   type PermissionStatus,
   type Unsupported,
   type UsageEntry,
+  type UsageHistory,
 } from './types';
 
 const ERR_INVALID_CONFIG = 'ERR_INVALID_CONFIG';
@@ -101,6 +103,14 @@ export class AndroidMonitoringModule implements MonitoringModule {
       targetId: asTargetId(entry.targetId),
       milliseconds: entry.milliseconds,
     }));
+  }
+
+  async getUsageHistory(fromDayKey: string): Promise<UsageHistory> {
+    const json = await withPermissionError(() => this.native.getUsageHistory(fromDayKey));
+    const history = parseUsageHistory(json);
+    // Sem código próprio: quem chama segue com o que já tem no banco.
+    if (history === null) throw new Error('Histórico de uso ilegível');
+    return history;
   }
 
   async startMonitoring(): Promise<void> {

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
 
 import {
   getCompulsionDefinition,
@@ -12,8 +12,10 @@ import {
 import { isValidCheckInMinutes, type CheckInAnswer, type CheckInSource } from '@/domain/checkIn';
 import { applyDailyLimitChange } from '@/domain/dailyLimit';
 import { fromDayKey, toDayKey } from '@/domain/day';
+import type { BaselineSource } from '@/domain/baseline';
 import { MAX_MILESTONE_DAY } from '@/domain/catalog';
 import type { EmergencyOutcome, EmergencySource } from '@/domain/monitoring';
+import type { HourlyRow } from '@/domain/usageHistory';
 import { isValidDailyLimit, type OnboardingStep } from '@/domain/onboarding';
 import type { ProtectionPermission } from '@/domain/protection';
 import { isValidDaysAlreadyWithoutRelapse, type DayFailureReason } from '@/domain/streak';
@@ -22,6 +24,7 @@ import type { MonitoringEvent } from '@/monitoring/types';
 
 import type { AppDatabase } from './database';
 import {
+  appUsageHourly,
   checkIns,
   contentCatalog,
   dayStates,
@@ -34,6 +37,7 @@ import {
   relapses,
   settings,
   triggers,
+  usageHistoryDays,
   userCompulsions,
 } from './schema';
 
@@ -54,6 +58,7 @@ export type InterruptionEvent = typeof interruptionEvents.$inferSelect;
 export type EmergencySession = typeof emergencySessions.$inferSelect;
 export type ContentCatalogRow = typeof contentCatalog.$inferSelect;
 export type MilestoneReach = typeof milestoneReaches.$inferSelect;
+export type AppUsageHour = typeof appUsageHourly.$inferSelect;
 
 const GRANTED_ONCE_COLUMN = {
   usageAccess: 'usageAccessGrantedOnce',
@@ -74,6 +79,8 @@ export type SettingsRepository = {
   setProtectionNoticeDismissedAt(date: Date | null): void;
   /** Dia (AAAA-MM-DD) da última conferência dos alcances de marco. */
   setMilestonesCheckedOn(dayKey: string): void;
+  /** Dia (AAAA-MM-DD) da primeira importação do histórico de uso. */
+  setUsageHistorySince(dayKey: string): void;
 };
 
 export type CompulsionRepository = {
@@ -92,6 +99,8 @@ export type CompulsionRepository = {
   changeDailyLimit(id: number, minutes: number): void;
   /** Abstinência: dias sem recair informados no onboarding (0 = começando hoje). */
   setInitialStreakDays(id: number, days: number): void;
+  /** Moderação: ponto de partida calculado (spec 04, 5.7), guardado uma vez. */
+  setBaseline(id: number, minutesPerDay: number, source: BaselineSource): void;
   /** Apaga a compulsão e, em cascata, apps, gatilhos, check-ins, recaídas e dias. */
   remove(id: number): void;
 };
@@ -230,6 +239,23 @@ export type MilestoneReachRepository = {
   markCelebrated(ids: readonly number[]): void;
 };
 
+export type UsageHistoryRepository = {
+  /** Linhas de uma compulsão, do dia mais antigo ao mais novo; a partir de `fromDayKey` se dado. */
+  listByCompulsion(compulsionId: number, fromDayKey?: string): AppUsageHour[];
+  /** Dias com histórico (dados do dia inteiro), do mais antigo ao mais novo. */
+  listCoveredDayKeys(): string[];
+  /**
+   * Importa dias do histórico numa transação (uma gravação só): em cada dia, as
+   * linhas das compulsões dadas são substituídas pelas novas, e o dia fica (ou
+   * deixa de ficar) marcado como dia com histórico. Rodar de novo com os mesmos
+   * dados não muda nada.
+   */
+  importDays(
+    compulsionIds: readonly number[],
+    days: readonly { dayKey: string; covered: boolean; rows: readonly HourlyRow[] }[],
+  ): void;
+};
+
 export type Repositories = {
   settings: SettingsRepository;
   compulsions: CompulsionRepository;
@@ -243,6 +269,7 @@ export type Repositories = {
   emergencySessions: EmergencySessionRepository;
   contentCatalog: ContentCatalogRepository;
   milestoneReaches: MilestoneReachRepository;
+  usageHistory: UsageHistoryRepository;
   /**
    * Apaga todos os dados do usuário; as configurações voltam ao padrão. O
    * catálogo de conteúdo fica: é público (spec 04, 5.9).
@@ -405,6 +432,14 @@ export function createRepositories(
       settingsRepository.get();
       db.update(settings)
         .set({ milestonesCheckedOn: dayKey })
+        .where(eq(settings.id, SETTINGS_ID))
+        .run();
+    },
+    setUsageHistorySince(dayKey) {
+      requireDayKey(dayKey);
+      settingsRepository.get();
+      db.update(settings)
+        .set({ usageHistorySince: dayKey })
         .where(eq(settings.id, SETTINGS_ID))
         .run();
     },
@@ -687,6 +722,18 @@ export function createRepositories(
           .where(eq(userCompulsions.id, id))
           .run();
       },
+      setBaseline: (id, minutesPerDay, source) => {
+        if (getCompulsionDefinition(requireCompulsionType(db, id)).mechanic !== 'moderation') {
+          throw new Error('Ponto de partida só existe na moderação');
+        }
+        if (!Number.isInteger(minutesPerDay) || minutesPerDay < 0 || minutesPerDay > 24 * 60) {
+          throw new RangeError('Ponto de partida fora do intervalo aceito');
+        }
+        db.update(userCompulsions)
+          .set({ baselineMinutesPerDay: minutesPerDay, baselineSource: source })
+          .where(eq(userCompulsions.id, id))
+          .run();
+      },
       remove: (id) => {
         db.delete(userCompulsions).where(eq(userCompulsions.id, id)).run();
       },
@@ -908,11 +955,76 @@ export function createRepositories(
       },
     },
 
+    usageHistory: {
+      listByCompulsion: (compulsionId, fromDayKey) =>
+        db
+          .select()
+          .from(appUsageHourly)
+          .where(
+            fromDayKey === undefined
+              ? eq(appUsageHourly.compulsionId, compulsionId)
+              : and(
+                  eq(appUsageHourly.compulsionId, compulsionId),
+                  gte(appUsageHourly.dayKey, fromDayKey),
+                ),
+          )
+          .orderBy(
+            asc(appUsageHourly.dayKey),
+            asc(appUsageHourly.hour),
+            asc(appUsageHourly.appPackage),
+          )
+          .all(),
+      listCoveredDayKeys: () =>
+        db
+          .select({ dayKey: usageHistoryDays.dayKey })
+          .from(usageHistoryDays)
+          .orderBy(asc(usageHistoryDays.dayKey))
+          .all()
+          .map((row) => row.dayKey),
+      importDays: (compulsionIds, days) => {
+        for (const day of days) {
+          requireDayKey(day.dayKey);
+          for (const row of day.rows) {
+            if (row.dayKey !== day.dayKey || !compulsionIds.includes(row.compulsionId)) {
+              throw new Error('Linha de uso fora do dia ou da compulsão');
+            }
+          }
+        }
+        const at = now();
+        db.transaction((tx) => {
+          for (const day of days) {
+            if (compulsionIds.length > 0) {
+              tx.delete(appUsageHourly)
+                .where(
+                  and(
+                    eq(appUsageHourly.dayKey, day.dayKey),
+                    inArray(appUsageHourly.compulsionId, [...compulsionIds]),
+                  ),
+                )
+                .run();
+            }
+            if (day.rows.length > 0)
+              tx.insert(appUsageHourly)
+                .values([...day.rows])
+                .run();
+            if (day.covered) {
+              tx.insert(usageHistoryDays)
+                .values({ dayKey: day.dayKey, importedAt: at })
+                .onConflictDoNothing()
+                .run();
+            }
+          }
+        });
+      },
+    },
+
     deleteAllData() {
       db.transaction((tx) => {
         // Filhos antes dos pais; a cascata cobriria, mas a ordem explícita não
         // depende do PRAGMA foreign_keys.
         tx.delete(milestoneReaches).run();
+        tx.delete(appUsageHourly).run();
+        tx.delete(usageHistoryDays).run();
         tx.delete(interruptionEvents).run();
         tx.delete(emergencySessions).run();
         tx.delete(importedEvents).run();

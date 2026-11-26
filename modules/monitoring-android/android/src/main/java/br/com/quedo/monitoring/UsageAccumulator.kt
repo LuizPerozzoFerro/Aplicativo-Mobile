@@ -1,5 +1,8 @@
 package br.com.quedo.monitoring
 
+import java.time.Instant
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -21,8 +24,11 @@ import org.json.JSONObject
  *   impressões digitais evitam contar o mesmo evento duas vezes. Sem isso, um
  *   PAUSED que chegasse logo depois da leitura se perderia, e o app contaria
  *   como aberto até a tela apagar.
+ * - **Por hora (opcional, spec 04, 4.4):** com `hourZone`, o uso também é
+ *   dividido pelas horas locais do dia, para o histórico. Só no cálculo de um
+ *   dia inteiro (`UsageHistory`); o serviço não precisa e não guarda.
  */
-class UsageAccumulator(cursor: Long, dayStart: Long) {
+class UsageAccumulator(cursor: Long, dayStart: Long, private val hourZone: ZoneId? = null) {
 
   companion object {
     const val OVERLAP_MS = 10_000L
@@ -63,9 +69,13 @@ class UsageAccumulator(cursor: Long, dayStart: Long) {
   private val pendingStops = HashMap<String, Int>()
   private val seen = HashMap<String, Long>()
   private val suspended = ArrayList<Span>()
+  private val hourly = HashMap<String, LongArray>()
 
   /** Milissegundos de uso hoje, por pacote. */
   fun totals(): Map<String, Long> = totals.filterValues { it > 0L }
+
+  /** Milissegundos por hora local (0 a 23), por pacote. Vazio sem `hourZone`. */
+  fun hourly(): Map<String, LongArray> = hourly.filterValues { hours -> hours.any { it > 0L } }
 
   /** O app na frente: o intervalo aberto mais recente. */
   fun foreground(): String? = open.values.maxByOrNull { it.openedAt }?.packageName
@@ -101,7 +111,25 @@ class UsageAccumulator(cursor: Long, dayStart: Long) {
     if (to <= item.creditedUntil) return
     val amount = creditable(item.creditedUntil, to, now)
     if (amount > 0L) totals[item.packageName] = (totals[item.packageName] ?: 0L) + amount
+    if (hourZone != null) creditHours(item.packageName, item.creditedUntil, to, now, hourZone)
     item.creditedUntil = to
+  }
+
+  /** O mesmo crédito, dividido pelas horas locais (horário de verão incluído). */
+  private fun creditHours(packageName: String, from: Long, to: Long, now: Long, zone: ZoneId) {
+    var start = maxOf(from, dayStart)
+    val end = minOf(to, now)
+    while (start < end) {
+      val local = Instant.ofEpochMilli(start).atZone(zone)
+      val nextHour = local.truncatedTo(ChronoUnit.HOURS).plusHours(1).toInstant().toEpochMilli()
+      val sliceEnd = minOf(end, nextHour)
+      val amount = creditable(start, sliceEnd, now)
+      if (amount > 0L) {
+        val hours = hourly.getOrPut(packageName) { LongArray(24) }
+        hours[local.hour] += amount
+      }
+      start = sliceEnd
+    }
   }
 
   private fun close(key: String, at: Long, now: Long) {
@@ -122,6 +150,7 @@ class UsageAccumulator(cursor: Long, dayStart: Long) {
     if (dayStart != this.dayStart) {
       this.dayStart = dayStart
       totals.clear()
+      hourly.clear()
     }
 
     for (event in events) {
