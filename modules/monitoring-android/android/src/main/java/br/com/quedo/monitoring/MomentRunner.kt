@@ -211,6 +211,8 @@ object MomentRunner {
       }
     }
     editor.apply()
+    // Histórico de uso (spec 04, 4.4): uma vez por dia, guarda o dia que terminou.
+    UsageHistory.onServiceCheck(context, now)
   }
 
   private fun save(context: Context, rules: MomentRules.State, usage: UsageAccumulator) {

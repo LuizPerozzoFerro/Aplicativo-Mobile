@@ -152,6 +152,7 @@ Preencher e manter atualizado na Fase 2.
 | Gerar os vídeos de teste do conteúdo | `npm run content:test-videos` (com `FFMPEG=<caminho do ffmpeg.exe>` se o `ffmpeg` não estiver no PATH) |
 | Bateria do app (sanidade) | no cabo, `adb shell dumpsys batterystats --reset`; uso normal fora do cabo; depois, `adb shell dumpsys batterystats` (linha `UID u0a<n>` em "Estimated power use") e `adb shell dumpsys batterystats br.com.quedo.app.dev`. O número do UID sai de `adb shell pm list packages -U br.com.quedo` (`NOTAS-APP.md`, "Bateria: resultado") |
 | Fila de eventos e configuração do nativo | `adb shell run-as br.com.quedo.app.dev cat files/quedo-monitoring-events.jsonl` · `... cat shared_prefs/quedo-monitoring-config.xml` |
+| Histórico de uso guardado no nativo (Fase 5) | `adb shell run-as br.com.quedo.app.dev cat files/quedo-usage-history.json` (dias terminados, 21 dias, só os apps de vídeos curtos). No app: Perfil → "Monitoramento (base)" → "Histórico de uso" ("Importar o histórico agora"). Quanto o Android guarda: `adb shell dumpsys usagestats`, "Database Summary" |
 
 ## 11. Ao final de cada fase
 

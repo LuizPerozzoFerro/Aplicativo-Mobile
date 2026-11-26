@@ -8,6 +8,7 @@ import { getRepositories } from '@/data/bootstrap';
 import { toDayKey } from '@/domain/day';
 import { SUGGESTED_PACKAGES } from '@/domain/suggestedApps';
 import { ContentDevTools } from '@/features/content/ContentDevTools';
+import { UsageDevTools } from '@/features/usage/UsageDevTools';
 import { getAppMonitoringSync } from '@/features/monitoring/useMonitoringSync';
 import { Button, Screen, Text } from '@/ui';
 
@@ -436,6 +437,7 @@ export default function DevMonitoringScreen() {
 
       {/* Catálogo de conteúdo (spec 04, 5.12): não depende do módulo nativo. */}
       <ContentDevTools />
+      <UsageDevTools />
 
       <Button label={t('common:actions.back')} variant="text" onPress={() => router.back()} />
     </Screen>

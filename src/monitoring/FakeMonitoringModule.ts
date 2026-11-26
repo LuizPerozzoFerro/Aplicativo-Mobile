@@ -18,6 +18,8 @@ import {
   type TargetId,
   type Unsupported,
   type UsageEntry,
+  type UsageHistory,
+  type UsageHistoryDay,
 } from './types';
 
 // Implementação falsa (spec 01, seção 4.8): simula permissões, uso e eventos em
@@ -84,6 +86,7 @@ export class FakeMonitoringModule implements MonitoringModule {
     lastCheckAt: null,
   };
   private usage: UsageSample[] = [];
+  private history: UsageHistoryDay[] = [];
   private events: MonitoringEvent[] = [];
   private config: MonitoringConfig | null = null;
   private nextEventNumber = 1;
@@ -148,6 +151,23 @@ export class FakeMonitoringModule implements MonitoringModule {
       totals.set(sample.targetId, (totals.get(sample.targetId) ?? 0) + sample.milliseconds);
     }
     return [...totals].map(([targetId, milliseconds]) => ({ targetId, milliseconds }));
+  }
+
+  async getUsageHistory(fromDayKey: string): Promise<UsageHistory | Unsupported> {
+    if (this.platform === 'ios') return UNSUPPORTED;
+    this.requirePermission('usageAccess');
+    return {
+      today: toDayKey(this.now()),
+      days: this.history
+        .filter((day) => day.dayKey >= fromDayKey)
+        .sort((a, b) => (a.dayKey < b.dayKey ? -1 : 1)),
+    };
+  }
+
+  /** Define o histórico que o `getUsageHistory` devolve (substitui o dia de mesma chave). */
+  simulateUsageHistory(days: readonly UsageHistoryDay[]): void {
+    const keys = new Set(days.map((day) => day.dayKey));
+    this.history = [...this.history.filter((day) => !keys.has(day.dayKey)), ...days];
   }
 
   // Sem VPN na primeira versão (D6): a flag domainMonitoring é sempre falsa.

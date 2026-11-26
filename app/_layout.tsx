@@ -9,6 +9,7 @@ import { View } from 'react-native';
 
 import { useDatabase } from '@/data/bootstrap';
 import { useCatalogRefresh } from '@/features/content/useCatalog';
+import { useUsageHistorySync } from '@/features/usage/useUsageHistorySync';
 import { useMonitoringSync } from '@/features/monitoring/useMonitoringSync';
 import { useOnboardingCompleted } from '@/features/onboarding/onboardingStatus';
 import { EmptyState, Screen, useTheme } from '@/ui';
@@ -45,6 +46,8 @@ function AppNavigator() {
   useMonitoringSync();
   // Catálogo de conteúdo: atualização remota (spec 04, 4.1).
   useCatalogRefresh();
+  // Histórico de uso e ponto de partida (spec 04, 4.4 e 5.7).
+  useUsageHistorySync();
 
   return (
     <Stack

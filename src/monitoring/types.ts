@@ -83,6 +83,22 @@ export type UsageEntry = {
   readonly milliseconds: number;
 };
 
+/** Um dia do histórico de uso (spec 04, 4.4), sem desconto das telas de interrupção. */
+export type UsageHistoryDay = {
+  readonly dayKey: string;
+  /** O dia tem dados (mesmo com uso zero); sem eles, fica fora do ponto de partida e do tempo recuperado. */
+  readonly covered: boolean;
+  /** Segundos por hora local (24 posições), por app de vídeos curtos. Só os com uso. */
+  readonly apps: Readonly<Record<TargetId, readonly number[]>>;
+};
+
+export type UsageHistory = {
+  /** Hoje, pela borda do dia do aparelho. O dia de hoje vem até agora. */
+  readonly today: string;
+  /** Do mais antigo ao mais novo. */
+  readonly days: readonly UsageHistoryDay[];
+};
+
 /**
  * Configuração que o JS envia ao nativo (spec 03, seção 4.2) sempre que algo
  * muda e ao abrir o app. O nativo guarda a última em disco e a usa depois do
@@ -319,6 +335,13 @@ export interface MonitoringModule {
 
   /** Uso de hoje por alvo. iOS: UNSUPPORTED (só por extensão de relatório). */
   getUsageToday(): Promise<UsageEntry[] | Unsupported>;
+
+  /**
+   * Histórico de uso por dia e hora dos apps de vídeos curtos, de `fromDayKey`
+   * até hoje (spec 04, 4.4). Sem o acesso ao uso, `permission_required`. iOS:
+   * UNSUPPORTED nesta versão.
+   */
+  getUsageHistory(fromDayKey: string): Promise<UsageHistory | Unsupported>;
 
   /**
    * Detecção de domínios pela VPN local. UNSUPPORTED enquanto a flag

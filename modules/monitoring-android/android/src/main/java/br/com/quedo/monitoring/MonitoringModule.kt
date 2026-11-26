@@ -51,6 +51,15 @@ class MonitoringModule : Module() {
     }
 
     /**
+     * Histórico de uso por dia e hora dos apps de vídeos curtos, a partir de
+     * `fromDayKey` (spec 04, 4.4). Em JSON; o JS importa e desconta as telas.
+     */
+    AsyncFunction("getUsageHistory") { fromDayKey: String ->
+      if (!Permissions.hasUsageAccess(context)) throw UsageAccessRequiredException()
+      UsageHistory.historyJson(context, fromDayKey)
+    }
+
+    /**
      * Liga o serviço. Chamado com o app na tela, que é quando o Android deixa
      * iniciar um serviço em primeiro plano sem outra exceção.
      */
@@ -115,6 +124,7 @@ class MonitoringModule : Module() {
       MomentRunner.clear(context)
       NotificationCenter.clear(context)
       ProtectionWatch.clear(context)
+      UsageHistory.clear(context)
       MonitoringState.clear(context)
       Notifier.cancelAll(context)
     }

@@ -5,7 +5,7 @@ do protótipo continua em `prototype/NOTAS.md`.
 
 ---
 
-## Onde paramos (25/11/2026)
+## Onde paramos (26/11/2026)
 
 - **Fase 4 concluída e revisada** (PRs #21 a #33); documentos fechados no planejamento
   (PR #34: doc 01 v0.11, doc 02 v0.9, spec 03 v0.3, relatório 01 v0.5).
@@ -16,8 +16,10 @@ do protótipo continua em `prototype/NOTAS.md`.
 - **Passo 2 (hospedagem no Cloudflare R2)** integrado (PR #37). Seção "Fase 5 · Passo 2".
 - **Passo 3 (marcos e aba Progresso)** integrado (PR #38). Seção "Fase 5 · Passo 3".
 - **Passo 4 (vídeos)** integrado (PR #39). Seção "Fase 5 · Passo 4".
-- **Passo 5 (notificação de marco no nativo)** pronto na branch `fase5/notificacao-marco`, para
-  revisão. Seção "Fase 5 · Passo 5". Próximo: passo 6 (histórico de uso no nativo).
+- **Passo 5 (notificação de marco no nativo)** integrado (PR #40). Seção "Fase 5 · Passo 5".
+- **Passo 6 (histórico de uso, dias anteriores e ponto de partida)** pronto na branch
+  `fase5/historico-uso`, para revisão. Seção "Fase 5 · Passo 6". Próximo: passo 7 (aba
+  Estatísticas).
 - **Pendências para a Fase 8 (teste fechado):** chamada pela internet (Teams) com a tela de
   interrupção aberta e a medição oficial de bateria num build de loja.
 
@@ -4373,6 +4375,156 @@ JUnit: 12 classes, sem falhas. Novos:
   saindo sozinha às 9h com o app fechado. Isso depende da ferramenta "Simular uma streak"
   (passo 8) ou de esperar um marco real sem abrir o app.
 - **`adb`:** travado de novo antes do build (AP3), reiniciado.
+
+## Fase 5 · Passo 6 · Histórico de uso, dias anteriores e ponto de partida (25/11/2026)
+
+Branch `fase5/historico-uso`, a partir da `main` com o PR #40. Migração própria: **`0009`**.
+
+### Quanto tempo o Android guarda os eventos de uso (conferido antes de implementar)
+
+- **Documentação oficial** (`UsageStatsManager`, em developer.android.com): no
+  `queryEvents`, "Events are only kept by the system for a few days". Não há número exato,
+  nem para os eventos, nem para os intervalos diários, semanais, mensais ou anuais.
+- Desde o Android 11 (R), as consultas devolvem `null` se o aparelho ainda não foi
+  desbloqueado depois de ligar (`UserManager#isUserUnlocked`).
+- Eventos usados: `ACTIVITY_RESUMED`, `ACTIVITY_PAUSED` e `ACTIVITY_STOPPED` (API 29) e
+  `SCREEN_NON_INTERACTIVE` (API 28), os mesmos das regras do momento.
+- **Medido no S22 em 25/11** (`adb shell dumpsys usagestats`, "Database Summary"): **10
+  arquivos diários**, de 16/11 às 14h23 a 25/11. Cerca de 10 dias, e o mais antigo começa no
+  meio do dia.
+- Por isso o nativo guarda o histórico por 21 dias (a spec pede pelo menos 14), e o dia mais
+  antigo, que pode começar pela metade, não conta como dia com dados (ver abaixo).
+
+### O que entrou
+
+- **Nativo:**
+  - `UsageDays` (puro, JUnit) calcula o uso por dia, hora local e app a partir dos eventos.
+    É a mesma conta das regras do momento: sem lançadores, a tela apagada fecha tudo e a
+    borda do dia é explícita. O `UsageAccumulator` ganhou a divisão por hora (opcional, com
+    o fuso), que só o histórico usa.
+  - `UsageHistory` guarda os dias terminados em `files/quedo-usage-history.json`, só dos
+    apps de vídeos curtos da configuração, por 21 dias.
+  - Os dias que faltam, até 14 para trás, são calculados de uma vez numa só leitura de
+    eventos. Isso acontece uma vez por dia, na primeira verificação do serviço do dia, ou
+    quando o JS pede.
+  - Assim, os **dias anteriores** (primeira abertura da Fase 5 ou acesso ao uso concedido
+    depois) entram pela mesma leitura. O dia de hoje é calculado na hora do pedido.
+  - `getUsageHistory(fromDayKey)` no módulo. O `reset` ("Apagar meus dados") apaga o arquivo.
+- **JS:**
+  - `useUsageHistorySync` roda ao abrir o app e ao voltar do segundo plano, **depois** da
+    sincronização do monitoramento, que importa as telas de interrupção.
+  - Ele pede os últimos 21 dias e grava de forma idempotente, numa transação: as linhas do
+    dia são substituídas e o dia é marcado como dia com histórico.
+- **Banco (`0009`):** só `CREATE TABLE` e `ALTER TABLE ADD`.
+  - `app_usage_hourly`: chave (dia, hora, compulsão, app), cascata pela compulsão, CHECKs de
+    hora (0 a 23) e segundos (0 a 3600).
+  - `usage_history_days`: dias com histórico.
+  - `user_compulsions.baseline_minutes_per_day` e `baseline_source`.
+  - `settings.usage_history_since`.
+  - "Apagar meus dados" apaga as duas tabelas.
+- **Domínio:**
+  - `src/domain/usageHistory.ts`: linhas por hora e compulsão, com o desconto das telas de
+    interrupção.
+  - `src/domain/baseline.ts`: ponto de partida e tempo recuperado.
+- **Ferramenta de conferência (5.12):** seção "Histórico de uso" na tela de conferência, com
+  os dias com histórico, o uso de hoje, o ponto de partida (ou a data em que aparece) e
+  "Importar o histórico agora".
+
+### Regras e interpretações (a confirmar na revisão)
+
+1. **Só os apps de vídeos curtos (moderação).** A spec fala em "por compulsão e app" e em "um
+   app nas duas listas conta nas duas". Mas a abstinência não mostra minutos (doc 01, 6.8; spec
+   5.8), então guardar o uso dos apps de risco seria juntar dados que nenhuma tela usa.
+   - O app que está nas duas listas conta em todas as compulsões de moderação em que estiver.
+   - As telas de interrupção das duas compulsões descontam o app.
+2. **O desconto da tela de interrupção é feito no JS, para todos os dias**, pelas telas do
+   banco (`shown_at` e `responded_at`), e não no nativo só para os dias novos.
+   - É um caminho só para os dias anteriores e os novos, testado no Jest. O resultado é o
+     mesmo: a sincronização sempre importa as telas antes do histórico.
+   - Tela fechada sem resposta (ex.: chamada) não tem fim conhecido e não é descontada.
+3. **Dia com histórico** = dia inteiro dentro do período que o Android ainda guarda. O começo
+   do período vem do intervalo diário mais antigo que o sistema tem (`queryUsageStats`,
+   `INTERVAL_DAILY`, `firstTimeStamp`); os eventos ficam nos mesmos arquivos diários.
+   - Um dia sem nenhum evento nesse período (celular parado) é dia **sem uso**, com zero, e
+     não dia sem dados.
+   - O dia em que o período começa (no meio dele) não conta.
+   - O Android registra o uso mesmo sem o acesso concedido ao app; o acesso só libera a
+     leitura. Por isso, todo dia dentro do período tem dados.
+   - **Primeira versão, corrigida no S22:** a regra exigia eventos no dia e antes dele, dentro
+     da janela lida. Em 25/11, 18/11 e 24/11 (dias sem nenhum evento) e o próprio dia de hoje
+     (o dia anterior não tinha eventos) ficaram sem dados. O arquivo do nativo passou para a
+     versão 2, e a versão 1 é descartada e recalculada.
+4. **Ponto de partida:**
+   - **Antes do início:** com pelo menos 3 dias com dados entre os 7 antes do início, a média
+     deles (`before_start`).
+   - **Primeira semana:** senão, a média dos **7 primeiros dias completos com dados** depois
+     do início (`first_week`), começando no dia seguinte (o dia do início é incompleto) e
+     pulando dias sem dados.
+   - **Quem começou antes da Fase 5:** os 7 dias começam depois do dia da primeira importação
+     (`settings.usage_history_since`).
+   - Calculado uma vez e guardado; mudar os apps depois não recalcula.
+   - A data "Disponível a partir de" supõe que os próximos dias terão dados.
+5. **Tempo recuperado:**
+   - soma dos dias **completos** com histórico, desde o dia seguinte ao início, abaixo do
+     ponto de partida;
+   - o dia de hoje (ainda em andamento) e o do início (incompleto) ficam fora;
+   - "na semana" = os últimos 7 dias completos.
+   - A tela que mostra isso é do passo 7 (Estatísticas).
+6. **Coluna nova em `settings` (`usage_history_since`) e tabela nova (`usage_history_days`)**,
+   que a spec (5.9) não lista. São necessárias para a janela de quem começou antes da Fase 5
+   e para separar "dia sem uso" de "dia sem dados". A `monitoring_alerts` da 5.9 fica para o
+   passo 7, que a usa.
+
+### Testes
+
+1019 testes no Jest (988 no passo 5). Novos:
+- `src/domain/usageHistory.test.ts` (5) e `src/domain/baseline.test.ts` (8);
+- `src/features/usage/usageHistorySync.test.ts` (6): importação, desconto, idempotência,
+  sem acesso, ponto de partida guardado uma vez, quem começou antes da Fase 5;
+- `src/monitoring/usageHistory.test.ts` (leitura do JSON do nativo);
+- repositório (importação, CHECKs, cascata, "Apagar meus dados") e migração.
+
+JUnit: `UsageDaysTest` (6):
+- sessão que atravessa a hora;
+- sessão que atravessa a meia-noite;
+- tela apagada, lançador e só os apps pedidos;
+- hoje até agora;
+- dia com dados e uso zero;
+- dia sem dados e dia mais antigo pela metade.
+
+**Mutação de controle** (seis mudanças, todas pegas):
+- mínimo de 3 dias virando 1;
+- janela incluindo o dia do início;
+- ignorar a instalação da Fase 5;
+- tempo recuperado contando dias acima;
+- sem desconto da tela;
+- desconto de tela sem resposta. Nesse último, a falha veio de um erro ao ler o fim da tela,
+  não de uma asserção.
+
+`lint`, `typecheck` e `format:check` ok.
+
+### No S22 (25 e 26/11, development build novo)
+
+- **Builds:** `BUILD SUCCESSFUL in 14m 57s`, `check:manifest` OK. Depois da correção da regra
+  de "dia com dados", a reinstalação levou 2 min.
+  - O Metro iniciado antes do build parou de responder com a porta aberta (AP5) e foi
+    reiniciado.
+- **Primeira conferência:** 6 dias com histórico, e hoje sem dados. Revelou o problema da
+  regra de "dia com dados" (interpretação 3), corrigido.
+- **Depois da correção (26/11, 00:03):**
+  - **10 dias com histórico, de 17/11 a 26/11:** todo o período que o S22 guarda, sem o dia
+    16, que começa no meio.
+  - **Ponto de partida de B:** "a partir de 03/12/2026". B começou em 11/11, antes da Fase 5,
+    e os 7 dias antes do início já saíram do Android. A janela é de 26/11 a 02/12, depois da
+    primeira importação em 25/11.
+- **Banco (cópia de leitura):**
+  - uso nos dias 20, 21 e 22/11 (os dias de teste da Fase 4), com 25, 1 e 27 min;
+  - **desconto das telas conferido com dados reais:** em 20/11, 2.067 s no nativo viraram
+    1.518 s no banco (duas telas de interrupção sobre o app); em 21/11, 103 s viraram 100 s;
+    em 22/11, sem telas, 1.664 s nos dois.
+- **Fica para o roteiro (P10):** num dia sem telas de interrupção, comparar os totais por dia
+  e por app com o "Tempo de uso" do Android.
+- **Tela de estatísticas e tempo recuperado na tela:** passo 7.
 
 ## Problemas
 

@@ -52,6 +52,7 @@ describe('settings', () => {
       overlayGrantedOnce: false,
       protectionNoticeDismissedAt: null,
       milestonesCheckedOn: null,
+      usageHistorySince: null,
     });
     repositories.settings.get();
     expect(count('settings')).toBe(1);
@@ -714,6 +715,100 @@ describe('alcances de marco', () => {
   });
 });
 
+describe('histórico de uso', () => {
+  const row = (compulsionId: number, hour: number, seconds: number, dayKey = '2026-11-01') => ({
+    dayKey,
+    hour,
+    compulsionId,
+    appPackage: 'com.example.clips',
+    seconds,
+  });
+
+  it('importa numa gravação: substitui as linhas do dia e marca o dia com histórico', () => {
+    const { id } = repositories.compulsions.add({ type: 'short_videos', startedAt: NOW });
+    repositories.usageHistory.importDays(
+      [id],
+      [
+        { dayKey: '2026-11-01', covered: true, rows: [row(id, 9, 600), row(id, 10, 60)] },
+        { dayKey: '2026-10-20', covered: false, rows: [] },
+      ],
+    );
+    repositories.usageHistory.importDays(
+      [id],
+      [{ dayKey: '2026-11-01', covered: true, rows: [row(id, 9, 300)] }],
+    );
+    expect(repositories.usageHistory.listByCompulsion(id)).toEqual([row(id, 9, 300)]);
+    expect(repositories.usageHistory.listCoveredDayKeys()).toEqual(['2026-11-01']);
+    expect(repositories.usageHistory.listByCompulsion(id, '2026-11-02')).toEqual([]);
+  });
+
+  it('só substitui as compulsões dadas', () => {
+    const a = repositories.compulsions.add({ type: 'short_videos', startedAt: NOW });
+    const b = repositories.compulsions.add({ type: 'pornography', startedAt: NOW });
+    repositories.usageHistory.importDays(
+      [a.id, b.id],
+      [{ dayKey: '2026-11-01', covered: true, rows: [row(a.id, 9, 600), row(b.id, 9, 60)] }],
+    );
+    repositories.usageHistory.importDays(
+      [a.id],
+      [{ dayKey: '2026-11-01', covered: true, rows: [] }],
+    );
+    expect(repositories.usageHistory.listByCompulsion(a.id)).toEqual([]);
+    expect(repositories.usageHistory.listByCompulsion(b.id)).toHaveLength(1);
+  });
+
+  it('recusa linha fora do dia ou da compulsão, e o banco recusa hora e segundos inválidos', () => {
+    const { id } = repositories.compulsions.add({ type: 'short_videos', startedAt: NOW });
+    expect(() =>
+      repositories.usageHistory.importDays(
+        [id],
+        [{ dayKey: '2026-11-02', covered: true, rows: [row(id, 9, 600)] }],
+      ),
+    ).toThrow('Linha de uso fora');
+    expect(() =>
+      repositories.usageHistory.importDays(
+        [id],
+        [{ dayKey: '2026-11-01', covered: true, rows: [row(id, 24, 600)] }],
+      ),
+    ).toThrow(/CHECK constraint failed/);
+    expect(() =>
+      repositories.usageHistory.importDays(
+        [id],
+        [{ dayKey: '2026-11-01', covered: true, rows: [row(id, 9, 3601)] }],
+      ),
+    ).toThrow(/CHECK constraint failed/);
+    expect(count('app_usage_hourly')).toBe(0);
+  });
+
+  it('remover a compulsão apaga o histórico dela', () => {
+    const { id } = repositories.compulsions.add({ type: 'short_videos', startedAt: NOW });
+    repositories.usageHistory.importDays(
+      [id],
+      [{ dayKey: '2026-11-01', covered: true, rows: [row(id, 9, 600)] }],
+    );
+    repositories.compulsions.remove(id);
+    expect(count('app_usage_hourly')).toBe(0);
+  });
+
+  it('ponto de partida só na moderação e no intervalo; dia da primeira importação', () => {
+    const videos = repositories.compulsions.add({ type: 'short_videos', startedAt: NOW });
+    const adult = repositories.compulsions.add({ type: 'pornography', startedAt: NOW });
+    repositories.compulsions.setBaseline(videos.id, 42, 'first_week');
+    expect(repositories.compulsions.list()[0]).toMatchObject({
+      baselineMinutesPerDay: 42,
+      baselineSource: 'first_week',
+    });
+    expect(() => repositories.compulsions.setBaseline(adult.id, 42, 'first_week')).toThrow(
+      'só existe na moderação',
+    );
+    expect(() => repositories.compulsions.setBaseline(videos.id, -1, 'first_week')).toThrow(
+      RangeError,
+    );
+    repositories.settings.setUsageHistorySince('2026-11-02');
+    expect(repositories.settings.get().usageHistorySince).toBe('2026-11-02');
+  });
+});
+
 describe('deleteAllData', () => {
   it('apaga tudo, inclusive as tabelas da Fase 3, e as configurações voltam ao padrão', () => {
     const videos = repositories.compulsions.add({ type: 'short_videos', startedAt: NOW });
@@ -741,6 +836,24 @@ describe('deleteAllData', () => {
     repositories.milestoneReaches.addMany(adult.id, [
       { milestoneDay: 1, streakBaseDay: '2026-11-01', reachedOn: '2026-11-02', celebrated: false },
     ]);
+    repositories.usageHistory.importDays(
+      [videos.id],
+      [
+        {
+          dayKey: '2026-11-01',
+          covered: true,
+          rows: [
+            {
+              dayKey: '2026-11-01',
+              hour: 9,
+              compulsionId: videos.id,
+              appPackage: 'a',
+              seconds: 60,
+            },
+          ],
+        },
+      ],
+    );
 
     repositories.deleteAllData();
 
@@ -753,6 +866,8 @@ describe('deleteAllData', () => {
       'relapses',
       'day_states',
       'milestone_reaches',
+      'app_usage_hourly',
+      'usage_history_days',
       'settings',
     ]) {
       expect(count(table)).toBe(0);
@@ -762,6 +877,7 @@ describe('deleteAllData', () => {
       onboardingStep: null,
       checkInMinutes: 1260,
       milestonesCheckedOn: null,
+      usageHistorySince: null,
     });
   });
   it('mantém o catálogo de conteúdo, que é público (spec 04, 5.9)', () => {

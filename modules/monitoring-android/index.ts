@@ -77,6 +77,8 @@ export type QuedoMonitoringNativeModule = {
   listTargets(): Promise<NativeTarget[]>;
   /** Falha com ERR_PERMISSION_REQUIRED sem o acesso ao uso. */
   getUsageToday(): Promise<NativeUsageEntry[]>;
+  /** Histórico de uso em JSON (src/monitoring/usageHistory.ts). Falha com ERR_PERMISSION_REQUIRED sem o acesso ao uso. */
+  getUsageHistory(fromDayKey: string): Promise<string>;
   /** Falha com ERR_PERMISSION_REQUIRED sem o acesso ao uso. */
   startMonitoring(): Promise<void>;
   stopMonitoring(): Promise<void>;
