@@ -5,7 +5,18 @@ do protótipo continua em `prototype/NOTAS.md`.
 
 ---
 
-## Onde paramos (22/11/2026)
+## Onde paramos (23/11/2026)
+
+**Ponto de parada:** o PR #39 (passo 4, vídeos) está **aguardando o merge do responsável**. O
+código foi conferido no S22, e o `check:manifest` deu OK nas três variantes (seção "Fase 5 ·
+Passo 4"). **Próximo: passo 5 (notificação de marco no nativo), ainda não começado**; só houve
+leitura de `NotificationPlan.kt` e `NotificationCenter.kt`. Ao retomar:
+1. Atualizar a `main` local depois do merge do #39.
+2. Criar a branch do passo 5 a partir dela.
+3. Conferir o `adb` com limite de tempo antes de usar o aparelho, porque ele travou várias vezes
+   em 22 e 23/11 (AP3).
+
+A pasta `android/` está no desenvolvimento (`br.com.quedo.app.dev`), com o build instalado no S22.
 
 - **Fase 4 concluída e revisada** (PRs #21 a #33); documentos fechados no planejamento
   (PR #34: doc 01 v0.11, doc 02 v0.9, spec 03 v0.3, relatório 01 v0.5).
@@ -14,8 +25,9 @@ do protótipo continua em `prototype/NOTAS.md`.
 - **Passo 1 (catálogo)** integrado (PR #36). Seção
   "Fase 5 · Passo 1 · Catálogo" (migração: uma por passo, decidido em 22/11).
 - **Passo 2 (hospedagem no Cloudflare R2)** integrado (PR #37). Seção "Fase 5 · Passo 2".
-- **Passo 3 (marcos e aba Progresso)** pronto na branch `fase5/progresso`, para revisão. Seção
-  "Fase 5 · Passo 3". Próximo: passo 4 (vídeos).
+- **Passo 3 (marcos e aba Progresso)** integrado (PR #38). Seção "Fase 5 · Passo 3".
+- **Passo 4 (vídeos)** pronto na branch `fase5/videos`, atualizada a partir da `main` depois do
+  merge do #38 (PR #39, aguardando o merge). Seção "Fase 5 · Passo 4".
 - **Pendências para a Fase 8 (teste fechado):** chamada pela internet (Teams) com a tela de
   interrupção aberta e a medição oficial de bateria num build de loja.
 
@@ -4115,6 +4127,135 @@ O arquivo foi restaurado e conferido (idêntico).
   `adb devices` com limite de tempo, e, se travar, encerrar o `adb.exe` e
   `adb start-server`.
 
+
+## Fase 5 · Passo 4 · Vídeos (22/11/2026)
+
+Branch `fase5/videos`, criada a partir de `fase5/progresso` (PR #38, ainda aberto quando o
+passo começou). Este passo não tem migração: nada mudou no banco.
+
+### Documentação conferida
+
+Página do `expo-video` para o SDK 58 (`docs.expo.dev/versions/v58.0.0/sdk/video/`, versão
+recomendada ~58.0.14).
+
+- **Plugin:** duas opções, ambas indefinidas por padrão.
+  - `supportsBackgroundPlayback: true` acrescenta as permissões `FOREGROUND_SERVICE` e
+    `FOREGROUND_SERVICE_MEDIA_PLAYBACK` e o serviço `ExpoVideoPlaybackService`. Conferido no
+    código do plugin, em `node_modules/expo-video/plugin/build/withExpoVideo.js`.
+  - `supportsPictureInPicture: true` liga `android:supportsPictureInPicture` na atividade
+    principal.
+  - O manifesto da própria biblioteca só declara `INTERNET`, que o app já tem.
+- **Player:**
+  - `useVideoPlayer(source, setup)`;
+  - `VideoView` com `nativeControls` (padrão `true`) e `fullscreenOptions={{ enable: true }}`;
+  - `player.status` vale `idle`, `loading`, `readyToPlay` ou `error`, com o evento
+    `statusChange` (`useEvent` de `expo`);
+  - `replaceAsync(source)`, `play()` e `pause()`.
+- **Cache:** `useCaching: true` na fonte faz um cache persistente, com descarte do menos usado.
+  O limite padrão é 1 GB (`Video.setVideoCacheSizeAsync`).
+- **Segundo plano:** `staysActiveInBackground` é `false` por padrão e exige a opção de
+  reprodução em segundo plano. `showNowPlayingNotification` também é `false`.
+
+### O que entrou
+
+- **`expo-video` ~58.0.14**, instalado com `npx expo install expo-video` (biblioteca nativa já
+  confirmada pelo responsável na spec). Entrou só esse pacote no lockfile; nenhuma versão
+  existente mudou.
+- **Plugin com as duas opções desligadas explicitamente** (`false`, não só omitidas), como a
+  spec 5.6 pede: sem serviço, sem permissões novas, sem imagem sobre imagem.
+- **Tela `/video`** (`VideoScreen`):
+  - nada é baixado antes do toque em "Tocar o vídeo": o player nasce sem fonte;
+  - controles do sistema, tela cheia opcional, sem imagem sobre imagem, sem repetição;
+  - selo "Conteúdo gerado com IA" quando `aiGenerated`;
+  - indicador enquanto carrega;
+  - erro ou sem internet: mensagem neutra e "Tentar de novo", que carrega de novo;
+  - cache do player (`useCaching`);
+  - para ao sair da tela (também com outra tela por cima) e quando o app sai do primeiro
+    plano.
+- **Detalhe do marco desbloqueado:** botão "Assistir ao vídeo". O não desbloqueado continua
+  com "Disponível ao chegar a N dias".
+- **O player só toca o vídeo de um marco desbloqueado,** e só com o endereço do conteúdo
+  configurado. Abrir a rota com outro marco mostra "Vídeo indisponível".
+
+### Permissões: o ExoPlayer traz duas (encontrado pelo `check:manifest`)
+
+O primeiro build com o `expo-video` foi recusado pelo `check:manifest` por causa de
+`android.permission.WAKE_LOCK`. O relatório de mesclagem do manifesto
+(`android/app/build/outputs/logs/manifest-merger-debug-report.txt`) aponta a origem:
+`androidx.media3:media3-exoplayer:1.9.1`, o ExoPlayer, o motor de vídeo que o `expo-video`
+usa no Android. O mesmo manifesto traz `ACCESS_NETWORK_STATE`, que o `check:manifest` só
+aceita no desenvolvimento, por causa do dev client. Nenhuma das duas vem da configuração do
+plugin.
+
+- **`WAKE_LOCK` (manter o processo acordado):** o ExoPlayer só a usa com `setWakeMode`, e o
+  código do `expo-video` não chama isso. A tela acesa durante o vídeo usa `keepScreenOn`, sem
+  permissão. Por isso foi **bloqueada em todas as variantes** (`android.blockedPermissions`)
+  e entrou na lista de proibidas do `check:manifest`, como a da origem da instalação.
+- **`ACCESS_NETWORK_STATE` (tipo de conexão):** o `javap` no `media3-common-1.9.1`
+  (`NetworkTypeObserver.getNetworkTypeFromConnectivityManager`) mostra a chamada a
+  `getActiveNetworkInfo` dentro de um `catch (SecurityException)`. Sem a permissão, o
+  ExoPlayer só trata a rede como desconhecida (afeta a estimativa de banda, não a
+  reprodução). Na primeira versão do PR #39, ela foi bloqueada na prévia e na produção.
+- **Decisão do responsável (23/11/2026):**
+  - **`WAKE_LOCK` continua bloqueada em todas as variantes.**
+  - **`ACCESS_NETWORK_STATE` foi liberada em todas as variantes:** saiu do bloqueio da
+    prévia e da produção e entrou na lista de permitidas do `check:manifest` (antes, só no
+    desenvolvimento). É uma permissão comum, sem pedido ao usuário, e o S22 deve testar o
+    mesmo app que os testadores vão receber.
+- Testes no `appConfig.test.ts` e no `check-manifest.test.ts` conferem as duas.
+- **`check:manifest` depois da decisão (23/11), nas três variantes:**
+  - prévia e produção: `prebuild --clean` e `gradlew :app:processReleaseManifest`, que gera
+    o manifesto de release, o que vai no APK. **OK** nos três manifestos mesclados de
+    `br.com.quedo.app.preview` e de `br.com.quedo.app`;
+  - desenvolvimento: build completo instalado no S22 (12m01s), **OK** nos três manifestos;
+    entre as permissões, `ACCESS_NETWORK_STATE` sim, `WAKE_LOCK` não.
+  - Depois, a pasta `android/` voltou ao desenvolvimento (`br.com.quedo.app.dev`).
+
+### Interpretações (a confirmar na revisão)
+
+1. **Produção sem endereço** (até o domínio próprio, pendência 1 da fase): o vídeo aparece
+   como "Vídeo indisponível". O botão do detalhe continua lá.
+2. **Endereço do vídeo:** `<endereço>/videos/<id>.mp4`, sem parâmetros nem cabeçalhos que
+   identifiquem o usuário (5.13).
+3. **Tamanho do cache:** fica no padrão do `expo-video` (1 GB, com descarte automático). Os
+   vídeos de teste têm cerca de 35 KB cada; o tamanho dos reais é decisão da Fase 7.
+
+### Testes
+
+964 testes (954 no passo 3). Novo: `__tests__/video.test.tsx` (8, sobre as rotas reais, com
+um player falso no lugar do nativo):
+- o detalhe abre o player;
+- nada carrega antes do toque; depois, a fonte vem com cache e o vídeo toca;
+- indicador de carregando;
+- selo de IA só no vídeo marcado;
+- erro com "Tentar de novo";
+- para no segundo plano e ao voltar;
+- marco não alcançado e marco sem vídeo ficam indisponíveis.
+
+Também 2 testes novos no `appConfig.test.ts`, com as permissões bloqueadas por variante.
+
+`lint`, `typecheck` e `format:check` ok.
+
+### No S22 (22 e 23/11, perto da meia-noite; development build novo)
+
+- **Builds:** dois development builds com `npm run android:prebuild` e
+  `npm run android:install`, ambos com limite de tempo e vigia (15m40s e 12m56s).
+  - O primeiro foi recusado pelo `check:manifest` por causa da `WAKE_LOCK` (seção acima).
+  - O segundo passou: `OK` nos três manifestos mesclados.
+- **Tocar um vídeo:** "Assistir ao vídeo" no marco de 3 dias de A abre o player. Nada toca
+  antes do toque; depois, o vídeo de teste vem do `r2.dev` e toca (contador avançando).
+- **Sem a `WAKE_LOCK`:** nenhuma falha. No `logcat`, nenhum `SecurityException` nem
+  `FATAL`; só o `SCREEN_BRIGHT_WAKE_LOCK` do próprio sistema (`WindowManager`, pela tela
+  acesa), que não depende da permissão do app.
+- **Segundo plano:** o vídeo estava em 4 s; a tecla Início deixou o app 9 s em segundo plano;
+  ao voltar, ele continuava parado em 4 s.
+- **Selo de IA:** "Conteúdo gerado com IA" aparece no vídeo de 3 dias de B (o marcado no
+  catálogo) e não aparece no de A.
+- **Controles do sistema:** com o toque aparecem o botão de tocar e o de tela cheia; o vídeo
+  termina nos 12 s.
+- **Sem internet (mensagem e "Tentar de novo"):** conferido no Jest. No aparelho, pede o modo
+  avião ligado pelo responsável e fica para o roteiro (P2).
+- **`adb`** travado de novo antes do primeiro build (AP3): reiniciado.
 
 ## Problemas
 

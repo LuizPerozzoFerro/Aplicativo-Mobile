@@ -105,6 +105,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         // Origem da instalação: vem com o expo-application, e o app não a usa.
         // Também proibida no scripts/check-manifest.js.
         'com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE',
+        // Manter o processo acordado: vem com o ExoPlayer (media3-exoplayer), que o
+        // expo-video usa, mas só seria usada com setWakeMode, que o expo-video não
+        // chama (a tela acesa durante o vídeo usa keepScreenOn, sem permissão).
+        // Spec 04, 5.6: nenhuma permissão nova. Também proibida no check-manifest.js.
+        'android.permission.WAKE_LOCK',
       ],
       predictiveBackGestureEnabled: false,
     },
@@ -118,6 +123,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       'expo-system-ui',
       './plugins/with-local-cmake',
       './plugins/with-font-scale-config-changes',
+      // Player dos vídeos dos marcos (spec 04, 5.6): sem reprodução em segundo plano
+      // (que acrescentaria um serviço e as permissões FOREGROUND_SERVICE*) e sem
+      // imagem sobre imagem. Desligados de propósito, não só por omissão.
+      ['expo-video', { supportsBackgroundPlayback: false, supportsPictureInPicture: false }],
     ],
     experiments: {
       typedRoutes: true,
