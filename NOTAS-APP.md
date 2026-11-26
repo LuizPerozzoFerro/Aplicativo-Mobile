@@ -17,11 +17,87 @@ do protótipo continua em `prototype/NOTAS.md`.
 - **Passo 3 (marcos e aba Progresso)** integrado (PR #38). Seção "Fase 5 · Passo 3".
 - **Passo 4 (vídeos)** integrado (PR #39). Seção "Fase 5 · Passo 4".
 - **Passo 5 (notificação de marco no nativo)** integrado (PR #40). Seção "Fase 5 · Passo 5".
-- **Passo 6 (histórico de uso, dias anteriores e ponto de partida)** pronto na branch
-  `fase5/historico-uso`, para revisão. Seção "Fase 5 · Passo 6". Próximo: passo 7 (aba
-  Estatísticas).
+- **Passo 6 (histórico de uso, dias anteriores e ponto de partida)** integrado (PR #41). Seção
+  "Fase 5 · Passo 6". O responsável aceitou as três decisões: histórico só dos apps de vídeos
+  curtos, desconto das telas de interrupção no JS, e a tabela `usage_history_days` mais a
+  coluna `settings.usage_history_since`.
+- **Próximo: passo 7 (aba Estatísticas, spec 04, 5.8)**, numa sessão nova. Ver "Para o passo 7"
+  logo abaixo.
 - **Pendências para a Fase 8 (teste fechado):** chamada pela internet (Teams) com a tela de
   interrupção aberta e a medição oficial de bateria num build de loja.
+
+### Para o passo 7 (aba Estatísticas), deixado em 26/11/2026
+
+**Branch e migração:** branch própria a partir da `main` (com o PR #41). Migração do passo:
+**`0010`** (já existem as `0000` a `0009`). O passo 7 é quem cria a `monitoring_alerts` da
+spec 5.9, que ainda não existe.
+
+**O que já existe para usar:**
+- **Uso por dia e hora (moderação):** tabela `app_usage_hourly`, já sem o tempo das telas de
+  interrupção. Repositório `usageHistory.listByCompulsion(id, fromDayKey?)`.
+- **Dias com dados:** `usage_history_days` (`usageHistory.listCoveredDayKeys()`). Um dia com
+  dados e sem linhas é dia com **uso zero**; um dia fora da tabela é dia **sem dados**.
+- **Hoje:** é reimportado a cada abertura e volta do segundo plano (`useUsageHistorySync`,
+  depois da sincronização do monitoramento). As estatísticas leem do banco. A spec diz "hoje
+  entra com os números até agora".
+- **Funções prontas em `src/features/usage/usageHistorySync.ts`:**
+  - `minutesByDay(repositories, compulsionId)`;
+  - `evaluateBaseline(repositories, compulsion, now)`, que devolve `ready` ou `pending`
+    com `availableFromDayKey` (o "Disponível a partir de <data>").
+- **Ponto de partida guardado** em `user_compulsions.baseline_minutes_per_day` e
+  `baseline_source` (`before_start` ou `first_week`).
+- **Tempo recuperado:** `computeRecovered` em `src/domain/baseline.ts`, pronto e testado,
+  ainda sem tela. Devolve o total e os últimos 7 dias completos; conta só os dias completos
+  com histórico, sem o dia do início nem o de hoje.
+- **Telas de interrupção:** `interruption_events` (`monitoringEvents.listInterruptions(id)`),
+  com resposta e horário. "Respeitado" é "Ir para a tela inicial" ou "Emergência";
+  "ignorado" é "Continuar mesmo assim" ou "Ignorar o limite por hoje" (5.8).
+- **Avisos por notificação dos apps de risco:** os eventos `limit_reached` **ainda são
+  descartados na importação** (`src/data/repositories.ts`, `importEvents`). O passo 7 cria
+  a `monitoring_alerts` e passa a gravá-los. O histórico dos avisos começa aí (5.8). Na 5.9,
+  `app_package` é nulo no aviso de limite da moderação (ver "Leitura da spec 04").
+- **Sequências:** `getStreakSegments` em `src/domain/milestones.ts` dá as sequências (base,
+  quebra, recomeço) para o "histórico de sequências" (atual, maior, lista).
+- **Dias aprovados e reprovados:** `day_states` guarda os reprovados; aprovado = dia já
+  terminado e não reprovado, desde o início (decisão da leitura da spec, ponto 8).
+- **Emergência e vitórias:** `emergency_sessions` (origem e resultado).
+- **Faixas de gatilho:** `triggers` (tipo `time`, `parseTimeRange`), para destacar os
+  horários.
+- **Filtro por compulsão:** o Progresso usa o parâmetro `compulsion` da rota e chips
+  (`src/features/milestones/ProgressScreen.tsx`). A spec pede o mesmo nas Estatísticas, mais
+  uma seção geral.
+- **Sem acesso ao uso:** `useProtection` e `/permission-status` já existem para o botão
+  "ver o que fazer".
+- **Gráficos sem biblioteca** (barras com `View`), cada um com descrição em texto para o
+  leitor de tela.
+
+**Ferramentas de teste:** já existem na tela de conferência "Disparar marco" (passo 5) e
+"Histórico de uso" (passo 6, com "Importar o histórico agora"). "Simular uma streak" (com
+"Desfazer a simulação") é do passo 8.
+
+**Fica para o roteiro do fim da fase (seção 7 da spec), com o responsável:**
+- **P2:** modo avião e vídeo sem internet.
+- **P8:** tela bloqueada com a notificação de marco.
+- **Envio automático da notificação de marco às 9h** com o app fechado.
+- **P10:** totais por dia e por app contra o "Tempo de uso" do Android, num dia sem telas de
+  interrupção.
+- **P13:** TalkBack, tema claro e fonte no máximo.
+- **P15:** build de prévia, com a reprodução de vídeo na prévia.
+
+**Ponto de partida de B no S22:** pendente "a partir de 03/12/2026". A janela vai de 26/11 a
+02/12, depois da primeira importação em 25/11.
+
+**Cuidados práticos (vistos nesta fase):**
+- **`adb` travado:** acontece com frequência (AP3). Antes de cada uso, `adb devices` com
+  limite de tempo; se travar, encerrar o `adb.exe` e rodar `adb start-server`.
+- **Build:** pode cair no AP2 (arquivo preso pelo daemon do Gradle dos testes JUnit). Rodar
+  `gradlew --stop` antes do build e, se cair, apagar a pasta citada e tentar de novo.
+- **Metro:** um Metro iniciado antes de um build do Gradle para de responder (AP5); reiniciar.
+- **Comandos de edição em Bash:** um `node -e` entre aspas duplas ou um heredoc com crases
+  quebra (o Bash executa as crases). Para editar arquivos com scripts, gravar o script num
+  arquivo e rodar `node arquivo.js`.
+- **Testes:** Jest com 1019 testes e limite de 20 s por teste (5.14, resolvido no passo 5).
+  JUnit com 13 classes.
 
 ### Pendências para o fechamento da Fase 5 (decisões do responsável, 22/11/2026)
 
