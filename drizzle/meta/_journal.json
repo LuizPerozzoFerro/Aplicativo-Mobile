@@ -71,6 +71,13 @@
       "when": 1795659966040,
       "tag": "0009_fase5_usage_history",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1795724133045,
+      "tag": "0010_fase5_monitoring_alerts",
+      "breakpoints": true
     }
   ]
 }

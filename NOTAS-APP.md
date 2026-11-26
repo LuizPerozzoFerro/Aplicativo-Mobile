@@ -21,12 +21,20 @@ do protótipo continua em `prototype/NOTAS.md`.
   "Fase 5 · Passo 6". O responsável aceitou as três decisões: histórico só dos apps de vídeos
   curtos, desconto das telas de interrupção no JS, e a tabela `usage_history_days` mais a
   coluna `settings.usage_history_since`.
-- **Próximo: passo 7 (aba Estatísticas, spec 04, 5.8)**, numa sessão nova. Ver "Para o passo 7"
-  logo abaixo.
+- **Passo 7 (aba Estatísticas)** no PR #43 (branch `fase5/estatisticas`, migração `0010`).
+  Seção "Fase 5 · Passo 7". Revisão do responsável aplicada: vitórias das duas origens (a
+  spec 04, 5.8, será corrigida no fechamento da fase), média de horários sem hoje e semana de
+  7 dias corridos aceitas.
+- **Passo 8:** antes de começar o roteiro (P1 a P15), levar a lista de blocos ao responsável
+  para aprovar, como na Fase 4.
+- **Próximo: passo 8 (ferramentas de teste, Maestro e roteiro P1 a P15)**, depois da revisão do
+  passo 7.
 - **Pendências para a Fase 8 (teste fechado):** chamada pela internet (Teams) com a tela de
   interrupção aberta e a medição oficial de bateria num build de loja.
 
 ### Para o passo 7 (aba Estatísticas), deixado em 26/11/2026
+
+(Usado no passo 7; fica como referência do que existe para as estatísticas.)
 
 **Branch e migração:** branch própria a partir da `main` (com o PR #41). Migração do passo:
 **`0010`** (já existem as `0000` a `0009`). O passo 7 é quem cria a `monitoring_alerts` da
@@ -4601,6 +4609,125 @@ JUnit: `UsageDaysTest` (6):
 - **Fica para o roteiro (P10):** num dia sem telas de interrupção, comparar os totais por dia
   e por app com o "Tempo de uso" do Android.
 - **Tela de estatísticas e tempo recuperado na tela:** passo 7.
+
+## Fase 5 · Passo 7 · Aba Estatísticas (26/11/2026)
+
+Branch `fase5/estatisticas`, a partir da `main` com o PR #42. Migração própria: **`0010`**.
+
+### O que entrou
+
+- **Banco (`0010`):** só `CREATE TABLE monitoring_alerts` (spec 5.9): `id` do evento nativo,
+  `compulsion_id` (cascata), `day_key`, `sent_at`, `kind` (`limit` | `risk_app`) e
+  `app_package`. Um CHECK exige o app no aviso de app de risco e nenhum app no aviso de limite
+  (a interpretação da leitura da spec: o limite da moderação é somado entre os apps).
+- **Importação:** o `limit_reached` deixa de ser descartado e vira uma linha em
+  `monitoring_alerts` (com o app, `risk_app`; sem, `limit`). O aviso não mexe no dia (nada de
+  contagem nem reprovação). "Apagar meus dados" e "Zerar o dia" (ferramenta) apagam os avisos.
+  Nada muda no nativo: os eventos já existiam.
+- **Domínio (`src/domain/statistics.ts`):** uso por dia (7 dias), por semana (8), média por
+  hora (30 dias), hora de maior uso, apps do filtro, horas das faixas de gatilho, avisos por
+  hora, telas respeitadas e ignoradas, dias aprovados e reprovados, sequências, check-ins,
+  emergência e horas e minutos. O tempo recuperado continua em `baseline.ts` (passo 6).
+- **Ponte (`src/features/stats/statsData.ts`)** e **tela (`StatsScreen.tsx`)**:
+  - filtro por compulsão (parâmetro `compulsion` da rota, como no Progresso) e a seção geral
+    sempre no fim;
+  - **vídeos curtos:** uso por dia com a linha do limite e por semana, com filtro por app
+    ("Todos os apps" e cada app com uso no histórico); horários de maior uso com as faixas de
+    gatilho destacadas e legenda; tempo recuperado (ou "Disponível a partir de"); alertas
+    respeitados e ignorados; dias aprovados e reprovados; sequências;
+  - **conteúdo adulto:** sequências e recaídas, check-ins, avisos por notificação e telas de
+    interrupção dos apps de risco, com o gráfico por hora e as faixas de gatilho. Sem minutos;
+  - **geral:** emergência (vezes e origem) e vitórias.
+- **Gráficos sem biblioteca (`charts.tsx`):** barras horizontais com `View` para dias e semanas
+  (rótulo e valor em texto acima da barra, que quebram a linha com a fonte no máximo) e 24
+  colunas para as horas. Cada gráfico é um elemento só para o leitor de tela, com a descrição
+  em texto (todos os valores, "acima do limite", "sem dados" e "faixa de gatilho"). As horas
+  de gatilho têm fundo e um traço embaixo na cor `outline` (contraste de 3:1).
+- **Sem acesso ao uso:** uso, horários e tempo recuperado dão lugar a um cartão com o motivo e
+  "Ver o que fazer" (`/permission-status`); o resto continua. O estado vem de
+  `useUsageAccess`, que só lê a permissão (sem sincronizar).
+- **Textos:** namespace novo `stats` (`src/i18n/pt-BR/stats.json`), listados no PR.
+
+### Decisões do responsável na revisão do PR #43 (26/11/2026)
+
+1. **Vitórias contam as duas origens:** "A vontade passou?" com sim (botão de emergência) e "Ir
+   para a tela inicial" (tela de interrupção), como no doc 01 (6.5.2 e a decisão de
+   24/09/2026). A spec 04 (5.8) omitiu a segunda por erro; **o planejamento corrige a spec no
+   fechamento da fase**. A seção Geral mostra o total e cada origem separada, com plural
+   ("No botão de emergência: 1 vitória", "Na tela de interrupção: 2 vitórias"). As telas de
+   todas as compulsões contam, inclusive de uma pausada: a vitória é do usuário. "Ir para a tela
+   inicial" continua também como alerta respeitado. `countVictories` em `statistics.ts`.
+2. **Aceitas:** a média de horários sem o dia de hoje e a semana de 7 dias corridos terminando
+   hoje (pontos 2 e 3 abaixo).
+3. **Texto falado:** "zero minuto" e "zero hora" viraram "zero minutos" e "zero horas".
+
+### Interpretações
+
+1. (Vitórias: decidido acima.)
+2. **Médias e totais:**
+   - **horários de maior uso:** média dos dias **completos** com dados nos últimos 30, **sem
+     hoje** (um dia pela metade puxaria para baixo as horas que ainda não chegaram). Sem nenhum
+     dia completo: "Disponível a partir de" amanhã;
+   - **uso por dia e por semana:** hoje entra com os números até agora;
+   - **semana** = 7 dias seguidos, a mais recente terminando hoje (sem escolher se a semana
+     começa no domingo ou na segunda). Semana com dias sem dados mostra "N de 7 dias com dados";
+   - minutos do dia arredondados para baixo, como o Início; a semana soma os dias.
+3. **Linha do limite:** o limite em vigor hoje (`getDailyLimitToday`), o mesmo para os 7 dias.
+4. **Dias aprovados** contam desde o dia do início, inclusive (ele também termina); o de hoje só
+   conta se já foi reprovado.
+5. **Sequências:** a mesma regra da streak e dos marcos (`getStreakSegments`); a sequência
+   aparece com a base (o início ou o dia da quebra) e a quebra que a encerrou.
+6. **Avisos dos apps de risco por hora:** um gráfico só, com avisos e telas somados; a
+   descrição separa os dois. Período: todo o histórico (os avisos, desde esta versão; as
+   telas, desde a Fase 4).
+7. **Telas fechadas sem resposta** (ex.: chamada) não são respeitadas nem ignoradas: aparecem
+   como "Fechados sem resposta", só quando houver.
+8. **Filtro por app:** a lista é a dos apps com uso no histórico, do mais usado ao menos usado;
+   vale para o uso por dia, por semana e por hora. O tempo recuperado é sempre do total.
+
+### Testes
+
+1064 testes no Jest (1019 no passo 6). Novos:
+- `src/domain/statistics.test.ts` (23, com as vitórias das duas origens);
+- `src/features/stats/statsData.test.ts` (7), sobre o banco;
+- `__tests__/stats.test.tsx` (10), sobre as rotas reais: sem compulsão, sem dados, com dados
+  (descrições dos gráficos, faixa de gatilho, tempo recuperado, alertas, dias, sequências),
+  "zero minutos" e vitória pela tela de interrupção, filtro por app, sem acesso ao uso,
+  abstinência, filtro por compulsão (com as vitórias separadas), parâmetro da rota e aviso
+  novo sem sair da tela;
+- importação dos avisos, CHECKs, cascata, "Zerar o dia" e "Apagar meus dados"
+  (`monitoringEvents.test.ts`) e a migração `0010` (inclusive "preserva todas as linhas").
+
+**Mutação de controle** (seis mudanças, todas pegas): "Emergência" fora dos respeitados; média
+por hora com hoje; faixa que só encosta na hora; aprovados contando hoje; dia sem dados como
+zero; sequência atual pela mais antiga. Depois da revisão, mais duas nas vitórias (contar
+"Emergência" da tela em vez de "Ir para a tela inicial"; total sem as da tela), ambas pegas.
+
+`lint`, `typecheck` e `format:check` ok. Nenhuma mudança no nativo (JUnit sem mudança).
+
+**Cuidado nos testes de tela:** uma streak que cai num dia de marco (3, 7, 14...) abre a
+celebração por cima da aba. Os testes usam streaks fora dos marcos.
+
+### No S22 (26/11, 17:36, development pelo Metro, sem build novo)
+
+- O app estava aberto com o JavaScript antigo na memória; foi preciso fechar
+  (`am force-stop`) e abrir de novo pelo endereço do Metro.
+- **Migração `0010` aplicada sobre o banco existente:** 11 migrações em
+  `__drizzle_migrations` e a tabela `monitoring_alerts` vazia (cópia de leitura do banco).
+- **Aba com os dados reais:**
+  - uso por dia de 20, 21 e 22/11 com 25, 1 e 27 min (os mesmos do passo 6), linha do limite
+    de 60 min e filtro com YouTube, X e Instagram;
+  - semana de 13/11 a 19/11 com "3 de 7 dias com dados"; horários com a faixa de gatilho
+    destacada às 5h e a legenda;
+  - tempo recuperado "Disponível a partir de 03/12/2026" (o mesmo do passo 6); 3 telas, todas
+    respeitadas; 15 dias aprovados; sequências; emergência 3 vezes (2 pelo Início, 1 pela tela),
+    1 vitória;
+  - conteúdo adulto com 4 sequências, 3 recaídas e 3 check-ins.
+- **Ajustes depois do S22:** "1 h 00 min" virou "1 h", e saiu a linha "Nenhum aviso até agora",
+  que repetia as duas de cima. Essas duas mudanças só foram vistas no Jest.
+- **Fica para o roteiro (passo 8):** P10 (totais contra o "Tempo de uso" do Android), P11 (sem
+  acesso ao uso no aparelho), P13 (TalkBack lendo os gráficos, tema claro e fonte no máximo) e
+  um aviso de app de risco real gravado em `monitoring_alerts`.
 
 ## Problemas
 

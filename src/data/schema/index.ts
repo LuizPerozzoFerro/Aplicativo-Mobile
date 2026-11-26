@@ -17,7 +17,12 @@ import {
   TRIGGER_KINDS,
 } from '@/domain/compulsion';
 import { CHECK_IN_ANSWERS, CHECK_IN_SOURCES, DEFAULT_CHECK_IN_MINUTES } from '@/domain/checkIn';
-import { EMERGENCY_OUTCOMES, EMERGENCY_SOURCES, INTERRUPTION_RESPONSES } from '@/domain/monitoring';
+import {
+  EMERGENCY_OUTCOMES,
+  EMERGENCY_SOURCES,
+  INTERRUPTION_RESPONSES,
+  MONITORING_ALERT_KINDS,
+} from '@/domain/monitoring';
 import { ONBOARDING_STEPS } from '@/domain/onboarding';
 import { BASELINE_SOURCES } from '@/domain/baseline';
 import { MAX_MILESTONE_DAY } from '@/domain/catalog';
@@ -469,4 +474,39 @@ export const usageHistoryDays = sqliteTable(
     importedAt: integer('imported_at', { mode: 'timestamp_ms' }).notNull(),
   },
   () => [check('usage_history_days_day_key_valid', isDayKey('day_key'))],
+);
+
+// Migração 0010 (spec 04, 5.9; uma migração por passo): só tabela nova.
+
+/**
+ * Avisos por notificação do monitoramento (spec 04, 5.8 e 5.9), importados dos
+ * eventos `limit_reached` do nativo. O histórico começa no passo 7 da Fase 5:
+ * os anteriores foram descartados na importação. O pacote do app fica só no
+ * aparelho (CLAUDE.md, seção 9) e é nulo no aviso do limite somado da moderação.
+ */
+export const monitoringAlerts = sqliteTable(
+  'monitoring_alerts',
+  {
+    /** O identificador do evento nativo `limit_reached`. */
+    id: text('id').primaryKey(),
+    compulsionId: integer('compulsion_id')
+      .notNull()
+      .references(() => userCompulsions.id, { onDelete: 'cascade' }),
+    dayKey: text('day_key').notNull(),
+    sentAt: integer('sent_at', { mode: 'timestamp_ms' }).notNull(),
+    kind: text('kind', { enum: MONITORING_ALERT_KINDS }).notNull(),
+    appPackage: text('app_package'),
+  },
+  () => [
+    check('monitoring_alerts_day_key_valid', isDayKey('day_key')),
+    check(
+      'monitoring_alerts_kind_valid',
+      sql`${column('kind')} in ${textList(MONITORING_ALERT_KINDS)}`,
+    ),
+    // O aviso de app de risco tem o app; o do limite somado, não.
+    check(
+      'monitoring_alerts_app_valid',
+      sql`(${column('kind')} = 'limit' and ${column('app_package')} is null) or (${column('kind')} = 'risk_app' and ${column('app_package')} is not null)`,
+    ),
+  ],
 );

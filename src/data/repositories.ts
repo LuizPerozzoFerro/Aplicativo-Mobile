@@ -33,6 +33,7 @@ import {
   interruptionEvents,
   milestoneReaches,
   monitoredApps,
+  monitoringAlerts,
   motivation,
   relapses,
   settings,
@@ -59,6 +60,7 @@ export type EmergencySession = typeof emergencySessions.$inferSelect;
 export type ContentCatalogRow = typeof contentCatalog.$inferSelect;
 export type MilestoneReach = typeof milestoneReaches.$inferSelect;
 export type AppUsageHour = typeof appUsageHourly.$inferSelect;
+export type MonitoringAlert = typeof monitoringAlerts.$inferSelect;
 
 const GRANTED_ONCE_COLUMN = {
   usageAccess: 'usageAccessGrantedOnce',
@@ -171,7 +173,7 @@ export type DayStateRepository = {
   listFailedDayKeys(compulsionId: number): string[];
   /** Reprova o dia (Fase 4: "Ignorar o limite por hoje" ou terceiro "Continuar"). */
   markFailed(day: CompulsionDay, reason: DayFailureReason): void;
-  /** Só para as ferramentas de teste: apaga as contagens, reprovações e telas do dia. */
+  /** Só para as ferramentas de teste: apaga as contagens, reprovações, telas e avisos do dia. */
   clearDay(dayKey: string): void;
 };
 
@@ -185,6 +187,8 @@ export type MonitoringEventRepository = {
    */
   importEvents(events: readonly MonitoringEvent[]): { handledIds: string[]; failed: number };
   listInterruptions(compulsionId: number): InterruptionEvent[];
+  /** Avisos por notificação (`limit_reached`) da compulsão, do mais antigo ao mais novo. */
+  listAlerts(compulsionId: number): MonitoringAlert[];
 };
 
 export type EmergencySessionRepository = {
@@ -629,11 +633,28 @@ export function createRepositories(
         }
         return;
       }
+      case 'limit_reached': {
+        // Aviso por notificação (spec 04, 5.8 e 5.9): com o app, é o de um app
+        // de risco; sem, o do limite somado da moderação.
+        if (!compulsionExists(executor, event.compulsionId)) return;
+        requireDayKey(event.dayKey);
+        executor
+          .insert(monitoringAlerts)
+          .values({
+            id: event.id,
+            compulsionId: event.compulsionId,
+            dayKey: event.dayKey,
+            sentAt: at,
+            kind: event.targetId === null ? 'limit' : 'risk_app',
+            appPackage: event.targetId,
+          })
+          .run();
+        return;
+      }
       // Sem tabela própria: ficam só como importados. A sessão de emergência é
-      // criada pela tela, com a origem vinda do endereço; limites, notificações,
+      // criada pela tela, com a origem vinda do endereço; notificações,
       // permissões e o serviço servem à tela de estado e às ferramentas de teste.
       case 'service_started':
-      case 'limit_reached':
       case 'notification_sent':
       case 'emergency_requested':
       case 'permission_lost':
@@ -836,6 +857,7 @@ export function createRepositories(
         requireDayKey(dayKey);
         db.transaction((tx) => {
           tx.delete(interruptionEvents).where(eq(interruptionEvents.dayKey, dayKey)).run();
+          tx.delete(monitoringAlerts).where(eq(monitoringAlerts.dayKey, dayKey)).run();
           tx.delete(dayStates).where(eq(dayStates.dayKey, dayKey)).run();
         });
       },
@@ -866,6 +888,13 @@ export function createRepositories(
           .from(interruptionEvents)
           .where(eq(interruptionEvents.compulsionId, compulsionId))
           .orderBy(asc(interruptionEvents.shownAt))
+          .all(),
+      listAlerts: (compulsionId) =>
+        db
+          .select()
+          .from(monitoringAlerts)
+          .where(eq(monitoringAlerts.compulsionId, compulsionId))
+          .orderBy(asc(monitoringAlerts.sentAt))
           .all(),
     },
 
@@ -1026,6 +1055,7 @@ export function createRepositories(
         tx.delete(appUsageHourly).run();
         tx.delete(usageHistoryDays).run();
         tx.delete(interruptionEvents).run();
+        tx.delete(monitoringAlerts).run();
         tx.delete(emergencySessions).run();
         tx.delete(importedEvents).run();
         tx.delete(checkIns).run();
