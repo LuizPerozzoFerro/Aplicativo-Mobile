@@ -26,17 +26,18 @@ class UsageDaysTest {
     return result
   }
 
-  // Um evento qualquer antes de tudo: os dias pedidos estão inteiros no que o Android guarda.
-  private val before = Event(Kind.SCREEN_OFF, at("2026-11-18T08:00"))
+  // O Android guarda desde 18/11 às 8h: os dias pedidos estão inteiros no período.
+  private val dataSince = at("2026-11-18T08:00")
 
   private fun compute(events: List<Event>, vararg days: String, now: String = "2026-11-21T12:00") =
     UsageDays.compute(
-      listOf(before) + events,
+      events,
       days.map { LocalDate.parse(it) },
       at(now),
       setOf(launcher),
       setOf(clips),
       zone,
+      dataSince,
     )
 
   @Test
@@ -106,21 +107,27 @@ class UsageDaysTest {
   }
 
   @Test
-  fun noEventsOrTheOldestPartialDayIsNotCovered() {
-    // Sem nenhum evento no dia.
-    assertFalse(compute(emptyList(), "2026-11-19").single().covered)
-    // O dia em que os eventos guardados começam (no meio dele) não conta.
-    val partial = UsageDays.compute(
-      listOf(
-        Event(Kind.RESUMED, at("2026-11-19T14:23"), clips, "Main"),
-        Event(Kind.PAUSED, at("2026-11-19T14:30"), clips, "Main"),
-      ),
+  fun aDayWithoutAnyEventInsideTheStoredPeriodIsCoveredWithZeroUsage() {
+    // Celular parado o dia inteiro: dia sem uso, não dia sem dados (visto no S22 em 24/11).
+    val day = compute(emptyList(), "2026-11-19").single()
+    assertTrue(day.covered)
+    assertTrue(day.apps.isEmpty())
+  }
+
+  @Test
+  fun theOldestPartialDayOrAnUnknownPeriodIsNotCovered() {
+    // O dia em que o período guardado começa (no meio dele) não conta.
+    assertFalse(compute(emptyList(), "2026-11-18").single().covered)
+    assertFalse(compute(emptyList(), "2026-11-17").single().covered)
+    val unknown = UsageDays.compute(
+      emptyList(),
       listOf(LocalDate.parse("2026-11-19")),
       at("2026-11-21T12:00"),
       emptySet(),
       setOf(clips),
       zone,
+      null,
     ).single()
-    assertFalse(partial.covered)
+    assertFalse(unknown.covered)
   }
 }

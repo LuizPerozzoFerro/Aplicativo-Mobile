@@ -17,8 +17,8 @@ object UsageDays {
   data class Day(
     val dayKey: String,
     /**
-     * O dia tem dados, mesmo com uso zero: houve eventos nele e antes dele (o dia
-     * inteiro está no que o Android guarda).
+     * O dia tem dados, mesmo com uso zero: o dia inteiro está no que o Android
+     * guarda. Um dia sem nenhum evento nesse período é um dia sem uso.
      */
     val covered: Boolean,
     /** Segundos por hora local (0 a 23), só dos apps pedidos e só com uso. */
@@ -30,6 +30,8 @@ object UsageDays {
    *   dia (um app aberto antes da meia-noite) até `now`.
    * @param days dias a calcular, do mais antigo ao mais novo.
    * @param now o instante da leitura: o dia de hoje para nele.
+   * @param dataSince desde quando o Android guarda os eventos (`UsageReader.dataSince`),
+   *   ou nulo se não souber: os dias que começam antes não têm dados completos.
    */
   fun compute(
     events: List<UsageTimeline.Event>,
@@ -38,14 +40,13 @@ object UsageDays {
     excluded: Set<String>,
     targets: Set<String>,
     zone: ZoneId,
+    dataSince: Long?,
   ): List<Day> {
-    val earliest = events.minOfOrNull { it.timestamp }
     return days.map { date ->
       val start = date.atStartOfDay(zone).toInstant().toEpochMilli()
       val end = minOf(date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli(), now)
-      // Com eventos antes do começo do dia, o dia inteiro está no que o Android guarda.
       // O mais antigo guardado pode começar no meio do dia: esse não conta como dia com dados.
-      val covered = earliest != null && earliest < start && events.any { it.timestamp in start until end }
+      val covered = dataSince != null && dataSince <= start
       val usage = UsageAccumulator(cursor = end, dayStart = start, hourZone = zone)
       usage.advance(events.filter { it.timestamp < end }, end, start, excluded)
       val apps = usage.hourly()

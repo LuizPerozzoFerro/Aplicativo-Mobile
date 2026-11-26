@@ -28,6 +28,20 @@ object UsageReader {
     return UsageTimeline.compute(events, dayStart, now, launcherPackages(context))
   }
 
+  /**
+   * Desde quando o Android guarda o uso: o começo do intervalo diário mais antigo
+   * que ele ainda tem (no S22, cerca de 10 dias; NOTAS-APP.md). Os eventos ficam
+   * nos mesmos arquivos diários. Nulo sem dados ou sem o acesso ao uso.
+   */
+  fun dataSince(context: Context, now: Long = System.currentTimeMillis()): Long? {
+    val manager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager ?: return null
+    val stats = manager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, now - DATA_SINCE_LOOKBACK_MS, now)
+      ?: return null
+    return stats.minOfOrNull { it.firstTimeStamp }
+  }
+
+  private const val DATA_SINCE_LOOKBACK_MS = 60L * 24 * 60 * 60_000L
+
   /** Os eventos de uso entre `from` e `to`, em ordem cronológica. */
   fun readEvents(context: Context, from: Long, to: Long): List<UsageTimeline.Event> {
     val result = ArrayList<UsageTimeline.Event>()

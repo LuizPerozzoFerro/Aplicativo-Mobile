@@ -21,6 +21,9 @@ import org.json.JSONObject
  */
 object UsageHistory {
   private const val FILE_NAME = "quedo-usage-history.json"
+
+  /** Formato do arquivo. A versão 2 mudou o "dia com dados": a 1 é descartada e recalculada. */
+  private const val VERSION = 2
   const val KEEP_DAYS = 21L
   const val LOOKBACK_DAYS = 14L
 
@@ -32,7 +35,8 @@ object UsageHistory {
 
   private fun load(context: Context): JSONObject =
     runCatching { JSONObject(file(context).readText(Charsets.UTF_8)) }.getOrNull()
-      ?: JSONObject().put("days", JSONObject())
+      ?.takeIf { it.optInt("version") == VERSION }
+      ?: JSONObject().put("version", VERSION).put("days", JSONObject())
 
   private fun save(context: Context, store: JSONObject) {
     val target = file(context)
@@ -77,7 +81,15 @@ object UsageHistory {
       val from = missing.first().atStartOfDay(zone).toInstant().toEpochMilli() - UsageReader.LOOKBACK_MS
       val to = today.atStartOfDay(zone).toInstant().toEpochMilli()
       val events = UsageReader.readEvents(context, from, to)
-      val computed = UsageDays.compute(events, missing, to, UsageReader.launcherPackages(context), targets, zone)
+      val computed = UsageDays.compute(
+        events,
+        missing,
+        to,
+        UsageReader.launcherPackages(context),
+        targets,
+        zone,
+        UsageReader.dataSince(context, now),
+      )
       for (day in computed) days.put(day.dayKey, dayJson(day))
     }
 
@@ -119,7 +131,15 @@ object UsageHistory {
     if (config != null && today.toString() >= fromDayKey) {
       val dayStart = today.atStartOfDay(zone).toInstant().toEpochMilli()
       val events = UsageReader.readEvents(context, dayStart - UsageReader.LOOKBACK_MS, now)
-      val live = UsageDays.compute(events, listOf(today), now, UsageReader.launcherPackages(context), targets(config), zone)
+      val live = UsageDays.compute(
+        events,
+        listOf(today),
+        now,
+        UsageReader.launcherPackages(context),
+        targets(config),
+        zone,
+        UsageReader.dataSince(context, now),
+      )
       result.put(dayJson(live.first()).put("dayKey", today.toString()))
     }
     return JSONObject().put("today", today.toString()).put("days", result).toString()
