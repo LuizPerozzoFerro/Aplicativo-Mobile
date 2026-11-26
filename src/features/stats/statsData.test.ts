@@ -221,20 +221,57 @@ describe('conteúdo adulto (abstinência)', () => {
 });
 
 describe('geral', () => {
-  it('emergência: vezes, origem e vitórias; compulsão pausada não aparece', () => {
+  it('emergência: vezes, origem e vitórias das duas origens; compulsão pausada não aparece', () => {
     const adult = addAdult();
+    const videos = addVideos();
     repositories.compulsions.setStatus(adult.id, 'paused');
     const first = repositories.emergencySessions.start('home');
     repositories.emergencySessions.finish(first.id, 'passed');
     const second = repositories.emergencySessions.start('interruption');
     repositories.emergencySessions.finish(second.id, 'not_passed');
+    // "Ir para a tela inicial" nas duas compulsões, mesmo na pausada: a vitória é do usuário.
+    const at = new Date(2026, 10, 25, 21, 0);
+    const forum = asTargetId('com.example.forum');
+    const clips = asTargetId('com.example.clips');
+    const shownAdult = event(at, '2026-11-25', {
+      type: 'interruption_shown',
+      compulsionId: adult.id,
+      targetId: forum,
+    });
+    const shownVideos = event(at, '2026-11-25', {
+      type: 'interruption_shown',
+      compulsionId: videos.id,
+      targetId: clips,
+    });
+    const shownIgnored = event(at, '2026-11-25', {
+      type: 'interruption_shown',
+      compulsionId: videos.id,
+      targetId: clips,
+    });
+    repositories.monitoringEvents.importEvents([
+      shownAdult,
+      shownVideos,
+      shownIgnored,
+      ...[
+        [shownAdult, adult.id, 'home'],
+        [shownVideos, videos.id, 'home'],
+        [shownIgnored, videos.id, 'continue'],
+      ].map(([shown, compulsionId, response]) =>
+        event(at, '2026-11-25', {
+          type: 'interruption_response',
+          interruptionId: (shown as MonitoringEvent).id,
+          compulsionId: compulsionId as number,
+          response: response as 'home' | 'continue',
+        }),
+      ),
+    ]);
 
     const stats = loadStats(repositories, NOW);
-    expect(stats.compulsions).toEqual([]);
+    expect(stats.compulsions.map((item) => item.compulsion.type)).toEqual(['short_videos']);
     expect(stats.emergency).toEqual({
       total: 2,
       bySource: { home: 1, interruption: 1, notification: 0 },
-      victories: 1,
     });
+    expect(stats.victories).toEqual({ total: 3, emergency: 1, interruption: 2 });
   });
 });

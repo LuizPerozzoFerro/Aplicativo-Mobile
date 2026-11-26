@@ -21,9 +21,12 @@ do protótipo continua em `prototype/NOTAS.md`.
   "Fase 5 · Passo 6". O responsável aceitou as três decisões: histórico só dos apps de vídeos
   curtos, desconto das telas de interrupção no JS, e a tabela `usage_history_days` mais a
   coluna `settings.usage_history_since`.
-- **Passo 7 (aba Estatísticas)** em revisão (branch `fase5/estatisticas`, migração `0010`).
-  Seção "Fase 5 · Passo 7", com três pontos a confirmar na revisão (vitórias, período das
-  médias e semana de 7 dias até hoje).
+- **Passo 7 (aba Estatísticas)** no PR #43 (branch `fase5/estatisticas`, migração `0010`).
+  Seção "Fase 5 · Passo 7". Revisão do responsável aplicada: vitórias das duas origens (a
+  spec 04, 5.8, será corrigida no fechamento da fase), média de horários sem hoje e semana de
+  7 dias corridos aceitas.
+- **Passo 8:** antes de começar o roteiro (P1 a P15), levar a lista de blocos ao responsável
+  para aprovar, como na Fase 4.
 - **Próximo: passo 8 (ferramentas de teste, Maestro e roteiro P1 a P15)**, depois da revisão do
   passo 7.
 - **Pendências para a Fase 8 (teste fechado):** chamada pela internet (Teams) com a tela de
@@ -4645,13 +4648,22 @@ Branch `fase5/estatisticas`, a partir da `main` com o PR #42. Migração própri
   `useUsageAccess`, que só lê a permissão (sem sincronizar).
 - **Textos:** namespace novo `stats` (`src/i18n/pt-BR/stats.json`), listados no PR.
 
-### Interpretações (a confirmar na revisão)
+### Decisões do responsável na revisão do PR #43 (26/11/2026)
 
-1. **Vitórias = "A vontade passou?" com sim** (spec 04, 5.8). O doc 01 (6.5.2) diz que "Ir para
-   a tela inicial" também "conta como vitória nas estatísticas". Segui a spec, mais nova e mais
-   específica: "Ir para a tela inicial" aparece como alerta **respeitado**. Se as vitórias devem
-   somar as duas coisas, é uma linha no domínio. **Divergência entre documentos: levar ao chat
-   de planejamento.**
+1. **Vitórias contam as duas origens:** "A vontade passou?" com sim (botão de emergência) e "Ir
+   para a tela inicial" (tela de interrupção), como no doc 01 (6.5.2 e a decisão de
+   24/09/2026). A spec 04 (5.8) omitiu a segunda por erro; **o planejamento corrige a spec no
+   fechamento da fase**. A seção Geral mostra o total e cada origem separada, com plural
+   ("No botão de emergência: 1 vitória", "Na tela de interrupção: 2 vitórias"). As telas de
+   todas as compulsões contam, inclusive de uma pausada: a vitória é do usuário. "Ir para a tela
+   inicial" continua também como alerta respeitado. `countVictories` em `statistics.ts`.
+2. **Aceitas:** a média de horários sem o dia de hoje e a semana de 7 dias corridos terminando
+   hoje (pontos 2 e 3 abaixo).
+3. **Texto falado:** "zero minuto" e "zero hora" viraram "zero minutos" e "zero horas".
+
+### Interpretações
+
+1. (Vitórias: decidido acima.)
 2. **Médias e totais:**
    - **horários de maior uso:** média dos dias **completos** com dados nos últimos 30, **sem
      hoje** (um dia pela metade puxaria para baixo as horas que ainda não chegaram). Sem nenhum
@@ -4675,19 +4687,21 @@ Branch `fase5/estatisticas`, a partir da `main` com o PR #42. Migração própri
 
 ### Testes
 
-1062 testes no Jest (1019 no passo 6). Novos:
-- `src/domain/statistics.test.ts` (22);
+1064 testes no Jest (1019 no passo 6). Novos:
+- `src/domain/statistics.test.ts` (23, com as vitórias das duas origens);
 - `src/features/stats/statsData.test.ts` (7), sobre o banco;
-- `__tests__/stats.test.tsx` (9), sobre as rotas reais: sem compulsão, sem dados, com dados
+- `__tests__/stats.test.tsx` (10), sobre as rotas reais: sem compulsão, sem dados, com dados
   (descrições dos gráficos, faixa de gatilho, tempo recuperado, alertas, dias, sequências),
-  filtro por app, sem acesso ao uso, abstinência, filtro por compulsão, parâmetro da rota e
-  aviso novo sem sair da tela;
+  "zero minutos" e vitória pela tela de interrupção, filtro por app, sem acesso ao uso,
+  abstinência, filtro por compulsão (com as vitórias separadas), parâmetro da rota e aviso
+  novo sem sair da tela;
 - importação dos avisos, CHECKs, cascata, "Zerar o dia" e "Apagar meus dados"
   (`monitoringEvents.test.ts`) e a migração `0010` (inclusive "preserva todas as linhas").
 
 **Mutação de controle** (seis mudanças, todas pegas): "Emergência" fora dos respeitados; média
 por hora com hoje; faixa que só encosta na hora; aprovados contando hoje; dia sem dados como
-zero; sequência atual pela mais antiga.
+zero; sequência atual pela mais antiga. Depois da revisão, mais duas nas vitórias (contar
+"Emergência" da tela em vez de "Ir para a tela inicial"; total sem as da tela), ambas pegas.
 
 `lint`, `typecheck` e `format:check` ok. Nenhuma mudança no nativo (JUnit sem mudança).
 

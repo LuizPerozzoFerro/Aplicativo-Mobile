@@ -1,5 +1,6 @@
 import {
   countByHour,
+  countVictories,
   countDayResults,
   getDailyUsage,
   getHourlyAverage,
@@ -256,18 +257,29 @@ describe('check-ins e emergência', () => {
     });
   });
 
-  it('emergência: vezes, de onde e vitórias ("passou")', () => {
+  it('emergência: vezes e de onde', () => {
     expect(
       summarizeEmergency([
-        { source: 'home', outcome: 'passed' },
-        { source: 'interruption', outcome: 'not_passed' },
-        { source: 'home', outcome: 'abandoned' },
-        { source: 'notification', outcome: null },
+        { source: 'home' },
+        { source: 'interruption' },
+        { source: 'home' },
+        { source: 'notification' },
       ]),
-    ).toEqual({
-      total: 4,
-      bySource: { home: 2, interruption: 1, notification: 1 },
-      victories: 1,
+    ).toEqual({ total: 4, bySource: { home: 2, interruption: 1, notification: 1 } });
+  });
+
+  it('vitórias: "a vontade passou" e "Ir para a tela inicial", separadas e somadas', () => {
+    expect(
+      countVictories({
+        emergencyOutcomes: ['passed', 'not_passed', 'abandoned', null, 'passed'],
+        // "Emergência" na tela não é vitória por si; o resto também não.
+        interruptionResponses: ['home', 'emergency', 'continue', 'ignore_today', null, 'home'],
+      }),
+    ).toEqual({ total: 4, emergency: 2, interruption: 2 });
+    expect(countVictories({ emergencyOutcomes: [], interruptionResponses: [] })).toEqual({
+      total: 0,
+      emergency: 0,
+      interruption: 0,
     });
   });
 });

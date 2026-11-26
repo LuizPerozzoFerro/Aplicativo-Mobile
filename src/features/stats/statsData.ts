@@ -6,6 +6,7 @@ import { toDayKey } from '@/domain/day';
 import {
   countByHour,
   countDayResults,
+  countVictories,
   getDailyUsage,
   getHourlyAverage,
   getPeakHour,
@@ -23,6 +24,7 @@ import {
   type HourlyAverage,
   type InterruptionSummary,
   type StreakStats,
+  type VictorySummary,
   type UsageInput,
   type WeekUsage,
 } from '@/domain/statistics';
@@ -87,6 +89,7 @@ export type CompulsionStats = ModerationStats | AbstinenceStats;
 export type Stats = {
   readonly compulsions: readonly CompulsionStats[];
   readonly emergency: EmergencySummary;
+  readonly victories: VictorySummary;
 };
 
 /** Faixas de horário declaradas que valem para a compulsão (as gerais e as dela). */
@@ -227,8 +230,17 @@ export function loadStats(
         ? moderationStats(repositories, compulsion, now, appFilter)
         : abstinenceStats(repositories, compulsion, now),
     );
+  const sessions = repositories.emergencySessions.list();
   return {
     compulsions,
-    emergency: summarizeEmergency(repositories.emergencySessions.list()),
+    emergency: summarizeEmergency(sessions),
+    // As telas de todas as compulsões: a vitória é do usuário, não de uma compulsão.
+    victories: countVictories({
+      emergencyOutcomes: sessions.map((session) => session.outcome),
+      interruptionResponses: repositories.compulsions
+        .list()
+        .flatMap((compulsion) => repositories.monitoringEvents.listInterruptions(compulsion.id))
+        .map((event) => event.response),
+    }),
   };
 }

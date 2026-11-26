@@ -321,27 +321,41 @@ export function summarizeCheckIns(answers: readonly CheckInAnswer[]): CheckInSum
 export type EmergencySummary = {
   readonly total: number;
   readonly bySource: { readonly [S in EmergencySource]: number };
-  /** "A vontade passou?" respondido com sim. */
-  readonly victories: number;
 };
 
-/** Uso do botão de emergência: quantas vezes, de onde e as vitórias (spec 04, 5.8). */
+/** Uso do botão de emergência: quantas vezes e de onde (spec 04, 5.8). */
 export function summarizeEmergency(
-  sessions: readonly {
-    readonly source: EmergencySource;
-    readonly outcome: EmergencyOutcome | null;
-  }[],
+  sessions: readonly { readonly source: EmergencySource }[],
 ): EmergencySummary {
   const bySource = Object.fromEntries(EMERGENCY_SOURCES.map((source) => [source, 0])) as Record<
     EmergencySource,
     number
   >;
   for (const session of sessions) bySource[session.source] += 1;
-  return {
-    total: sessions.length,
-    bySource,
-    victories: sessions.filter((session) => session.outcome === 'passed').length,
-  };
+  return { total: sessions.length, bySource };
+}
+
+export type VictorySummary = {
+  readonly total: number;
+  /** "A vontade passou?" respondido com sim, no botão de emergência. */
+  readonly emergency: number;
+  /** "Ir para a tela inicial" na tela de interrupção. */
+  readonly interruption: number;
+};
+
+/**
+ * Vitórias (doc 01, 6.5.2 e 6.7; decisão de 24/09/2026): "A vontade passou?"
+ * respondido com sim e "Ir para a tela inicial" na tela de interrupção, de
+ * todas as compulsões. "Emergência" na tela não conta aqui: a vitória dela,
+ * se houver, vem da resposta no fim da emergência.
+ */
+export function countVictories(input: {
+  readonly emergencyOutcomes: readonly (EmergencyOutcome | null)[];
+  readonly interruptionResponses: readonly (InterruptionResponse | null)[];
+}): VictorySummary {
+  const emergency = input.emergencyOutcomes.filter((outcome) => outcome === 'passed').length;
+  const interruption = input.interruptionResponses.filter((response) => response === 'home').length;
+  return { total: emergency + interruption, emergency, interruption };
 }
 
 // ---------------------------------------------------------------------------

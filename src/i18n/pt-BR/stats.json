@@ -6,10 +6,10 @@
     "hoursMinutes": "{{hours}} h {{minutes}} min"
   },
   "spoken": {
-    "minutes_zero": "zero minuto",
+    "minutes_zero": "zero minutos",
     "minutes_one": "{{count}} minuto",
     "minutes_other": "{{count}} minutos",
-    "hours_zero": "zero hora",
+    "hours_zero": "zero horas",
     "hours_one": "{{count}} hora",
     "hours_other": "{{count}} horas",
     "hoursMinutes": "{{hours}} e {{minutes}}",
@@ -124,8 +124,15 @@
     "fromInterruption": "Pela tela de interrupção: {{count}}",
     "fromNotification": "Pela notificação: {{count}}",
     "victories_zero": "Nenhuma vitória registrada ainda",
-    "victories_one": "{{count}} vitória: a vontade passou",
-    "victories_other": "{{count}} vitórias: a vontade passou"
+    "victories_one": "{{count}} vitória",
+    "victories_other": "{{count}} vitórias",
+    "victoriesEmergency_zero": "No botão de emergência: nenhuma vitória",
+    "victoriesEmergency_one": "No botão de emergência: {{count}} vitória",
+    "victoriesEmergency_other": "No botão de emergência: {{count}} vitórias",
+    "victoriesInterruption_zero": "Na tela de interrupção: nenhuma vitória",
+    "victoriesInterruption_one": "Na tela de interrupção: {{count}} vitória",
+    "victoriesInterruption_other": "Na tela de interrupção: {{count}} vitórias",
+    "victoriesHint": "Vitória é \"A vontade passou?\" respondido com sim, no botão de emergência, ou \"Ir para a tela inicial\", na tela de interrupção."
   },
   "chart": {
     "none": "Nenhum valor para mostrar."

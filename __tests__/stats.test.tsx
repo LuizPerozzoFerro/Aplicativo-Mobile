@@ -190,6 +190,38 @@ describe('aba Estatísticas', () => {
     expect(streaks.getByText('Maior: 8 dias')).toBeOnTheScreen();
   });
 
+  it('o leitor de tela ouve "zero minutos" num dia sem uso; "Ir para a tela inicial" é vitória', async () => {
+    const videos = addVideos(5);
+    importUsage(videos.id, { 1: [], 0: [[9, 3, CLIPS]] });
+    const shown = { id: 'tela-z', at: at(1, 10).getTime(), dayKey: dayKeyAgo(1) };
+    mockRepositories.monitoringEvents.importEvents([
+      {
+        ...shown,
+        type: 'interruption_shown',
+        compulsionId: videos.id,
+        targetId: asTargetId(CLIPS),
+      },
+      {
+        id: 'resposta-z',
+        at: shown.at + 1000,
+        dayKey: shown.dayKey,
+        type: 'interruption_response',
+        interruptionId: shown.id,
+        compulsionId: videos.id,
+        response: 'home',
+      },
+    ]);
+    await renderRouter(APP_DIR, { initialUrl: '/stats' });
+
+    expect(await screen.findByTestId('stats-daily')).toHaveAccessibleName(
+      /: zero minutos; Hoje: 3 minutos\.$/,
+    );
+    const victories = within(screen.getByTestId('stats-victories'));
+    expect(victories.getByText('1 vitória')).toBeOnTheScreen();
+    expect(victories.getByText('No botão de emergência: nenhuma vitória')).toBeOnTheScreen();
+    expect(victories.getByText('Na tela de interrupção: 1 vitória')).toBeOnTheScreen();
+  });
+
   it('filtro por app troca o uso por dia', async () => {
     const videos = addVideos(5);
     importUsage(videos.id, {
@@ -276,7 +308,10 @@ describe('aba Estatísticas', () => {
     await renderRouter(APP_DIR, { initialUrl: '/stats' });
 
     expect(await screen.findByTestId('stats-heading-short_videos')).toBeOnTheScreen();
-    expect(screen.getByText('1 vitória: a vontade passou')).toBeOnTheScreen();
+    const victories = within(screen.getByTestId('stats-victories'));
+    expect(victories.getByText('1 vitória')).toBeOnTheScreen();
+    expect(victories.getByText('No botão de emergência: 1 vitória')).toBeOnTheScreen();
+    expect(victories.getByText('Na tela de interrupção: nenhuma vitória')).toBeOnTheScreen();
     await userEvent.setup().press(screen.getByRole('radio', { name: 'Conteúdo adulto' }));
     expect(await screen.findByTestId('stats-heading-pornography')).toBeOnTheScreen();
     expect(screen.queryByTestId('stats-heading-short_videos')).toBeNull();

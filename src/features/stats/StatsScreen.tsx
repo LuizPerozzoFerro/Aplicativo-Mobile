@@ -6,7 +6,13 @@ import { View } from 'react-native';
 import { getRepositories } from '@/data/bootstrap';
 import { isCompulsionType, type CompulsionType } from '@/domain/compulsion';
 import { addCalendarDays, fromDayKey } from '@/domain/day';
-import { splitMinutes, type InterruptionSummary, type StreakStats } from '@/domain/statistics';
+import {
+  splitMinutes,
+  type EmergencySummary,
+  type InterruptionSummary,
+  type StreakStats,
+  type VictorySummary,
+} from '@/domain/statistics';
 import { useLiveSnapshot } from '@/features/milestones/useLiveSnapshot';
 import { useAppTargets } from '@/features/setup/appTargets';
 import { formatDate } from '@/i18n/format';
@@ -115,7 +121,7 @@ export function StatsScreen() {
           )}
         </>
       )}
-      <GeneralSection stats={data.emergency} />
+      <GeneralSection stats={data.emergency} victories={data.victories} />
     </Screen>
   );
 }
@@ -546,7 +552,13 @@ function RiskAppsCard({ stats }: { stats: AbstinenceStats }) {
   );
 }
 
-function GeneralSection({ stats }: { stats: ReturnType<typeof loadStats>['emergency'] }) {
+function GeneralSection({
+  stats,
+  victories,
+}: {
+  stats: EmergencySummary;
+  victories: VictorySummary;
+}) {
   const { t } = useTranslation('stats');
   return (
     <Card testID="stats-general">
@@ -561,7 +573,18 @@ function GeneralSection({ stats }: { stats: ReturnType<typeof loadStats>['emerge
           <Text>{t('general.fromNotification', { count: stats.bySource.notification })}</Text>
         </>
       ) : null}
-      <Text variant="bodyStrong">{t('general.victories', { count: stats.victories })}</Text>
+      <View testID="stats-victories">
+        <Text variant="bodyStrong">{t('general.victories', { count: victories.total })}</Text>
+        {victories.total > 0 ? (
+          <>
+            <Text>{t('general.victoriesEmergency', { count: victories.emergency })}</Text>
+            <Text>{t('general.victoriesInterruption', { count: victories.interruption })}</Text>
+          </>
+        ) : null}
+        <Text variant="caption" color="textMuted">
+          {t('general.victoriesHint')}
+        </Text>
+      </View>
     </Card>
   );
 }
