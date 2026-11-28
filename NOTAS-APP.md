@@ -4914,6 +4914,10 @@ Fluxos temporários do Maestro e prints ficaram fora do repositório.
 | ➕ **Aviso real de app de risco** | ✅ A Calculadora como app de risco do conteúdo adulto, com "Não" para o consumo declarado. Aberta pelo `adb` às 11:51:09; aviso às 12:01:16 (`limit_reached`; notificação 3088, canal de alertas, "Momento de pausa · Você já passou um tempo aqui hoje. Que tal parar um pouco?", `vis=SECRET` com versão pública). Mais 2 minutos no app: **nenhuma tela de interrupção** (doc 01, 6.5.6). Estatísticas: "1 aviso por notificação", "Nenhuma tela de interrupção até agora" e a barra às 12h ("12 horas: 1 aviso e nenhuma tela"). `monitoring_alerts`: 1 linha `risk_app`, com o app. A lista voltou a Reddit e X (com "Sim") e a configuração do nativo, sem a Calculadora. **A linha do aviso fica no banco** (é a evidência; tirá-la exigiria escrever no banco) |
 | **P8** | ✅ "Simular uma streak" de **30** dias (para não mexer no 14 real de 29/11) e "Disparar marco"; app em segundo plano e tela bloqueada pelo `adb` (`keyevent 26` e `224`). Tela bloqueada: as notificações do Quedo aparecem só como "Quedo · Você tem um lembrete." (marco, aviso de app de risco e o de 11:35, do P11) e "Proteção ativa.". Depois do desbloqueio (pelo responsável): "Um novo marco · Você chegou a um novo marco…". O toque abriu o app direto na celebração "Você chegou a 30 dias", e a notificação saiu da cortina. Desfeito: banco idêntico à foto de partida, menos o aviso do item acima |
 
+**Prints aprovados pelo responsável (28/11):** sete painéis (P13, P11, P5, P7, P8 e o aviso do app
+de risco), com as cortinas de notificação recortadas só no Quedo, sem notificações pessoais de
+outros apps. Ficaram fora do repositório.
+
 **Ajustes do aparelho devolvidos:** tema escuro, fonte em 1.3, nenhum serviço de acessibilidade,
 acesso ao uso concedido. A "tela sempre acesa com o cabo" já estava ligada (valor 15) e não foi
 mudada.
