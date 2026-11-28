@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
-import type { ColorValue } from 'react-native';
+import { Text, type ColorValue } from 'react-native';
 
 import { useMilestoneCelebrations } from '@/features/milestones/useMilestoneCelebrations';
 import { useTheme } from '@/ui';
@@ -12,6 +12,24 @@ function tabIcon(name: SymbolViewProps['name']) {
     return <SymbolView name={name} tintColor={color} size={size} />;
   }
   return TabIcon;
+}
+
+/**
+ * Rótulo da aba numa linha só, que diminui para caber em vez de ser cortado
+ * com reticências quando a fonte do sistema está grande (P13, 28/11/2026). O
+ * nome lido pelo leitor de tela não muda: é o título da aba.
+ */
+function TabLabel({ color, children }: { color: ColorValue; children: string }) {
+  return (
+    <Text
+      numberOfLines={1}
+      adjustsFontSizeToFit
+      minimumFontScale={0.5}
+      style={{ color, fontSize: 12, textAlign: 'center' }}
+    >
+      {children}
+    </Text>
+  );
 }
 
 export default function TabsLayout() {
@@ -31,6 +49,7 @@ export default function TabsLayout() {
           borderTopColor: theme.colors.divider,
         },
         sceneStyle: { backgroundColor: theme.colors.background },
+        tabBarLabel: TabLabel,
       }}
     >
       <Tabs.Screen

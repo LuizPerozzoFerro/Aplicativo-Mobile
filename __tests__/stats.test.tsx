@@ -239,6 +239,30 @@ describe('aba Estatísticas', () => {
     );
   });
 
+  it('o filtro só mostra apps com nome conhecido, nunca o nome técnico (P13)', async () => {
+    const videos = addVideos(5);
+    // Um app que saiu do aparelho tem uso no histórico, mas não está na lista do sistema.
+    importUsage(videos.id, {
+      0: [
+        [9, 20, CLIPS],
+        [9, 7, 'com.example.gone'],
+      ],
+    });
+    await renderRouter(APP_DIR, { initialUrl: '/stats' });
+    expect(await screen.findByTestId('stats-daily')).toHaveAccessibleName(/Hoje: 27 minutos/);
+    // Um só app com nome: sem filtro, e o nome técnico não aparece em lugar nenhum.
+    expect(screen.queryByTestId('stats-app-filter')).toBeNull();
+    expect(screen.queryByText(/com\.example/)).toBeNull();
+  });
+
+  it('o rótulo da aba diminui para caber, numa linha, em vez de ser cortado (P13)', async () => {
+    await renderRouter(APP_DIR, { initialUrl: '/stats' });
+    const tab = await screen.findByRole('tab', { name: 'Estatísticas' });
+    const label = within(tab).getByText('Estatísticas');
+    expect(label).toHaveProp('numberOfLines', 1);
+    expect(label).toHaveProp('adjustsFontSizeToFit', true);
+  });
+
   it('sem o acesso ao uso: os minutos mostram o motivo e o botão; o resto continua', async () => {
     mockMonitoring = new FakeMonitoringModule();
     const videos = addVideos(5);

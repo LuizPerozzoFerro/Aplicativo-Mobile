@@ -189,7 +189,17 @@ function UsageCard({
 }) {
   const { t } = useTranslation('stats');
   const { short, spoken, describe } = useDurations();
-  const { labelOf } = useAppTargets();
+  const { targets } = useAppTargets();
+  // Só os apps com nome conhecido entram no filtro: enquanto a lista do sistema
+  // carrega, ou para um app que saiu do aparelho, o nome técnico nunca aparece
+  // (P13, 28/11/2026). O uso deles continua no total.
+  const appOptions =
+    targets === null
+      ? []
+      : stats.apps.flatMap((app) => {
+          const label = targets.find((target) => (target.id as string) === app)?.label;
+          return label ? [{ value: app, label }] : [];
+        });
   const limit = stats.dailyLimitMinutes;
 
   const dayLabel = (dayKey: string, index: number) =>
@@ -253,15 +263,12 @@ function UsageCard({
       <Text variant="heading" accessibilityRole="header">
         {t('usage.title')}
       </Text>
-      {stats.apps.length > 1 ? (
+      {appOptions.length > 1 ? (
         <ChipGroup
           testID="stats-app-filter"
           label={t('usage.appFilterLabel')}
           mode="single"
-          options={[
-            { value: ALL_APPS, label: t('usage.allApps') },
-            ...stats.apps.map((app) => ({ value: app, label: labelOf(app) })),
-          ]}
+          options={[{ value: ALL_APPS, label: t('usage.allApps') }, ...appOptions]}
           selected={[stats.appPackage ?? ALL_APPS]}
           onChange={([value]) => {
             if (value !== undefined) onAppChange(value === ALL_APPS ? null : value);
