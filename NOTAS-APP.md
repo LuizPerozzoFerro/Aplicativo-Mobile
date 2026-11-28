@@ -26,7 +26,10 @@ do protótipo continua em `prototype/NOTAS.md`.
 - **Passo 8, parte 1 (ferramenta "Simular uma streak" e fluxos Maestro g, h e i)** integrado
   (PR #44). Seção "Fase 5 · Passo 8".
 - **Roteiro P1 a P15 aprovado em blocos** (26/11/2026). Seção "Fase 5 · Roteiro aprovado".
-- **Próximo: bloco A em 27/11**, quando o responsável conectar o S22.
+- **Bloco A feito em 28/11** (todos os itens ok; duas correções do P13). Resultados na seção
+  "Fase 5 · Roteiro aprovado".
+- **Próximo: bloco B**, noite de 28/11 → manhã de 29/11 (marco real de 14 dias do conteúdo
+  adulto às 9h e P10).
 - **Pendências para a Fase 8 (teste fechado):** chamada pela internet (Teams) com a tela de
   interrupção aberta e a medição oficial de bateria num build de loja.
 
@@ -4807,7 +4810,7 @@ Metro (sem código nativo novo desde o passo 6). Conteúdo adulto (streak de 11 
 15/11) e vídeos curtos (15 dias, desde 11/11; ponto de partida "a partir de 03/12/2026").
 Catálogo em uso: versão 2, do `r2.dev`.
 
-### Bloco A · Dados atuais (27/11, pelo cabo, ~30 min)
+### Bloco A · Dados atuais (feito em 28/11, pelo cabo)
 
 - **P6:** tocar na área da streak de cada card do Início abre o Progresso filtrado.
 - **P13:** tema escuro e claro, fonte no máximo e TalkBack no Progresso, no detalhe do marco e
@@ -4828,23 +4831,29 @@ Catálogo em uso: versão 2, do `r2.dev`.
   "Avisos dos apps de risco" e a linha em `monitoring_alerts` (cópia de leitura do banco). No
   fim, voltar a lista de apps de risco ao que era.
 
-### Bloco B · Noite de 27/11 → manhã de 28/11
+### Bloco B · Noite de 28/11 → manhã de 29/11 (datas ajustadas: o bloco A foi em 28/11)
 
-- **Notificação de marco às 9h com o app fechado** (pendência do passo 5): à noite, simular 6 dias
-  no adulto e fechar o app. Às 9h (ou no primeiro desbloqueio depois disso) chega a notificação
-  do 7, neutra. De manhã, desfazer a simulação.
-- **P10:** em 27/11, usar vídeos curtos sem passar do limite (dia sem telas de interrupção). Em
-  28/11, comparar os totais do dia e de cada app nas Estatísticas com o "Tempo de uso" do Android
-  (tolerância de 1 minuto por app).
+- **Notificação de marco às 9h com o app fechado** (pendência do passo 5), **com um marco real**: o
+  conteúdo adulto (base em 15/11) chega a 14 dias em 29/11. Sem simulação: o S22 fica longe do
+  cabo e o app não é aberto antes das 9h. Às 9h (ou no primeiro desbloqueio depois disso) chega
+  a notificação, neutra na tela bloqueada. Conferência no cabo: `dumpsys notification`, a
+  celebração ao abrir o app e o estado das notificações no nativo.
+- **P10:** em 28/11, usar os vídeos curtos sem chegar ao limite de 1 h (dia sem telas de
+  interrupção). Em 29/11, no cabo, comparar os totais do dia e de cada app nas Estatísticas com o
+  "Tempo de uso" do Android (Bem-estar digital), com tolerância de 1 minuto por app.
+- Se o check-in das 21h for respondido com "Tive uma recaída" (resposta verdadeira, nunca de
+  teste), 29/11 vira dia de recomeço: sai o recomeço no lugar do marco, e isso também é
+  conferido (P9).
 
-### Bloco C · Noite de 28/11 → 29/11
+### Bloco C · Noite de 29/11 → 30/11
 
-- **P7b e P9:** à noite, simular 6 dias no adulto; responder "Tive uma recaída" pela notificação
-  do check-in, com o app fechado. Em 29/11: só a notificação de recomeço, nenhuma de marco;
-  "Disparar marco" não sai com a streak antiga (o nativo usa a quebra que viu).
+- **P7b e P9:** em 29/11, no cabo, simular 6 dias no adulto; à noite, longe do cabo, responder
+  "Tive uma recaída" pela notificação do check-in, com o app fechado. Em 30/11: só a notificação
+  de recomeço, nenhuma de marco; "Disparar marco" não sai com a streak antiga (o nativo usa a
+  quebra que viu).
 - **P9, segundo caso:** registrar uma recaída para ontem: nenhuma notificação de marco nem
   celebração do 1 dia.
-- No fim, desfazer a simulação e as recaídas de teste.
+- No fim, desfazer a simulação e as recaídas de teste ("Desfazer" do card para ontem).
 
 ### Bloco D · Conteúdo (qualquer dia)
 
@@ -4886,7 +4895,46 @@ Catálogo em uso: versão 2, do `r2.dev`.
 
 ### Resultados
 
-(Preenchido bloco a bloco.)
+#### Bloco A (28/11, 11:13 a 12:15, pelo cabo)
+
+**Como foi feito (decisão do responsável, 28/11):** depois do P6 e da primeira parte do P13, tudo
+pelo `adb` e pelo Maestro, sem pedir toques no aparelho; o responsável só desbloqueou o S22. Nada
+foi escrito no banco pelo `adb`: os dados mudaram só pelas telas e ferramentas do app. Uma cópia
+**só de leitura** do banco no começo (a "foto de partida") serviu para conferir cada "Desfazer".
+Fluxos temporários do Maestro e prints ficaram fora do repositório.
+
+| Item | Resultado |
+|---|---|
+| **P6** | ✅ A área da streak de cada card abre o Progresso filtrado (vídeos curtos: linha do tempo "B", próximo marco 30) |
+| **P13, tema claro e fonte no máximo** (`font_scale` 2.0) | ✅ Progresso, detalhe e todos os cartões das Estatísticas inteiros; gráficos, legenda e filtro por app quebram a linha. **Dois defeitos, corrigidos neste PR** (abaixo) |
+| **P13, TalkBack** | ✅ pela árvore de acessibilidade (Maestro), como o responsável aceitou: cada gráfico é anunciado como um texto só ("Uso por dia nos últimos 7 dias. Limite diário: 1 hora. dom., 22/11: 27 minutos; …; Hoje: zero minutos."; "Média de uso por hora. 5 horas: zero minutos, faixa de gatilho; 17 horas: 4 minutos; …"); marcos como "14 dias, Marco de teste A: 14 dias · Próximo"; detalhe com título, texto, "Disponível ao chegar a 14 dias" e a referência como botão. O TalkBack ligou e desligou pelo `adb` (`enabled_accessibility_services`) sem erro no app. **Limite:** neste S22, toques, teclas (Alt + seta) e gestos injetados pelo `adb` não movem o foco do TalkBack, então a fala em si não foi observada. TalkBack desligado e conferido (`touchExplorationEnabled=false`) |
+| **P11** | ✅ Acesso ao uso tirado pelo `appops` (`GET_USAGE_STATS ignore`): "Minutos indisponíveis" com o motivo e "Ver o que fazer"; alertas, dias, sequências e geral continuam; o botão abre Permissões ("Parado: falta permitir o acesso a dados de uso"). Devolvido (`allow`): uso de volta e "Acompanhamento: Ativo" |
+| **P5 com o selo** | ✅ "Simular uma streak" de 3 dias nos vídeos curtos: "Você chegou **de novo** a 3 dias" ao voltar às abas, detalhe com "Assistir ao vídeo", selo "Conteúdo gerado com IA" e o vídeo de teste tocando ("B · 3 dias", pelo `r2.dev`). Desfeito: banco idêntico à foto de partida |
+| **P7** | ✅ Recaída de hoje pelo card: 0 dias e a mensagem de apoio; linha do tempo com o 1 "Próximo · alcançado antes" e o 3 e o 7 "Alcançado antes"; o detalhe do 7 continua com "Assistir ao vídeo" durante a quebra. Simulação de 7 dias: "Você chegou **de novo** a 7 dias". Desfeitos a simulação e a recaída ("Desfazer" do card): banco idêntico; no nativo, bases de volta (15/11 e 11/11) e nenhum recomeço agendado (`restartDayKeys: []`) |
+| ➕ **Aviso real de app de risco** | ✅ A Calculadora como app de risco do conteúdo adulto, com "Não" para o consumo declarado. Aberta pelo `adb` às 11:51:09; aviso às 12:01:16 (`limit_reached`; notificação 3088, canal de alertas, "Momento de pausa · Você já passou um tempo aqui hoje. Que tal parar um pouco?", `vis=SECRET` com versão pública). Mais 2 minutos no app: **nenhuma tela de interrupção** (doc 01, 6.5.6). Estatísticas: "1 aviso por notificação", "Nenhuma tela de interrupção até agora" e a barra às 12h ("12 horas: 1 aviso e nenhuma tela"). `monitoring_alerts`: 1 linha `risk_app`, com o app. A lista voltou a Reddit e X (com "Sim") e a configuração do nativo, sem a Calculadora. **A linha do aviso fica no banco** (é a evidência; tirá-la exigiria escrever no banco) |
+| **P8** | ✅ "Simular uma streak" de **30** dias (para não mexer no 14 real de 29/11) e "Disparar marco"; app em segundo plano e tela bloqueada pelo `adb` (`keyevent 26` e `224`). Tela bloqueada: as notificações do Quedo aparecem só como "Quedo · Você tem um lembrete." (marco, aviso de app de risco e o de 11:35, do P11) e "Proteção ativa.". Depois do desbloqueio (pelo responsável): "Um novo marco · Você chegou a um novo marco…". O toque abriu o app direto na celebração "Você chegou a 30 dias", e a notificação saiu da cortina. Desfeito: banco idêntico à foto de partida, menos o aviso do item acima |
+
+**Ajustes do aparelho devolvidos:** tema escuro, fonte em 1.3, nenhum serviço de acessibilidade,
+acesso ao uso concedido. A "tela sempre acesa com o cabo" já estava ligada (valor 15) e não foi
+mudada.
+
+**Correções do P13 (neste PR, pedidas pelo responsável):**
+1. **Rótulo das abas:** com a fonte no máximo, aparecia "Estatísti..." e "Progres...". Agora o
+   rótulo fica numa linha e diminui para caber (`adjustsFontSizeToFit`, até 50%). O nome lido pelo
+   leitor de tela não muda. Conferido no S22 (os dois rótulos inteiros).
+2. **Filtro por app das Estatísticas:** por cerca de 1 segundo, enquanto a lista de apps do
+   sistema carregava, apareciam os nomes técnicos ("com.twitter.android"…). Agora só entram no
+   filtro os apps com nome conhecido; um app que saiu do aparelho também fica de fora (o uso
+   dele continua no total).
+3. Testes: 1073 no Jest (dois novos); `lint`, `typecheck` e `format:check` ok.
+
+**Achados para a Fase 8 e depois:**
+- A tela bloqueada do S22 está configurada para mostrar só ícones; a versão pública das
+  notificações aparece ao abrir a cortina sem desbloquear.
+- O Maestro guarda os prints em `~/.maestro/tests/<execução>/`, não no caminho do
+  `takeScreenshot`.
+- No Maestro, `scrollUntilVisible` espera o elemento 100% visível: com a fonte no máximo, os
+  gráficos são mais altos que a tela e precisam de `visibilityPercentage`.
 
 ## Problemas
 
